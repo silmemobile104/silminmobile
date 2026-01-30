@@ -1035,6 +1035,9 @@
                                         <th
                                             class="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                                             สถานะ</th>
+                                        <th
+                                            class="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            จัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody id="branch-order-table-body"
@@ -2346,6 +2349,7 @@
                         <!-- Basic Info -->
                         <div class="space-y-5">
                             <div>
+                                <input type="hidden" id="bo-id">
                                 <label
                                     class="block text-sm font-bold text-slate-700 mb-2 ml-1">ชื่อรายการสั่งซื้อ</label>
                                 <input type="text" id="bo-order-name" class="form-input-theme"
@@ -2569,6 +2573,18 @@
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-sm font-bold text-slate-600">สถานะปัจจุบัน:</span>
                         <span id="detail-current-status" class="px-3 py-1 rounded-full text-xs font-bold">...</span>
+                    </div>
+
+                    <div id="detail-manage-actions"
+                        class="grid grid-cols-2 gap-3 mb-4 hidden border-b border-slate-100 pb-4">
+                        <button id="btn-detail-edit" onclick="handleDetailEditClick()"
+                            class="col-span-1 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center gap-2">
+                            <ion-icon name="create-outline"></ion-icon> แก้ไขข้อมูล
+                        </button>
+                        <button id="btn-detail-delete" onclick="handleDetailDeleteClick()"
+                            class="col-span-1 py-3 rounded-xl bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2">
+                            <ion-icon name="trash-outline"></ion-icon> ลบรายการ
+                        </button>
                     </div>
 
                     <div id="detail-actions-container" class="grid grid-cols-2 gap-3">
@@ -2799,11 +2815,17 @@
                             placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea>
                     </div>
 
-                    <div class="pt-4 flex justify-end gap-3">
-                        <button type="button" onclick="closeModal('purchasingModal')"
-                            class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100">ยกเลิก</button>
-                        <button type="submit"
-                            class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-600/30">บันทึกสถานะ</button>
+                    <div class="pt-4 flex justify-between items-center">
+                        <button type="button" onclick="deletePurchasingOrder(document.getElementById('pur-id').value)"
+                            class="p-2.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95 group">
+                            <ion-icon name="trash-outline" class="text-xl"></ion-icon>
+                        </button>
+                        <div class="flex gap-3">
+                            <button type="button" onclick="closeModal('purchasingModal')"
+                                class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100">ยกเลิก</button>
+                            <button type="submit"
+                                class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-600/30">บันทึกสถานะ</button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -4504,9 +4526,13 @@
                         ` : ''}
                     </div>
 
-                    <div class="mt-4 pt-4 border-t border-slate-100 flex justify-end pl-3">
+                    <div class="mt-4 pt-4 border-t border-slate-100 flex justify-end items-center gap-2 pl-3">
+                        <button onclick="deletePurchasingOrder('${d._id}')" 
+                            class="p-2.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95 group shrink-0">
+                            <ion-icon name="trash-outline" class="text-xl"></ion-icon>
+                        </button>
                         <button onclick='openPurchasingModal(${dataString})' 
-                            class="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-slate-800/20 active:scale-95">
+                            class="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-slate-800/20 active:scale-95">
                             <ion-icon name="create-outline"></ion-icon> อัปเดตสถานะ
                         </button>
                     </div>
@@ -4610,6 +4636,28 @@
                 document.getElementById(`card-filter-${s}`).classList.remove('ring-2', 'ring-offset-2', 'ring-blue-400', 'bg-slate-50');
             });
             document.getElementById('active-filter-indicator').classList.add('hidden');
+        }
+
+        async function deletePurchasingOrder(id) {
+            if (!confirm('ยืนยันการลบรายการจองเครื่องนี้?')) return;
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch(`${SERVER_URL}/deposits/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    showToast('ลบรายการสำเร็จ');
+                    if (document.getElementById('purchasingModal').classList.contains('active')) {
+                        closeModal('purchasingModal');
+                    }
+                    fetchPurchasingOrders();
+                } else {
+                    alert('ลบไม่สำเร็จ');
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
         }
 
 
@@ -5371,8 +5419,10 @@
                         const supplier = item.details?.supplier || '-';
                         const desc = item.details?.description || '-';
 
-                        // Check Delete Permission (Own branch OR not staff)
-                        const canDelete = !isStaff || (currentUser?.branch === item.branch);
+                        // Permissions logic for this item
+                        const isOwner = currentUser?.branch === item.branch;
+                        const canEditInfo = !isSalesTeam && (!isStaff || isStockUser || isOwner);
+                        const canDelete = !isStaff || isStockUser || isOwner;
 
                         // File
                         const fileCount = item.files ? item.files.length : 0;
@@ -5389,7 +5439,7 @@
                                 const colorClass = isExcel ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100' : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100';
 
                                 fileLink += `
-                                    <a href="${finalUrl}" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg ${colorClass} transition-colors text-xs font-bold">
+                                    <a href="${finalUrl}" target="_blank" onclick="event.stopPropagation()" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg ${colorClass} transition-colors text-xs font-bold">
                                         <ion-icon name="${icon}"></ion-icon> ${label}
                                     </a>`;
                             });
@@ -5400,25 +5450,24 @@
 
                         // Status Badge Logic
                         const statusBadge = getStockStatusBadge(item.status);
-                        let statusHtml = '';
-                        if (canUpdate) {
-                            statusHtml = `<button onclick="openStatusModal('${item._id}', '${item.status}')" class="hover:scale-105 active:scale-95 transition-transform">${statusBadge}</button>`;
-                        } else {
-                            statusHtml = `<div class="cursor-default opacity-90">${statusBadge}</div>`;
-                        }
 
-                        // Delete Button Logic
-                        let deleteHtml = '';
+                        // Action Buttons Logic
+                        let actionsHtml = `<div class="flex items-center justify-end gap-1">`;
+                        if (canEditInfo) {
+                            actionsHtml += `<button onclick="event.stopPropagation(); openEditPhoneModal('${item._id}')" class="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all" title="แก้ไขข้อมูล">
+                                    <ion-icon name="create-outline" class="text-lg"></ion-icon>
+                                </button>`;
+                        }
                         if (canDelete) {
-                            deleteHtml = `<button onclick="deleteImportRequest('${item._id}')" class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all" title="ลบรายการ">
+                            actionsHtml += `<button onclick="event.stopPropagation(); deleteImportRequest('${item._id}')" class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all" title="ลบรายการ">
                                     <ion-icon name="trash-outline" class="text-lg"></ion-icon>
                                 </button>`;
-                        } else {
-                            deleteHtml = `<span class="w-8 h-8 block"></span>`;
                         }
+                        actionsHtml += `</div>`;
 
                         const tr = document.createElement('tr');
-                        tr.className = "hover:bg-slate-50/80 transition-colors border-b border-slate-50 last:border-0 group";
+                        tr.className = "hover:bg-slate-50/80 transition-colors border-b border-slate-50 last:border-0 group cursor-pointer";
+                        tr.onclick = () => openImportDetailModal(item);
                         tr.innerHTML = `
                             <td class="px-6 py-4">
                                 <span class="text-sm font-bold text-slate-600">${date}</span>
@@ -5450,10 +5499,10 @@
                             </td>
                             <td class="px-6 py-4 text-sm">${fileLink}</td>
                             <td class="px-6 py-4 text-center">
-                                ${statusHtml}
+                                ${canUpdate ? `<button onclick="event.stopPropagation(); openStatusModal('${item._id}', '${item.status}')" class="hover:scale-105 active:scale-95 transition-transform">${statusBadge}</button>` : `<div class="cursor-default opacity-90">${statusBadge}</div>`}
                             </td>
                              <td class="px-6 py-4 text-right">
-                                ${deleteHtml}
+                                ${actionsHtml}
                             </td>
                         `;
                         phoneTbody.appendChild(tr);
@@ -5506,8 +5555,20 @@
                                 <p class="text-sm text-slate-500 mb-4 flex items-center gap-1">
                                     <ion-icon name="person-circle-outline"></ion-icon> ${item.createdBy?.name || '-'}
                                 </p>
-                                <div class="mt-auto flex items-center justify-between pt-4 border-t border-slate-50">
-                                   ${statusBadge}
+                                 <div class="mt-auto flex items-center justify-between pt-4 border-t border-slate-50">
+                                   <div class="flex items-center gap-2">
+                                       ${statusBadge}
+                                       ${!isSalesTeam && (!isStaff || isStockUser || currentUser?.branch === item.branch) ? `
+                                           <button onclick="event.stopPropagation(); openEditAccModal('${item._id}')" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-blue-500 hover:text-white transition-colors" title="แก้ไข">
+                                               <ion-icon name="create-outline"></ion-icon>
+                                           </button>
+                                       ` : ''}
+                                       ${!isStaff || isStockUser || (isStaff && currentUser?.branch === item.branch) ? `
+                                           <button onclick="event.stopPropagation(); deleteImportRequest('${item._id}')" class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-red-500 hover:text-white transition-colors" title="ลบ">
+                                               <ion-icon name="trash-outline"></ion-icon>
+                                           </button>
+                                       ` : ''}
+                                   </div>
                                    <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                                         <ion-icon name="arrow-forward"></ion-icon>
                                    </div>
@@ -5776,15 +5837,30 @@
                 targetImportId = item._id;
 
                 // ACTIONS VISIBILITY
+                const isStaff = currentUser?.role === 'staff';
+                const userDept = (currentUser?.department || '').toLowerCase();
+                const isSalesTeam = userDept.includes('ขาย') || userDept.includes('sales');
+                const isStockUser = userDept.includes('stock') ||
+                    userDept.includes('store') ||
+                    userDept.includes('สต๊อก');
+                const isOwner = currentUser?.branch === item.branch;
+
+                const manageContainer = document.getElementById('detail-manage-actions');
+                if (manageContainer) {
+                    const canEdit = !isSalesTeam && (!isStaff || isStockUser || isOwner);
+                    const canDelete = !isStaff || isStockUser || isOwner;
+
+                    if (canEdit || canDelete) {
+                        manageContainer.classList.remove('hidden');
+                        document.getElementById('btn-detail-edit').classList.toggle('hidden', !canEdit);
+                        document.getElementById('btn-detail-delete').classList.toggle('hidden', !canDelete);
+                    } else {
+                        manageContainer.classList.add('hidden');
+                    }
+                }
+
                 const actionsContainer = document.getElementById('detail-actions-container');
                 if (actionsContainer) {
-                    const isStaff = currentUser?.role === 'staff';
-                    const userDept = (currentUser?.department || '').toLowerCase();
-                    const isSalesTeam = userDept.includes('ขาย') || userDept.includes('sales');
-                    const isStockUser = userDept.includes('stock') ||
-                        userDept.includes('store') ||
-                        userDept.includes('สต๊อก');
-
                     if (isSalesTeam || (isStaff && !isStockUser)) {
                         actionsContainer.classList.add('hidden');
                     } else {
@@ -5862,6 +5938,26 @@
 
                 openModal('stockDetailModal');
             }
+
+            window.handleDetailEditClick = function () {
+                if (!currentDetailItem) return;
+                const id = currentDetailItem._id;
+                const type = currentDetailItem.type;
+
+                closeModal('stockDetailModal');
+                if (type === 'phone') {
+                    openEditPhoneModal(id);
+                } else {
+                    openEditAccModal(id);
+                }
+            };
+
+            window.handleDetailDeleteClick = function () {
+                if (!currentDetailItem) return;
+                const id = currentDetailItem._id;
+                deleteImportRequest(id);
+                closeModal('stockDetailModal');
+            };
 
             async function updateStockStatusFromModal(newStatus) {
                 if (!targetImportId) return;
@@ -5949,6 +6045,7 @@
                             showToast(editId ? 'อัปเดตข้อมูลสำเร็จแล้ว!' : 'แจ้งนำเข้าไฟล์ Excel สำเร็จแล้ว!');
                             closeModal('phoneImportModal');
                             fetchImportRequests();
+                            if (typeof fetchStockImports === 'function') fetchStockImports();
                         } else {
                             const err = await res.json();
                             showToast('Error: ' + err.message, 'error');
@@ -6131,6 +6228,7 @@
 
                         closeModal('accImportModal');
                         fetchImportRequests();
+                        if (typeof fetchStockImports === 'function') fetchStockImports();
                     } else {
                         const err = await res.json();
                         alert('Error: ' + err.message);
@@ -6798,11 +6896,23 @@
                             ` : ''}
                         </td>
                         <td class="px-8 py-6 align-top text-right">
-                            <button onclick='openManageRequestModal(${JSON.stringify(req)})' 
-                                class="inline-flex items-center gap-2.5 px-5 py-3.5 bg-white border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 rounded-2xl text-xs font-black transition-all shadow-sm hover:shadow-xl active:scale-95 group/btn">
-                                <ion-icon name="cog-outline" class="text-lg group-hover/btn:rotate-90 transition-transform duration-500"></ion-icon>
-                                <span>จัดการชุดเบิก</span>
-                            </button>
+                            <div class="flex items-center justify-end gap-2">
+                                <button onclick='editStockRequestManage(${JSON.stringify(req)})' 
+                                    class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-amber-100 group/edit"
+                                    title="แก้ไขรายละเอียด">
+                                    <ion-icon name="pencil-outline" class="text-lg"></ion-icon>
+                                </button>
+                                <button onclick="deleteStockRequestManage('${req._id}')" 
+                                    class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-rose-100 group/del"
+                                    title="ลบรายการ">
+                                    <ion-icon name="trash-outline" class="text-lg"></ion-icon>
+                                </button>
+                                <button onclick='openManageRequestModal(${JSON.stringify(req)})' 
+                                    class="inline-flex items-center gap-2.5 px-5 py-2.5 bg-white border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 rounded-xl text-xs font-black transition-all shadow-sm hover:shadow-xl active:scale-95 group/btn">
+                                    <ion-icon name="cog-outline" class="text-lg group-hover/btn:rotate-90 transition-transform duration-500"></ion-icon>
+                                    <span>จัดการ</span>
+                                </button>
+                            </div>
                         </td>
                     `;
                     container.appendChild(tr);
@@ -6812,6 +6922,23 @@
             window.openStockRequestModal = function () {
                 const titleInput = document.getElementById('stock-request-title');
                 const noteInput = document.getElementById('stock-request-note');
+                const submitBtn = document.querySelector('#stockRequestModal button[onclick^="updateStockRequestFull"]');
+                const modalTitle = document.querySelector('#stockRequestModal h3');
+
+                // Reset UI to Create Mode
+                if (modalTitle) modalTitle.innerHTML = '<ion-icon name="add-circle"></ion-icon> แจ้งเบิกสินค้าใหม่';
+                if (submitBtn) {
+                    submitBtn.innerText = 'บันทึกแจ้งเบิก';
+                    submitBtn.setAttribute('onclick', 'submitStockRequest()');
+                } else {
+                    // Fallback if button selectors fail, reset standard button just in case
+                    const btn = document.querySelector('#stockRequestModal button[type="submit"]') || document.querySelector('#stockRequestModal button.bg-indigo-600');
+                    if (btn) {
+                        btn.innerText = 'บันทึกแจ้งเบิก';
+                        btn.setAttribute('onclick', 'submitStockRequest()');
+                    }
+                }
+
                 if (titleInput) titleInput.value = '';
                 if (noteInput) noteInput.value = '';
 
@@ -6847,6 +6974,124 @@
                 if (row) row.remove();
                 if (document.getElementById('stock-request-items-container').children.length === 0) {
                     addStockRequestItemRow();
+                }
+            };
+
+            window.editStockRequestManage = function (req) {
+                // Reuse the request creation modal but in "Edit" mode
+                const titleInput = document.getElementById('stock-request-title');
+                const noteInput = document.getElementById('stock-request-note');
+                const itemsContainer = document.getElementById('stock-request-items-container');
+                const submitBtn = document.querySelector('#stockRequestModal button[onclick="submitStockRequest()"]');
+                const modalTitle = document.querySelector('#stockRequestModal h3');
+
+                // Set Data
+                if (titleInput) titleInput.value = req.title || '';
+                if (noteInput) noteInput.value = req.note || '';
+
+                // Items
+                itemsContainer.innerHTML = '';
+                if (req.items && req.items.length > 0) {
+                    req.items.forEach(item => {
+                        const rowId = `request-row-${Date.now()}-${Math.random()}`;
+                        const div = document.createElement('div');
+                        div.id = rowId;
+                        div.className = "grid grid-cols-12 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 animate-fade-in";
+                        div.innerHTML = `
+                            <div class="col-span-8">
+                                <input type="text" class="request-item-name form-input-theme w-full" placeholder="ชื่อสินค้า..." value="${item.productName || item.name}" required>
+                            </div>
+                            <div class="col-span-3">
+                                <input type="number" class="request-item-qty form-input-theme w-full text-center" value="${item.quantity}" min="1" required>
+                            </div>
+                            <div class="col-span-1 flex items-center justify-center">
+                                <button type="button" onclick="removeStockRequestItemRow('${rowId}')" class="text-slate-300 hover:text-red-500 transition-colors">
+                                    <ion-icon name="close-circle" class="text-xl"></ion-icon>
+                                </button>
+                            </div>
+                        `;
+                        itemsContainer.appendChild(div);
+                    });
+                } else {
+                    addStockRequestItemRow();
+                }
+
+                // Customize Modal for Edit
+                if (modalTitle) modalTitle.innerHTML = '<ion-icon name="create-outline"></ion-icon> แก้ไขรายการเบิก';
+                if (submitBtn) {
+                    submitBtn.innerText = 'บันทึกการแก้ไข';
+                    submitBtn.setAttribute('onclick', `updateStockRequestFull('${req._id}')`);
+                }
+
+                openModal('stockRequestModal');
+            };
+
+            window.updateStockRequestFull = async function (id) {
+                const title = document.getElementById('stock-request-title').value;
+                const rows = document.querySelectorAll('#stock-request-items-container > div');
+                const items = Array.from(rows).map(row => ({
+                    productName: row.querySelector('.request-item-name').value,
+                    quantity: parseInt(row.querySelector('.request-item-qty').value)
+                }));
+                const note = document.getElementById('stock-request-note').value;
+
+                if (!title) return showToast('กรุณาระบุชื่อรายการ', 'warning');
+                if (items.length === 0) return showToast('กรุณาระบุสินค้าอย่างน้อย 1 รายการ', 'warning');
+
+                try {
+                    const res = await fetch(`${SERVER_URL}/stock-requests/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({ title, items, note })
+                    });
+
+                    if (res.ok) {
+                        showToast('แก้ไขรายการสำเร็จ');
+                        closeModal('stockRequestModal');
+                        // Refresh based on current view
+                        const manageView = document.getElementById('stock-request-manage-view');
+                        if (manageView && !manageView.classList.contains('hidden')) {
+                            fetchManageStockRequests();
+                        } else {
+                            fetchStockRequests();
+                        }
+
+                        // Reset Modal to Create Mode
+                        const submitBtn = document.querySelector('#stockRequestModal button[onclick^="updateStockRequestFull"]');
+                        if (submitBtn) {
+                            submitBtn.innerText = 'บันทึกแจ้งเบิก';
+                            submitBtn.setAttribute('onclick', 'submitStockRequest()');
+                        }
+                    } else {
+                        const err = await res.json();
+                        showToast(err.message || 'แก้ไขไม่สำเร็จ', 'error');
+                    }
+                } catch (e) {
+                    showToast('Error: ' + e.message, 'error');
+                }
+            };
+
+            window.deleteStockRequestManage = async function (id) {
+                if (!confirm('ยืนยันที่จะลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้')) return;
+
+                try {
+                    const res = await fetch(`${SERVER_URL}/stock-requests/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    });
+
+                    if (res.ok) {
+                        showToast('ลบรายการเรียบร้อยแล้ว');
+                        fetchManageStockRequests();
+                    } else {
+                        const err = await res.json();
+                        showToast(err.message || 'ลบไม่สำเร็จ', 'error');
+                    }
+                } catch (e) {
+                    showToast('Error: ' + e.message, 'error');
                 }
             };
 
@@ -7948,7 +8193,7 @@
             const container = document.getElementById('phone-items-container');
             const emptyState = document.getElementById('phone-items-empty');
             if (emptyState) emptyState.classList.add('hidden');
-                
+
             const rowId = `phone-row-${Date.now()}`;
             const div = document.createElement('div');
             div.className = "grid grid-cols-12 gap-3 p-3 bg-white rounded-xl border border-slate-100 shadow-sm animate-fade-in relative group items-end";
@@ -8168,7 +8413,7 @@
                 event.target.classList.remove('active');
             }
         });
-        window.addBranchOrderItemRow = function () {
+        window.addBranchOrderItemRow = function (name = '', qty = 1, tracking = '') {
             const container = document.getElementById('bo-items-container');
             const rowId = 'bo-item-' + Date.now() + Math.random().toString(36).substr(2, 5);
 
@@ -8177,13 +8422,13 @@
             div.id = rowId;
             div.innerHTML = `
                 <div class="flex-[2]">
-                    <input type="text" name="bo-product-name" placeholder="ชื่อสินค้า" class="form-input-theme text-sm" required>
+                    <input type="text" name="bo-product-name" value="${name}" placeholder="ชื่อสินค้า" class="form-input-theme text-sm" required>
                 </div>
                 <div class="w-16">
-                    <input type="number" name="bo-quantity" value="1" min="1" class="form-input-theme text-sm text-center px-1" placeholder="จำนวน" required>
+                    <input type="number" name="bo-quantity" value="${qty}" min="1" class="form-input-theme text-sm text-center px-1" placeholder="จำนวน" required>
                 </div>
                 <div class="flex-1">
-                    <input type="text" name="bo-tracking" placeholder="เลขพัสดุ" class="form-input-theme text-sm">
+                    <input type="text" name="bo-tracking" value="${tracking}" placeholder="เลขพัสดุ" class="form-input-theme text-sm">
                 </div>
                 <button type="button" onclick="removeBranchOrderItemRow('${rowId}')" class="p-2 text-slate-300 hover:text-red-500 transition-colors">
                     <ion-icon name="trash"></ion-icon>
@@ -8198,6 +8443,11 @@
         };
 
         window.openBranchOrderModal = function () {
+            const idInput = document.getElementById('bo-id');
+            const titleEl = document.getElementById('modal-title');
+            if (idInput) idInput.value = '';
+            if (titleEl) titleEl.textContent = 'สั่งของลงสาขา';
+
             document.getElementById('bo-order-name').value = '';
             document.getElementById('bo-order-date').valueAsDate = new Date();
             document.getElementById('bo-expected-date').value = '';
@@ -8210,7 +8460,66 @@
             openModal('branchOrderModal');
         };
 
+        window.openEditBranchOrderModal = async function (id) {
+            try {
+                const res = await fetch(`${SERVER_URL}/branch-stock-orders`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch orders');
+                const orders = await res.json();
+                const order = orders.find(o => o._id === id);
+                if (!order) return showToast('ไม่พบข้อมูลรายการสั่งซื้อ', 'error');
+
+                const idInput = document.getElementById('bo-id');
+                const titleEl = document.getElementById('modal-title');
+                if (idInput) idInput.value = order._id;
+                if (titleEl) titleEl.textContent = 'แก้ไขรายการสั่งของ';
+
+                document.getElementById('bo-order-name').value = order.orderName || '';
+                if (order.orderDate) {
+                    document.getElementById('bo-order-date').value = new Date(order.orderDate).toISOString().split('T')[0];
+                }
+                if (order.expectedDate) {
+                    document.getElementById('bo-expected-date').value = new Date(order.expectedDate).toISOString().split('T')[0];
+                }
+                document.getElementById('bo-branch').value = order.branch || '';
+
+                const container = document.getElementById('bo-items-container');
+                container.innerHTML = '';
+                if (order.items && order.items.length > 0) {
+                    order.items.forEach(item => {
+                        addBranchOrderItemRow(item.productName, item.quantity, item.trackingNumber);
+                    });
+                } else {
+                    addBranchOrderItemRow();
+                }
+
+                openModal('branchOrderModal');
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        };
+
+        window.deleteBranchOrder = async function (id) {
+            if (!confirm('ยืนยันการลบรายการสั่งของนี้?')) return;
+            try {
+                const res = await fetch(`${SERVER_URL}/branch-stock-orders/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (res.ok) {
+                    showToast('ลบรายการสั่งของเรียบร้อยแล้ว');
+                    fetchBranchOrders();
+                } else {
+                    showToast('ไม่สามารถลบรายการได้', 'error');
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        };
+
         window.submitBranchOrder = async function () {
+            const id = document.getElementById('bo-id').value;
             const orderName = document.getElementById('bo-order-name').value;
             const orderDate = document.getElementById('bo-order-date').value;
             const expectedDate = document.getElementById('bo-expected-date').value;
@@ -8221,11 +8530,17 @@
             let isValid = true;
 
             itemRows.forEach(row => {
-                const name = row.querySelector('input[name="bo-product-name"]').value;
-                const qty = row.querySelector('input[name="bo-quantity"]').value;
-                const tracking = row.querySelector('input[name="bo-tracking"]').value;
-                if (!name || !qty) isValid = false;
-                items.push({ productName: name, quantity: Number(qty), trackingNumber: tracking });
+                const nameInput = row.querySelector('input[name="bo-product-name"]');
+                const qtyInput = row.querySelector('input[name="bo-quantity"]');
+                const trackingInput = row.querySelector('input[name="bo-tracking"]');
+
+                if (nameInput && qtyInput) {
+                    const name = nameInput.value;
+                    const qty = qtyInput.value;
+                    const tracking = trackingInput ? trackingInput.value : '';
+                    if (!name || !qty) isValid = false;
+                    items.push({ productName: name, quantity: Number(qty), trackingNumber: tracking });
+                }
             });
 
             if (!orderName || !orderDate || items.length === 0 || !isValid) {
@@ -8233,11 +8548,11 @@
             }
 
             try {
-                // Show loading state if needed
-                const btn = document.getElementById('btn-submit-branch-order'); // Add ID to button later if needed
+                const method = id ? 'PUT' : 'POST';
+                const url = id ? `${SERVER_URL}/branch-stock-orders/${id}` : `${SERVER_URL}/branch-stock-orders`;
 
-                const res = await fetch(`${SERVER_URL}/branch-stock-orders`, {
-                    method: 'POST',
+                const res = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -8491,6 +8806,20 @@
                         </td>
                         <td class="px-6 py-5 text-center whitespace-nowrap">
                             ${statusHTML}
+                        </td>
+                        <td class="px-6 py-5 text-right whitespace-nowrap">
+                            <div class="flex justify-end gap-2">
+                                ${canUpdateStatus ? `
+                                <button onclick="openEditBranchOrderModal('${order._id}')" 
+                                    class="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="แก้ไข">
+                                    <ion-icon name="create-outline" class="text-lg"></ion-icon>
+                                </button>
+                                <button onclick="deleteBranchOrder('${order._id}')" 
+                                    class="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="ลบ">
+                                    <ion-icon name="trash-outline" class="text-lg"></ion-icon>
+                                </button>
+                                ` : ''}
+                            </div>
                         </td>
                     </tr>`;
             }).join('');
@@ -8852,6 +9181,7 @@
                     <!-- Row 1 -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
+                            <input type="hidden" id="claim-id">
                             <label class="block text-sm font-bold text-slate-700 mb-1">เลขที่โอนย้าย</label>
                             <input type="text" id="claim-transfer-no" class="form-input-theme w-full"
                                 placeholder="ระบุเลขที่..." required>
@@ -9045,7 +9375,7 @@
         }
 
         // Open Modal
-        function openClaimModal() {
+        function openClaimModal(editingClaim = null) {
             // Set Branch
             const branch = (currentUser.role === 'staff') ? currentUser.branch : (currentUser.department || 'สำนักงานใหญ่');
             document.getElementById('claim-branch-display').value = branch;
@@ -9053,12 +9383,34 @@
             // Initialize Presets
             initializeClaimProductPresets();
 
-            // Clear other fields
-            document.getElementById('claim-transfer-no').value = '';
-            document.getElementById('claim-product-name').value = '';
-            document.getElementById('claim-product-code').value = '';
-            document.getElementById('claim-quantity').value = '1';
-            document.getElementById('claim-problem').value = '';
+            const titleEl = document.querySelector('#claimModal h3');
+            const submitBtn = document.querySelector('#claimModal button[type="submit"]');
+
+            if (editingClaim) {
+                // Edit Mode
+                document.getElementById('claim-id').value = editingClaim._id;
+                document.getElementById('claim-transfer-no').value = editingClaim.transferNumber;
+                document.getElementById('claim-product-name').value = editingClaim.productName;
+                document.getElementById('claim-product-code').value = editingClaim.productCode;
+                document.getElementById('claim-quantity').value = editingClaim.quantity;
+                document.getElementById('claim-problem').value = editingClaim.problem;
+                document.getElementById('claim-supplier').value = editingClaim.supplier || '';
+
+                if (titleEl) titleEl.innerHTML = '<ion-icon name="create"></ion-icon> แก้ไขการแจ้งเคลม';
+                if (submitBtn) submitBtn.innerText = 'บันทึกการแก้ไข';
+            } else {
+                // Create Mode
+                document.getElementById('claim-id').value = '';
+                document.getElementById('claim-transfer-no').value = '';
+                document.getElementById('claim-product-name').value = '';
+                document.getElementById('claim-product-code').value = '';
+                document.getElementById('claim-quantity').value = '1';
+                document.getElementById('claim-problem').value = '';
+                document.getElementById('claim-supplier').value = '';
+
+                if (titleEl) titleEl.innerHTML = '<ion-icon name="hammer"></ion-icon> แจ้งเคลมอุปกรณ์เสริม';
+                if (submitBtn) submitBtn.innerText = 'บันทึกแจ้งเคลม';
+            }
 
             openModal('claimModal');
         }
@@ -9246,9 +9598,25 @@
                     </button>`;
                 }
 
+                // Edit/Delete Permissions: Creator OR Admin/Manager OR Stock Team
+                // Assuming currentUser is available globally
+                const isCreator = item.createdBy && (typeof item.createdBy === 'object' ? item.createdBy._id === currentUser.id : item.createdBy === currentUser.id);
+                // Note: currentUser.id or ._id depends on how it's stored. Usually payload has 'id'. 
+                // Let's check how 'currentUser' is defined usually or try to be safe.
+                // In login usually: currentUser = decodedToken. payload usually has id.
+                // Let's guess currentUser.id (from jwt) based on other code... wait other code uses `req.user._id` in backend.
+                // Frontend `currentUser`? Let's assume `currentUser.id` or `currentUser._id`. 
+                // A safe check: 
+                const currentUserId = currentUser.id || currentUser._id;
+                const creatorId = item.createdBy ? (item.createdBy._id || item.createdBy) : null;
+                const canEdit = (creatorId && creatorId === currentUserId) || ['admin', 'manager', 'executive'].includes(currentUser.role) || isStockTeam;
+
                 const tr = document.createElement('tr');
                 tr.className = `group hover:bg-orange-50/40 transition-all duration-300 border-b border-slate-50 last:border-0 animate-fade-in`;
                 tr.style.animationDelay = `${index * 50}ms`;
+
+                // Safe quote for JSON
+                const itemJson = encodeURIComponent(JSON.stringify(item));
 
                 tr.innerHTML = `
                     <td class="px-6 py-5">
@@ -9293,11 +9661,23 @@
                     </td>
                     <td class="px-6 py-5 text-center select-none">${actionHtml}</td>
                     <td class="px-6 py-5 text-right">
-                        <button onclick="downloadClaimPDF('${item._id}')" 
-                            class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-orange-500 rounded-xl transition-all duration-300 shadow-sm hover:shadow-orange-500/30 group/btn"
-                            title="ดาวน์โหลด PDF">
-                            <ion-icon name="print-outline" class="text-xl transition-transform group-hover/btn:scale-110"></ion-icon>
-                        </button>
+                        <div class="flex items-center justify-end gap-2">
+                            ${canEdit ? `
+                            <button onclick="editClaim('${itemJson}')" 
+                                class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all" title="แก้ไข">
+                                <ion-icon name="pencil-outline"></ion-icon>
+                            </button>
+                            <button onclick="deleteClaim('${item._id}')" 
+                                class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="ลบ">
+                                <ion-icon name="trash-outline"></ion-icon>
+                            </button>
+                            ` : ''}
+                            <button onclick="downloadClaimPDF('${item._id}')" 
+                                class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-orange-500 rounded-lg transition-all shadow-sm"
+                                title="ดาวน์โหลด PDF">
+                                <ion-icon name="print-outline"></ion-icon>
+                            </button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -9322,6 +9702,7 @@
             btn.innerHTML = '<ion-icon name="sync" class="animate-spin"></ion-icon> กำลังบันทึก...';
             btn.disabled = true;
 
+            const claimId = document.getElementById('claim-id').value; // Get ID for edit
             const payload = {
                 transferNumber: document.getElementById('claim-transfer-no').value,
                 productName: document.getElementById('claim-product-name').value,
@@ -9333,8 +9714,16 @@
 
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`${SERVER_URL}/claims`, {
-                    method: 'POST',
+                let url = `${SERVER_URL}/claims`;
+                let method = 'POST';
+
+                if (claimId) {
+                    url = `${SERVER_URL}/claims/${claimId}`;
+                    method = 'PUT';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
@@ -9345,7 +9734,7 @@
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.message || 'บันทึกไม่สำเร็จ');
 
-                showToast('บันทึกการแจ้งเคลมแล้ว', 'success');
+                showToast(claimId ? 'แก้ไขข้อมูลสำเร็จ' : 'บันทึกการแจ้งเคลมแล้ว', 'success');
                 closeModal('claimModal');
                 fetchClaims();
             } catch (error) {
@@ -9363,6 +9752,32 @@
             document.getElementById('claim-update-status').value = currentStatus;
             document.getElementById('claim-update-supplier').value = currentSupplier || '';
             openModal('claimStatusModal');
+        }
+
+        // Edit Claim (New)
+        function editClaim(claimStr) {
+            const claim = JSON.parse(decodeURIComponent(claimStr));
+            openClaimModal(claim);
+        }
+
+        // Delete Claim (New)
+        async function deleteClaim(id) {
+            if (!confirm('ยืนยันลบรายการนี้?')) return;
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${SERVER_URL}/claims/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error('ลบรายการไม่สำเร็จ');
+
+                showToast('ลบรายการเรียบร้อยแล้ว', 'success');
+                fetchClaims();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
         }
 
         async function submitClaimStatus() {

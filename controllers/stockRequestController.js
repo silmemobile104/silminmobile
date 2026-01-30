@@ -100,17 +100,28 @@ exports.getManageStockRequests = async (req, res) => {
 // @route   PUT /api/stock-requests/:id
 exports.updateStockRequest = async (req, res) => {
     try {
-        const { status, expectedArrival, trackingNumbers, fulfillmentMethod } = req.body;
+        const { status, expectedArrival, trackingNumbers, fulfillmentMethod, title, items, note } = req.body;
         const request = await StockRequest.findById(req.params.id);
 
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
         }
 
+        // Standard Status Updates
         if (status) request.status = status;
         if (expectedArrival !== undefined) request.expectedArrivalDate = expectedArrival;
         if (Array.isArray(trackingNumbers)) request.trackingNumbers = trackingNumbers;
         if (fulfillmentMethod) request.fulfillmentMethod = fulfillmentMethod;
+
+        // Content Updates (Title, Items, Note)
+        if (title) request.title = title;
+        if (note !== undefined) request.note = note;
+        if (items && Array.isArray(items)) {
+            request.items = items.map(item => ({
+                productName: item.name || item.productName,
+                quantity: Number(item.quantity) || 1
+            }));
+        }
 
         await request.save();
 
@@ -139,9 +150,17 @@ exports.deleteStockRequest = async (req, res) => {
         const request = await StockRequest.findById(req.params.id);
         if (!request) return res.status(404).json({ message: 'Request not found' });
 
-        // Only allow deleting pending requests
-        if (request.status !== 'pending') {
-            return res.status(400).json({ message: 'Can only delete pending requests' });
+        // Check Permissions
+        const userDept = (req.user.department || '').toLowerCase();
+        const stockKeywords = ['stock', 'store', 'สต๊อก', 'คลัง', 'supply', 'purchasing', 'จัดซื้อ'];
+        const isStockOrPurchasing = stockKeywords.some(keyword => userDept.includes(keyword));
+        const isAdminOrManager = ['admin', 'manager', 'executive'].includes(req.user.role);
+
+        const canForceDelete = isAdminOrManager || isStockOrPurchasing;
+
+        // Only allow deleting pending requests unless admin/manager/stock
+        if (request.status !== 'pending' && !canForceDelete) {
+            return res.status(403).json({ message: 'Can only delete pending requests' });
         }
 
         await request.deleteOne();

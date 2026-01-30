@@ -51,7 +51,7 @@ router.post('/', verifyToken, upload.array('files', 5), importController.createI
 router.get('/', verifyToken, importController.getImports);
 
 // อัปเดตรายการ (แก้ไข/เพิ่มไฟล์)
-router.put('/:id', verifyToken, checkRole(['admin', 'manager', 'executive']), upload.array('files', 5), importController.updateImport);
+router.put('/:id', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), upload.array('files', 5), importController.updateImport);
 
 // อัปเดตสถานะ (เฉพาะ role ที่ระบุ)
 router.put('/:id/status', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), importController.updateImportStatus);

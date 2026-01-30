@@ -12,4 +12,10 @@ router.get('/', verifyToken, claimController.getClaims);
 // Update Status (Admin/Manager/Stock - Logic in controller)
 router.put('/:id/status', verifyToken, claimController.updateClaimStatus);
 
+// Update Claim (Creator/Admin/Manager/Stock)
+router.put('/:id', verifyToken, claimController.updateClaim);
+
+// Delete Claim (Creator/Admin/Manager/Stock)
+router.delete('/:id', verifyToken, claimController.deleteClaim);
+
 module.exports = router;

@@ -163,8 +163,13 @@ exports.deleteImport = async (req, res) => {
             return res.status(404).json({ message: 'Request not found' });
         }
 
-        // Check permissions: Staff can only delete their own branch's requests
-        if (req.user.role === 'staff') {
+        // Check permissions: Staff can only delete their own branch's requests UNLESS they are Stock department
+        const dept = (req.user.department || '').toLowerCase();
+        const isStock = dept.includes('store') ||
+            dept.includes('stock') ||
+            dept.includes('สต๊อก');
+
+        if (req.user.role === 'staff' && !isStock) {
             if (importRequest.branch !== req.user.branch) {
                 return res.status(403).json({ message: 'คุณไม่มีสิทธิ์ลบรายการของสาขาอื่น' });
             }
@@ -185,6 +190,18 @@ exports.updateImport = async (req, res) => {
 
         if (!importRequest) {
             return res.status(404).json({ message: 'Request not found' });
+        }
+
+        // Check permissions: Staff can only update their own branch's requests UNLESS they are Stock department
+        const dept = (req.user.department || '').toLowerCase();
+        const isStock = dept.includes('store') ||
+            dept.includes('stock') ||
+            dept.includes('สต๊อก');
+
+        if (req.user.role === 'staff' && !isStock) {
+            if (importRequest.branch !== req.user.branch) {
+                return res.status(403).json({ message: 'คุณไม่มีสิทธิ์แก้ไขรายการของสาขาอื่น' });
+            }
         }
 
         const { type, details, supplier, description } = req.body;

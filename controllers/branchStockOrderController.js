@@ -85,6 +85,15 @@ exports.updateOrder = async (req, res) => {
         const updates = req.body;
         console.log(`[DEBUG] Received update request for order ${id}:`, updates);
 
+        // Security: Check if user is allowed to update (Purchasing or Manager)
+        const user = await User.findById(req.user.id);
+        const userDept = (user.department || '').toLowerCase();
+        const isPurchasing = userDept.includes('purchasing') || userDept.includes('purchase') || userDept.includes('จัดซื้อ');
+
+        if (!isPurchasing && user.role !== 'executive' && user.role !== 'manager' && user.role !== 'hr') {
+            return res.status(403).json({ message: 'Forbidden: You do not have permission to update orders.' });
+        }
+
         const order = await BranchStockOrder.findByIdAndUpdate(id, updates, { new: true });
         if (!order) {
             console.log(`[DEBUG] Order ${id} not found`);
@@ -103,6 +112,16 @@ exports.updateOrder = async (req, res) => {
 exports.deleteOrder = async (req, res) => {
     try {
         const { id } = req.params;
+
+        // Security Check
+        const user = await User.findById(req.user.id);
+        const userDept = (user.department || '').toLowerCase();
+        const isPurchasing = userDept.includes('purchasing') || userDept.includes('purchase') || userDept.includes('จัดซื้อ');
+
+        if (!isPurchasing && user.role !== 'executive' && user.role !== 'manager' && user.role !== 'hr') {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+
         await BranchStockOrder.findByIdAndDelete(id);
         res.json({ message: 'Order deleted' });
     } catch (err) {

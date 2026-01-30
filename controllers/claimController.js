@@ -155,3 +155,68 @@ exports.updateClaimStatus = async (req, res) => {
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
+// @desc    Update claim details
+// @route   PUT /api/claims/:id
+// @access  Private (Creator or Admin/Manager/Stock)
+exports.updateClaim = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+
+        const claim = await Claim.findById(id);
+        if (!claim) {
+            return res.status(404).json({ message: 'Claim not found' });
+        }
+
+        // Check Permissions: Creator OR Admin/Manager OR Stock Team
+        // Note: Sales staff should only edit their own claims
+        const userDept = (req.user.department || '').toLowerCase();
+        const stockKeywords = ['stock', 'store', 'สต๊อก', 'คลัง', 'warehouse', 'supply'];
+        const isStockTeam = stockKeywords.some(keyword => userDept.includes(keyword));
+        const isAdminOrManager = ['admin', 'manager', 'executive'].includes(req.user.role);
+        const isCreator = claim.createdBy.toString() === req.user._id.toString();
+
+        if (!isCreator && !isAdminOrManager && !isStockTeam) {
+            return res.status(403).json({ message: 'Not authorized to update this claim' });
+        }
+
+        const updatedClaim = await Claim.findByIdAndUpdate(id, updates, { new: true });
+        res.status(200).json(updatedClaim);
+    } catch (error) {
+        console.error('Update Claim Error:', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Delete claim
+// @route   DELETE /api/claims/:id
+// @access  Private (Creator or Admin/Manager)
+exports.deleteClaim = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const claim = await Claim.findById(id);
+        if (!claim) {
+            return res.status(404).json({ message: 'Claim not found' });
+        }
+
+        // Check Permissions
+        const userDept = (req.user.department || '').toLowerCase();
+        const stockKeywords = ['stock', 'store', 'สต๊อก', 'คลัง', 'warehouse', 'supply'];
+        const isStockTeam = stockKeywords.some(keyword => userDept.includes(keyword));
+        const isAdminOrManager = ['admin', 'manager', 'executive'].includes(req.user.role);
+        const isCreator = claim.createdBy.toString() === req.user._id.toString();
+
+        // Allow creator to delete if status is pending? Or always?
+        // Let's allow creator, admin, manager, and stock team to delete.
+        if (!isCreator && !isAdminOrManager && !isStockTeam) {
+            return res.status(403).json({ message: 'Not authorized to delete this claim' });
+        }
+
+        await Claim.findByIdAndDelete(id);
+        res.status(200).json({ message: 'Claim deleted' });
+    } catch (error) {
+        console.error('Delete Claim Error:', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};
