@@ -3224,7 +3224,7 @@
             // =======================================================
             const depositNav = document.getElementById('nav-Storefront_deposit');
             if (depositNav) {
-                const isSalesTeam = userDept.includes('ขาย') || userDept.includes('Sales');
+                const isSalesTeam = userDept.includes('ขาย') || userDept.includes('Sales') || userDept.includes('บัญชี สนง.') || userDept.includes('Account');
 
                 // แสดงเมนูนี้ถ้าเป็น: ทีมขาย, Admin, Executive, Manager, หรือ HR
                 if (isSalesTeam || ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role)) {
