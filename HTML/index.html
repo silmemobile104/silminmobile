@@ -3236,7 +3236,7 @@
 
             const purchasingNav = document.getElementById('nav-purchasing');
             if (purchasingNav) {
-                const isPurchasing = userDept.includes('จัดซื้อ') || userDept.includes('Purchase');
+                const isPurchasing = userDept.includes('จัดซื้อ') || userDept.includes('Purchase') || userDept.includes('บัญชี สนง.') || userDept.includes('Account');
 
                 // แสดงเมนูนี้ถ้าเป็น: ทีมจัดซื้อ, Admin, Executive, หรือ Manager
                 // (HR อาจจะไม่จำเป็นต้องดู แต่ถ้าอยากให้ดูได้ก็เติม 'hr' เข้าไปใน array ได้ครับ)
