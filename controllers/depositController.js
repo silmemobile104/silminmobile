@@ -19,8 +19,9 @@ exports.getDeposits = async (req, res) => {
         // 2. Logic การกรอง Branch
         // หากเป็นฝ่ายจัดซื้อ (เช็คจากชื่อแผนก) หรือ Admin/Manager ให้ดูได้หมด หรือกรองตามเลือก
         const isPurchasing = userDept.includes('จัดซื้อ') || userDept.includes('Purchase');
+        const isAccounting = userDept.includes('บัญชี') || userDept.includes('Account') || userDept.includes('account'); // เพิ่ม Accounting
 
-        if (userRole === 'staff' && !isPurchasing) {
+        if (userRole === 'staff' && !isPurchasing && !isAccounting) {
             // Staff ทั่วไป (ฝ่ายขาย) เห็นแค่สาขาตัวเอง
             if (req.user.branch) {
                 query.branch = req.user.branch;
@@ -37,6 +38,21 @@ exports.getDeposits = async (req, res) => {
         if (viewMode === 'purchasing') {
             // จัดซื้ออาจจะอยากดูเฉพาะงานที่ยังไม่จบ หรือดูทั้งหมดก็ได้ (ในที่นี้ให้ดูทั้งหมดที่ยังไม่รับเครื่อง)
             // query.isSuccess = false; 
+        }
+
+        // 3. Logic การกรอง Date Range (startDate, endDate)
+        // รับค่ามาเป็น string YYYY-MM-DD
+        const { startDate, endDate } = req.query;
+        if (startDate || endDate) {
+            query.depositDate = {};
+            if (startDate) {
+                // เริ่มต้นวัน (00:00:00)
+                query.depositDate.$gte = new Date(startDate + 'T00:00:00.000Z');
+            }
+            if (endDate) {
+                // สิ้นสุดวัน (23:59:59)
+                query.depositDate.$lte = new Date(endDate + 'T23:59:59.999Z');
+            }
         }
 
         const deposits = await Deposit.find(query).sort({ depositDate: -1 });

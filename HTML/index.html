@@ -322,12 +322,7 @@
                             class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
                         <span class="font-medium">การมัดจำสินค้า</span>
                     </a>
-                    <a href="#" onclick="updateNavActiveState('purchasing')" id="nav-purchasing"
-                        class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group">
-                        <ion-icon name="cart-outline"
-                            class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
-                        <span class="font-medium">รายการจองเครื่อง</span>
-                    </a>
+
                     <a href="#" onclick="updateNavActiveState('import')" id="nav-import"
                         class="hidden flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group">
                         <ion-icon name="cloud-upload-outline"
@@ -558,6 +553,9 @@
                                         สถานะ</th>
                                     <th
                                         class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        ความสำคัญ</th>
+                                    <th
+                                        class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                         วันครบกำหนด</th>
                                     <th
                                         class="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -566,7 +564,7 @@
                             </thead>
                             <tbody id="task-table-body" class="divide-y divide-slate-100">
                                 <tr id="no-task-row" class="text-center">
-                                    <td colspan="5"
+                                    <td colspan="6"
                                         class="px-6 py-12 text-slate-400 flex flex-col items-center justify-center">
                                         <ion-icon name="folder-open-outline"
                                             class="text-4xl mb-2 text-slate-300"></ion-icon>
@@ -619,8 +617,17 @@
                                     <option value="สำเร็จ">สำเร็จ</option>
                                 </select>
                             </div>
-                            <div id="filter-date-container">
-                                <input type="date" id="deposit-filter-date" class="form-input-theme py-2 text-sm">
+                            <div id="filter-date-container" class="flex gap-2">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-slate-500 font-bold mb-0.5 ml-1">จาก</span>
+                                    <input type="date" id="deposit-filter-start-date"
+                                        class="form-input-theme py-1.5 text-xs" title="วันที่เริ่มต้น">
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-slate-500 font-bold mb-0.5 ml-1">ถึง</span>
+                                    <input type="date" id="deposit-filter-end-date"
+                                        class="form-input-theme py-1.5 text-xs" title="วันที่สิ้นสุด">
+                                </div>
                             </div>
                             <div id="search-container">
                                 <input type="text" id="deposit-search-input" placeholder="ค้นหาลูกค้า/เบอร์โทร..."
@@ -663,7 +670,7 @@
                                     <th class="bg-blue-50 text-blue-700">ค้างชำระ</th>
                                     <th>สถานะ</th>
                                     <th>ผู้ทำรายการ</th>
-                                    <th>เพิ่มเติม</th>
+                                    <th>สาขา</th>
                                 </tr>
                             </thead>
                             <tbody id="deposit-table-body" class="text-slate-600 bg-white">
@@ -854,6 +861,8 @@
                                     class="pl-11 pr-10 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none cursor-pointer hover:border-indigo-300 transition-all shadow-sm appearance-none w-full">
                                     <option value="">ทุกสถานะ</option>
                                     <option value="pending" selected>⏳ รอเช็ค</option>
+                                    <option value="sent_to_tech">กำลังเตรียมของ</option>
+                                    <option value="shipped">กำลังจัดส่ง</option>
                                     <option value="ordering">📦 กำลังสั่ง</option>
                                     <option value="received">✅ ได้รับแล้ว</option>
                                     <option value="canceled">❌ ยกเลิก</option>
@@ -3190,6 +3199,18 @@
                 ${s.text}
             </span>`;
         };
+
+        const getPriorityTag = (priority) => {
+            const map = {
+                'high': { text: 'สูง', bg: 'bg-rose-50', color: 'text-rose-600', ring: 'ring-rose-200' },
+                'medium': { text: 'ปานกลาง', bg: 'bg-yellow-50', color: 'text-yellow-600', ring: 'ring-yellow-200' },
+                'low': { text: 'ต่ำ', bg: 'bg-emerald-50', color: 'text-emerald-600', ring: 'ring-emerald-200' }
+            };
+            const p = map[priority] || map['medium'];
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${p.bg} ${p.color} ring-1 ${p.ring} shadow-sm">
+                ${p.text}
+            </span>`;
+        };
         const formatDate = (dateString) => {
             if (!dateString) return '-';
             const date = new Date(dateString);
@@ -3236,7 +3257,7 @@
 
             const purchasingNav = document.getElementById('nav-purchasing');
             if (purchasingNav) {
-                const isPurchasing = userDept.includes('จัดซื้อ') || userDept.includes('Purchase') || userDept.includes('บัญชี สนง.') || userDept.includes('Account');
+                const isPurchasing = userDept.includes('จัดซื้อ') || userDept.includes('Purchase');
 
                 // แสดงเมนูนี้ถ้าเป็น: ทีมจัดซื้อ, Admin, Executive, หรือ Manager
                 // (HR อาจจะไม่จำเป็นต้องดู แต่ถ้าอยากให้ดูได้ก็เติม 'hr' เข้าไปใน array ได้ครับ)
@@ -3252,7 +3273,7 @@
             // =======================================================
             const importNav = document.getElementById('nav-import');
             if (importNav) {
-                const isSales = userDept.includes('ขาย') || userDept.includes('Sales');
+                const isSales = userDept.includes('ขาย') || userDept.includes('Sales') || userDept.includes('ฝ่ายเทคนิค');
                 const isAdminOrMgr = ['admin', 'executive', 'manager'].includes(currentUser.role);
 
                 // แสดงเมนูนี้ถ้าเป็น: ทีมขาย (Sales) หรือ ผู้บริหาร/ผู้จัดการ/Admin
@@ -3586,7 +3607,7 @@
 
             // 1. กรณีไม่มีงาน
             if (tasks.length === 0) {
-                taskTableBody.innerHTML = `<tr id="no-task-row" class="text-center"><td colspan="5" class="px-6 py-4 text-gray-500">ไม่มีงานที่ต้องแสดงในขณะนี้</td></tr>`;
+                taskTableBody.innerHTML = `<tr id="no-task-row" class="text-center"><td colspan="6" class="px-6 py-4 text-gray-500">ไม่มีงานที่ต้องแสดงในขณะนี้</td></tr>`;
                 return;
             }
 
@@ -3671,6 +3692,7 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">${statusDisplay}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${getPriorityTag(task.priority)}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm ${isOverdue ? 'text-red-500 font-bold' : 'text-gray-500'}">
                         ${formatDate(task.dueDate)}
                     </td>
@@ -4139,12 +4161,15 @@
                 const filterBranchElem = document.getElementById('deposit-filter-branch');
 
                 if (titleElem) {
-                    if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'staff') {
-                        // กรณี Staff: ให้แสดงสาขาของ Staff คนนั้นเสมอ
+                    const userDept = (currentUser.department || '').toLowerCase();
+                    const isAccounting = userDept.includes('บัญชี') || userDept.includes('account');
+
+                    if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'staff' && !isAccounting) {
+                        // กรณี Staff (Admin/Accounting ยกเว้น): ให้แสดงสาขาของ Staff คนนั้นเสมอ
                         const branchName = currentUser.branch || 'ทั้งหมด'; // ถ้าเป็นค่าว่าง/null/undefined ให้ใช้คำว่า 'ทั้งหมด' แทน
                         titleElem.textContent = `สาขา ${branchName}`;
                     } else {
-                        // กรณี Admin/Manager: ให้แสดงตามที่เลือกใน Dropdown
+                        // กรณี Admin/Manager/Accounting: ให้แสดงตามที่เลือกใน Dropdown
                         // ถ้าเลือก "ทั้งหมด" หรือยังไม่เลือก ให้แสดงคำว่า "ทั้งหมด"
                         // ถ้าเลือกสาขาเจาะจง ให้ดึงข้อความ (Text) ของ option นั้นมาแสดง
                         let branchName = 'ทั้งหมด';
@@ -4167,6 +4192,12 @@
                 }
 
                 // --- ส่วนที่ 3: ส่งคำสั่งไปที่ Server ---
+                // Add Date Range Query Params
+                const startVal = document.getElementById('deposit-filter-start-date')?.value;
+                const endVal = document.getElementById('deposit-filter-end-date')?.value;
+
+                if (startVal) url += `&startDate=${startVal}`;
+                if (endVal) url += `&endDate=${endVal}`;
                 // console.log('Fetching URL:', url); 
                 const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
 
@@ -4178,7 +4209,8 @@
 
                 // --- ส่วนที่ 3.5: Client-Side Filters (Status, Date, Search) ---
                 const statusFilterElem = document.getElementById('deposit-filter-status');
-                const dateFilterElem = document.getElementById('deposit-filter-date');
+                const startDateFilterElem = document.getElementById('deposit-filter-start-date');
+                const endDateFilterElem = document.getElementById('deposit-filter-end-date');
                 const searchInputElem = document.getElementById('deposit-search-input');
                 const bellBtn = document.getElementById('btn-filter-due-today');
                 const badgeElem = document.getElementById('deposit-due-badge');
@@ -4215,11 +4247,12 @@
                     deposits = dueItems;
                 }
                 // If Bell is NOT active, use normal Date Picker Logic
-                else if (dateFilterElem && dateFilterElem.value) {
-                    const filterDate = dateFilterElem.value; // YYYY-MM-DD
-                    deposits = deposits.filter(d => {
-                        return d.depositDate && d.depositDate.startsWith(filterDate);
-                    });
+                else if ((startDateFilterElem && startDateFilterElem.value) || (endDateFilterElem && endDateFilterElem.value)) {
+                    // This creates a Client-Side filter if preferred, BUT since we moved logic to Backend,
+                    // we should rely on Backend response. 
+                    // However, existing code structure suggests mixed approach.
+                    // Let's rely on the Backend URL parameters we constructed earlier!
+                    // Wait, we haven't added them to URL above yet. Let's fix that block first.
                 }
 
                 // --- NEW: Calculate Counts for Status Filter Options ---
@@ -4295,15 +4328,7 @@
                             : '<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md text-xs font-bold border border-yellow-200 inline-block w-24">รอดำเนินการ</span>'}
                         </td>
                         <td class="text-center border p-2 text-xs text-gray-500">${d.signName || ''}</td>
-                        <td class="text-center border p-2 text-xs">
-                           <button onclick="event.stopPropagation(); openDepositDetailModal({ 
-                               customerName: '${d.customerName}', 
-                               orderStatus: '${d.orderStatus}', 
-                               expectedArrivalDate: '${d.expectedArrivalDate || ''}' 
-                           })" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors text-xs font-bold">
-                               เพิ่มเติม
-                           </button>
-                        </td>
+                        <td class="text-center border p-2 text-xs font-semibold text-slate-500">${d.branch || '-'}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -6480,9 +6505,16 @@
                 });
             }
 
-            const depositDateFilter = document.getElementById('deposit-filter-date');
-            if (depositDateFilter) {
-                depositDateFilter.addEventListener('change', () => {
+            const depositStartDateFilter = document.getElementById('deposit-filter-start-date');
+            const depositEndDateFilter = document.getElementById('deposit-filter-end-date');
+
+            if (depositStartDateFilter) {
+                depositStartDateFilter.addEventListener('change', () => {
+                    fetchDeposits();
+                });
+            }
+            if (depositEndDateFilter) {
+                depositEndDateFilter.addEventListener('change', () => {
                     fetchDeposits();
                 });
             }
@@ -6512,8 +6544,14 @@
 
             // (เสริม) ถ้าเป็น Staff ทั่วไป ซ่อนตัวกรองนี้ไปเลย (เพราะดูได้แค่สาขาตัวเองอยู่แล้ว)
             if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'staff') {
-                const container = document.getElementById('filter-branch-container');
-                if (container) container.style.display = 'none';
+                const userDept = (currentUser.department || '').toLowerCase();
+                // ถ้าเป็นบัญชี (มีคำว่า 'บัญชี' หรือ 'account') ให้เห็น Filter ได้ (ไม่ต้องซ่อน)
+                const isAccounting = userDept.includes('บัญชี') || userDept.includes('account');
+
+                if (!isAccounting) {
+                    const container = document.getElementById('filter-branch-container');
+                    if (container) container.style.display = 'none';
+                }
             }
 
             const sidebar = document.getElementById('sidebar');
@@ -6569,6 +6607,12 @@
                         </div>
                     `).join('');
 
+                    const userDept = (currentUser.department || '').toLowerCase();
+                    const isManager = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
+                    const isPurchasing = userDept.includes('purchasing') || userDept.includes('purchase') || userDept.includes('จัดซื้อ') || userDept.includes('stock') || userDept.includes('store') || userDept.includes('คลัง');
+                    const isSales = userDept.includes('sales') || userDept.includes('ขาย');
+                    const canUpdateStatus = isManager || isPurchasing || isSales;
+
                     const statusConfig = {
                         'pending': { class: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', text: 'รอตรวจสอบ', icon: 'time-outline' },
                         'ordering': { class: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200', text: 'สั่งสินค้าแล้ว', icon: 'cart-outline' },
@@ -6578,6 +6622,35 @@
                         'canceled': { class: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200', text: 'ยกเลิก', icon: 'close-circle-outline' }
                     };
                     const config = statusConfig[req.status] || statusConfig['pending'];
+
+                    let statusHTML = '';
+                    if (canUpdateStatus) {
+                        statusHTML = `
+                            <select onchange="updateStockRequestStatus('${req._id}', this.value)" 
+                                class="text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-2xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none bg-white
+                                ${req.status === 'pending' ? 'text-amber-700' : ''}
+                                ${req.status === 'ordering' ? 'text-blue-700' : ''}
+                                ${req.status === 'sent_to_tech' ? 'text-violet-700' : ''}
+                                ${req.status === 'shipped' ? 'text-indigo-700' : ''}
+                                ${req.status === 'received' ? 'text-emerald-700' : ''}
+                                ${req.status === 'canceled' ? 'text-rose-700' : ''}
+                            ">
+                                <option value="pending" ${req.status === 'pending' ? 'selected' : ''}>รอตรวจสอบ</option>
+                                <option value="ordering" ${req.status === 'ordering' ? 'selected' : ''}>สั่งสินค้าแล้ว</option>
+                                <option value="sent_to_tech" ${req.status === 'sent_to_tech' ? 'selected' : ''}>กำลังเตรียมของ</option>
+                                <option value="shipped" ${req.status === 'shipped' ? 'selected' : ''}>กำลังจัดส่ง</option>
+                                <option value="received" ${req.status === 'received' ? 'selected' : ''}>ได้รับแล้ว</option>
+                                <option value="canceled" ${req.status === 'canceled' ? 'selected' : ''}>ยกเลิก</option>
+                            </select>
+                        `;
+                    } else {
+                        statusHTML = `
+                            <span class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm ${config.class} transform group-hover:scale-105 transition-transform">
+                                <ion-icon name="${config.icon}" class="text-sm"></ion-icon>
+                                ${config.text}
+                            </span>
+                        `;
+                    }
 
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-indigo-50/30 transition-all duration-300 group border-b border-slate-100 last:border-0";
@@ -6609,10 +6682,7 @@
                             </div>
                         </td>
                         <td class="px-8 py-6 align-top text-center">
-                             <span class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm ${config.class} transform group-hover:scale-105 transition-transform">
-                                <ion-icon name="${config.icon}" class="text-sm"></ion-icon>
-                                ${config.text}
-                            </span>
+                             ${statusHTML}
                         </td>
                         <td class="px-8 py-6 align-top">
                             ${req.expectedArrivalDate ? `
@@ -6831,6 +6901,12 @@
                         </div>
                     `).join('');
 
+                    const userDept = (currentUser.department || '').toLowerCase();
+                    const isManager = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
+                    const isPurchasing = userDept.includes('purchasing') || userDept.includes('purchase') || userDept.includes('จัดซื้อ') || userDept.includes('stock') || userDept.includes('store') || userDept.includes('คลัง');
+                    const isSales = userDept.includes('sales') || userDept.includes('ขาย');
+                    const canUpdateStatus = isManager || isPurchasing || isSales;
+
                     const statusConfig = {
                         'pending': { class: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', text: 'รอตรวจสอบ', icon: 'time-outline' },
                         'ordering': { class: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200', text: 'จัดซื้อสั่งสินค้า', icon: 'cart-outline' },
@@ -6840,6 +6916,35 @@
                         'canceled': { class: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200', text: 'ยกเลิก', icon: 'close-circle-outline' }
                     };
                     const config = statusConfig[req.status] || statusConfig['pending'];
+
+                    let statusHTML = '';
+                    if (canUpdateStatus) {
+                        statusHTML = `
+                            <select onchange="updateStockRequestStatus('${req._id}', this.value)" 
+                                class="text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-2xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none bg-white
+                                ${req.status === 'pending' ? 'text-amber-700' : ''}
+                                ${req.status === 'ordering' ? 'text-blue-700' : ''}
+                                ${req.status === 'sent_to_tech' ? 'text-violet-700' : ''}
+                                ${req.status === 'shipped' ? 'text-indigo-700' : ''}
+                                ${req.status === 'received' ? 'text-emerald-700' : ''}
+                                ${req.status === 'canceled' ? 'text-rose-700' : ''}
+                            ">
+                                <option value="pending" ${req.status === 'pending' ? 'selected' : ''}>รอตรวจสอบ</option>
+                                <option value="ordering" ${req.status === 'ordering' ? 'selected' : ''}>สั่งสินค้าแล้ว</option>
+                                <option value="sent_to_tech" ${req.status === 'sent_to_tech' ? 'selected' : ''}>เตรียมของ</option>
+                                <option value="shipped" ${req.status === 'shipped' ? 'selected' : ''}>จัดส่งแล้ว</option>
+                                <option value="received" ${req.status === 'received' ? 'selected' : ''}>ได้รับแล้ว</option>
+                                <option value="canceled" ${req.status === 'canceled' ? 'selected' : ''}>ยกเลิก</option>
+                            </select>
+                        `;
+                    } else {
+                        statusHTML = `
+                            <span class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm ${config.class} transform group-hover:scale-105 transition-transform">
+                                <ion-icon name="${config.icon}" class="text-sm"></ion-icon>
+                                ${config.text}
+                            </span>
+                        `;
+                    }
 
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-indigo-50/30 transition-all duration-300 group border-b border-slate-100 last:border-0";
@@ -6874,10 +6979,7 @@
                             ${req.note ? `<div class="mt-3 text-[11px] text-slate-500 leading-relaxed font-bold bg-amber-50/50 p-3 rounded-xl border border-amber-100 flex gap-2"><ion-icon name="chatbox" class="text-amber-400 mt-0.5 shrink-0"></ion-icon><span>${req.note}</span></div>` : ''}
                         </td>
                         <td class="px-8 py-6 align-top">
-                            <span class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm ${config.class} transform group-hover:scale-105 transition-transform">
-                                <ion-icon name="${config.icon}" class="text-sm"></ion-icon>
-                                ${config.text}
-                            </span>
+                             ${statusHTML}
                         </td>
                         <td class="px-8 py-6 align-top">
                             ${req.expectedArrivalDate ? `
@@ -6918,6 +7020,33 @@
                     container.appendChild(tr);
                 });
             }
+
+            window.updateStockRequestStatus = async function (id, newStatus) {
+                console.log(`[DEBUG] Updating Stock Request ${id} to status: ${newStatus}`);
+                try {
+                    const res = await fetch(`${SERVER_URL}/stock-requests/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+
+                    if (res.ok) {
+                        showToast('อัปเดตสถานะการเบิกเรียบร้อยแล้ว');
+                        // Refresh based on current view
+                        if (typeof fetchStockRequests === 'function') fetchStockRequests();
+                        if (typeof fetchManageStockRequests === 'function') fetchManageStockRequests();
+                        if (typeof fetchTechStockRequests === 'function') fetchTechStockRequests();
+                    } else {
+                        const err = await res.json();
+                        showToast(err.message || 'ไม่สามารถอัปเดตสถานะได้', 'error');
+                    }
+                } catch (err) {
+                    showToast('Error: ' + err.message, 'error');
+                }
+            };
 
             window.openStockRequestModal = function () {
                 const titleInput = document.getElementById('stock-request-title');
@@ -7124,6 +7253,7 @@
             };
 
             let currentManagingRequestId = null;
+            let currentManagingRequestItems = [];
 
             window.toggleFulfillmentUI = function () {
                 const method = document.querySelector('input[name="fulfillment-method"]:checked')?.value;
@@ -7135,6 +7265,12 @@
                 } else {
                     trackingSection.classList.add('hidden');
                 }
+
+                // Show/Hide Tech Selection Column
+                const techCheckboxes = document.querySelectorAll('.fulfillment-tech-checkbox-container');
+                techCheckboxes.forEach(el => {
+                    el.classList.toggle('hidden', method !== 'stock');
+                });
 
                 // Filter Status Options
                 const statusSelect = document.getElementById('manage-request-status');
@@ -7190,17 +7326,29 @@
                 const itemsContainer = document.getElementById('manage-request-items-list');
                 if (itemsContainer) {
                     if (req.items && req.items.length > 0) {
+                        currentManagingRequestItems = JSON.parse(JSON.stringify(req.items));
                         itemsContainer.innerHTML = `
-                            <div class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">
-                                <ion-icon name="list-outline" class="text-sm"></ion-icon>
-                                สรุปรายการสินค้า
+                            <div class="flex justify-between items-center mb-3 px-1">
+                                <div class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                    <ion-icon name="list-outline" class="text-sm"></ion-icon>
+                                    สรุปรายการสินค้า
+                                </div>
+                                <div class="fulfillment-tech-checkbox-container hidden">
+                                    <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-lg ring-1 ring-indigo-100">ส่งให้เทคนิค</span>
+                                </div>
                             </div>
                             <div class="bg-white/50 rounded-3xl border border-slate-200/60 overflow-hidden shadow-sm">
-                                ${req.items.map(item => `
+                                ${req.items.map((item, idx) => `
                                     <div class="flex justify-between items-center px-5 py-4 border-b border-slate-100 last:border-0 hover:bg-white transition-colors">
-                                        <div class="flex flex-col">
-                                            <span class="font-black text-slate-800 text-sm">${item.productName}</span>
-                                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Product Name</span>
+                                        <div class="flex items-center gap-4">
+                                            <div class="fulfillment-tech-checkbox-container hidden">
+                                                <input type="checkbox" class="item-is-tech-checkbox w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer" 
+                                                    id="manage-item-tech-${idx}" ${item.isTech ? 'checked' : ''}>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="font-black text-slate-800 text-sm">${item.productName}</span>
+                                                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Product Name</span>
+                                            </div>
                                         </div>
                                         <div class="flex flex-col items-end">
                                             <span class="font-black text-indigo-600 text-base">${item.quantity}</span>
@@ -7211,6 +7359,7 @@
                             </div>
                         `;
                     } else {
+                        currentManagingRequestItems = [];
                         itemsContainer.innerHTML = `
                             <div class="text-center py-8 bg-slate-100/50 rounded-3xl border border-dashed border-slate-200">
                                 <ion-icon name="alert-circle-outline" class="text-3xl text-slate-300 mb-2"></ion-icon>
@@ -7250,6 +7399,15 @@
                     .map(input => input.value.trim())
                     .filter(val => val !== '');
 
+                // Collect items with isTech flag
+                const items = currentManagingRequestItems.map((item, idx) => {
+                    const cb = document.getElementById(`manage-item-tech-${idx}`);
+                    return {
+                        ...item,
+                        isTech: cb ? cb.checked : (item.isTech || false)
+                    };
+                });
+
                 try {
                     const res = await fetch(`${SERVER_URL}/stock-requests/${currentManagingRequestId}`, {
                         method: 'PUT',
@@ -7257,7 +7415,7 @@
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${localStorage.getItem('token')}`
                         },
-                        body: JSON.stringify({ status, expectedArrival, trackingNumbers, fulfillmentMethod })
+                        body: JSON.stringify({ status, expectedArrival, trackingNumbers, fulfillmentMethod, items })
                     });
                     if (res.ok) {
                         showToast('อัปเดตข้อมูลสำเร็จแล้ว!');
@@ -7277,8 +7435,15 @@
                     });
                     if (res.ok) {
                         const allRequests = await res.json();
-                        // Only show sent_to_tech
-                        allTechRequests = allRequests.filter(req => req.status === 'sent_to_tech');
+                        console.log('[DEBUG] All Managed Requests:', allRequests);
+                        // Only show sent_to_tech AND containing items for tech
+                        allTechRequests = allRequests.filter(req => {
+                            const isSent = req.status === 'sent_to_tech';
+                            const hasTechItems = req.items && req.items.some(i => i.isTech);
+                            console.log(`[DEBUG] Request ${req._id}: isSent=${isSent}, hasTechItems=${hasTechItems}`);
+                            return isSent && hasTechItems;
+                        });
+                        console.log('[DEBUG] Filtered Tech Requests:', allTechRequests);
                         renderTechStockRequestList(allTechRequests);
                     }
                 } catch (err) { console.error('Fetch tech requests error:', err); }
@@ -7304,7 +7469,12 @@
                 }
 
                 container.innerHTML = requests.map(req => {
-                    const itemsText = req.items.map(i => `
+                    // Filter items assigned to tech
+                    const techItems = req.items.filter(i => i.isTech);
+
+                    if (techItems.length === 0) return ''; // Skip if no items for tech
+
+                    const itemsText = techItems.map(i => `
                         <div class="flex justify-between items-center gap-4 py-2 border-b border-slate-50 last:border-0">
                             <span class="font-bold text-slate-700 text-sm">${i.productName}</span>
                             <span class="text-indigo-600 font-black px-2 py-1 bg-indigo-50 rounded-xl text-[10px] ring-1 ring-indigo-100">${i.quantity}</span>
@@ -7336,7 +7506,7 @@
                                     <div class="text-sm font-black text-slate-800">${req.branch || 'ส่วนกลาง'}</div>
                                     <div class="flex items-center gap-1.5 text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">
                                         <ion-icon name="person-circle-outline" class="text-indigo-400 text-sm"></ion-icon>
-                                        ${req.requestedBy?.name || 'Unknown'}
+                                        ${req.createdBy?.name || 'Unknown'}
                                     </div>
                                 </div>
                             </div>
@@ -7381,7 +7551,7 @@
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">รายการสินค้าที่ต้องส่ง</span>
                     </div>
                     <div class="space-y-2">
-                        ${(req.items || []).map(i => `
+                        ${(req.items || []).filter(i => i.isTech).map(i => `
                             <div class="flex justify-between items-center bg-slate-50/50 px-3 py-2 rounded-xl">
                                 <span class="font-bold text-slate-700 text-sm">${i.productName}</span>
                                 <span class="font-black text-violet-600 px-2 py-0.5 bg-white rounded-lg text-[10px] shadow-sm flex items-center gap-1">
@@ -8690,8 +8860,11 @@
                 return;
             }
 
-            const canUpdateStatus = (currentUser.department && (currentUser.department.includes('จัดซื้อ') || currentUser.department.includes('Purchase'))) ||
-                ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
+            const userDept = (currentUser.department || '').toLowerCase();
+            const isManager = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
+            const isPurchasing = userDept.includes('purchasing') || userDept.includes('purchase') || userDept.includes('จัดซื้อ');
+            const isSales = userDept.includes('sales') || userDept.includes('ขาย');
+            const canUpdateStatus = isManager || isPurchasing || isSales;
 
             const rowsHTML = orders.map((order) => {
                 const dateStr = new Date(order.orderDate).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -8841,7 +9014,8 @@
                 if (res.ok) {
                     console.log(`[DEBUG] Update successful`);
                     showToast('อัปเดตสถานะเรียบร้อยแล้ว!');
-                    fetchBranchOrders();
+                    if (typeof fetchBranchOrders === 'function') fetchBranchOrders();
+                    if (typeof fetchBranchInventory === 'function') fetchBranchInventory();
                 } else {
                     const errBody = await res.json();
                     console.error(`[DEBUG] Update failed:`, errBody);
@@ -8950,38 +9124,54 @@
                 return;
             }
 
+            const userDept = (currentUser.department || '').toLowerCase();
+            const isManager = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
+            const isPurchasing = userDept.includes('purchasing') || userDept.includes('purchase') || userDept.includes('จัดซื้อ');
+            const isSales = userDept.includes('sales') || userDept.includes('ขาย');
+            const canUpdateStatus = isManager || isPurchasing || isSales;
+
             const rowsHTML = orders.map((order) => {
                 const dateStr = new Date(order.orderDate).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
                 const expectStr = order.expectedDate ? new Date(order.expectedDate).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
 
-                let statusHTML = '';
-                if (!order.status || order.status === 'pending') {
-                    statusHTML = `
-                        <div class="inline-flex items-center px-4 py-1.5 rounded-full bg-slate-50 text-slate-500 text-[10px] font-black border border-slate-200/50 shadow-sm uppercase tracking-wider">
-                            <ion-icon name="ellipsis-horizontal-circle" class="mr-1.5 text-sm"></ion-icon>
-                            <span>รอดำเนินการ</span>
-                        </div>`;
-                } else if (order.status === 'shipped') {
-                    statusHTML = `
-                        <div class="inline-flex items-center px-4 py-1.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black border border-amber-200/50 shadow-sm uppercase tracking-wider">
-                            <ion-icon name="airplane-outline" class="mr-1.5 text-sm animate-bounce"></ion-icon>
-                            <span>รอของ</span>
-                        </div>`;
-                } else if (order.status === 'arrived') {
-                    statusHTML = `
-                        <div class="inline-flex items-center px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black border border-emerald-200/50 shadow-sm uppercase tracking-wider">
-                            <ion-icon name="checkmark-circle" class="mr-1.5 text-sm"></ion-icon>
-                            <span>ของถึงสาขาแล้ว</span>
-                        </div>`;
-                } else if (order.status === 'canceled') {
-                    statusHTML = `
-                        <div class="inline-flex items-center px-4 py-1.5 rounded-full bg-red-50 text-red-600 text-[10px] font-black border border-red-200/50 shadow-sm uppercase tracking-wider">
-                            <ion-icon name="close-circle" class="mr-1.5 text-sm"></ion-icon>
-                            <span>ยกเลิกแลัว</span>
+                // We'll use a slightly different approach for status if they can update it
+                let statusContent = '';
+                const status = order.status || 'pending';
+
+                const statusConfig = {
+                    pending: { label: 'รอดำเนินการ', color: 'bg-slate-50 text-slate-500 border-slate-200/50', icon: 'ellipsis-horizontal-circle' },
+                    shipped: { label: 'รอของ', color: 'bg-amber-50 text-amber-600 border-amber-200/50', icon: 'airplane-outline', iconClass: 'animate-bounce' },
+                    arrived: { label: 'ของถึงสาขาแล้ว', color: 'bg-emerald-50 text-emerald-600 border-emerald-200/50', icon: 'checkmark-circle' },
+                    canceled: { label: 'ยกเลิกแล้ว', color: 'bg-red-50 text-red-600 border-red-200/50', icon: 'close-circle' }
+                };
+
+                const config = statusConfig[status] || statusConfig.pending;
+
+                if (canUpdateStatus) {
+                    // Render as a select dropdown for easier updating
+                    statusContent = `
+                        <select onchange="updateBranchOrderStatus('${order._id}', this.value)" 
+                            class="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-full border border-slate-200 shadow-sm focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none
+                            ${status === 'pending' ? 'bg-slate-50 text-slate-500' : ''}
+                            ${status === 'shipped' ? 'bg-amber-50 text-amber-600' : ''}
+                            ${status === 'arrived' ? 'bg-emerald-50 text-emerald-600' : ''}
+                            ${status === 'canceled' ? 'bg-red-50 text-red-600' : ''}
+                        ">
+                            <option value="pending" ${status === 'pending' ? 'selected' : ''}>รอดำเนินการ</option>
+                            <option value="shipped" ${status === 'shipped' ? 'selected' : ''}>รอของ</option>
+                            <option value="arrived" ${status === 'arrived' ? 'selected' : ''}>ของถึงสาขาแล้ว</option>
+                            <option value="canceled" ${status === 'canceled' ? 'selected' : ''}>ยกเลิกแลัว</option>
+                        </select>
+                    `;
+                } else {
+                    statusContent = `
+                        <div class="inline-flex items-center px-4 py-1.5 rounded-full ${config.color} text-[10px] font-black border shadow-sm uppercase tracking-wider">
+                            <ion-icon name="${config.icon}" class="mr-1.5 text-sm ${config.iconClass || ''}"></ion-icon>
+                            <span>${config.label}</span>
                         </div>`;
                 }
 
-                // Handle items display (support both old single-item and new multi-items)
+                // Handle items display
                 let productsHTML = '';
                 if (order.items && order.items.length > 0) {
                     productsHTML = `
@@ -8999,7 +9189,6 @@
                             `).join('')}
                         </div>`;
                 } else if (order.productName) {
-                    // Fallback for old data
                     productsHTML = `
                         <div class="flex flex-wrap gap-2 mt-2">
                             <div class="flex items-center gap-2 bg-white border border-slate-100 px-3 py-1.5 rounded-xl shadow-sm hover:border-emerald-200 hover:shadow-md transition-all group/item">
@@ -9051,7 +9240,7 @@
                             </span>
                         </td>
                         <td class="px-6 py-5 text-center whitespace-nowrap">
-                            ${statusHTML}
+                            ${statusContent}
                         </td>
                     </tr>`;
             }).join('');

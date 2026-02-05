@@ -101,7 +101,10 @@ exports.getImports = async (req, res) => {
 
         // 3. Role-based access
         if (req.user.role === 'staff' && !isStock) {
-            query.branch = req.user.branch;
+            query.$or = [
+                { branch: req.user.branch },
+                { createdBy: req.user._id }
+            ];
         }
 
         // 4. Pagination

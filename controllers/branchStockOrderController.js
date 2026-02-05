@@ -85,13 +85,26 @@ exports.updateOrder = async (req, res) => {
         const updates = req.body;
         console.log(`[DEBUG] Received update request for order ${id}:`, updates);
 
-        // Security: Check if user is allowed to update (Purchasing or Manager)
+        // Security: Check if user is allowed to update (Purchasing or Manager or Sales for status only)
         const user = await User.findById(req.user.id);
         const userDept = (user.department || '').toLowerCase();
         const isPurchasing = userDept.includes('purchasing') || userDept.includes('purchase') || userDept.includes('จัดซื้อ');
+        const isSales = userDept.includes('sales') || userDept.includes('ขาย');
 
-        if (!isPurchasing && user.role !== 'executive' && user.role !== 'manager' && user.role !== 'hr') {
-            return res.status(403).json({ message: 'Forbidden: You do not have permission to update orders.' });
+        let allowed = isPurchasing || user.role === 'executive' || user.role === 'manager' || user.role === 'hr';
+
+        if (!allowed) {
+            if (isSales) {
+                // Sales can ONLY update the status field
+                const updateKeys = Object.keys(updates);
+                if (updateKeys.length === 1 && updateKeys[0] === 'status') {
+                    allowed = true;
+                } else {
+                    return res.status(403).json({ message: 'Forbidden: Sales staff can only update the status.' });
+                }
+            } else {
+                return res.status(403).json({ message: 'Forbidden: You do not have permission to update orders.' });
+            }
         }
 
         const order = await BranchStockOrder.findByIdAndUpdate(id, updates, { new: true });

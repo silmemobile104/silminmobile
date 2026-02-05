@@ -107,20 +107,46 @@ exports.updateStockRequest = async (req, res) => {
             return res.status(404).json({ message: 'Request not found' });
         }
 
+        // Security Check: Allow Sales and Tech staff to update specific fields
+        const userDept = (req.user.department || '').toLowerCase();
+        const isAdminOrManager = ['admin', 'manager', 'executive', 'hr'].includes(req.user.role);
+        const isStockOrPurchasing = ['purchasing', 'purchase', 'จัดซื้อ', 'stock', 'store', 'คลัง', 'supply'].some(kw => userDept.includes(kw));
+        const isTech = ['tech', 'เทคนิค'].some(kw => userDept.includes(kw));
+        const isSales = userDept.includes('sales') || userDept.includes('ขาย');
+
+        let allowed = isAdminOrManager || isStockOrPurchasing || isTech;
+
+        if (!allowed) {
+            if (isSales) {
+                // Sales can ONLY update the status field
+                const updateKeys = Object.keys(req.body);
+                if (updateKeys.length === 1 && updateKeys[0] === 'status') {
+                    allowed = true;
+                } else {
+                    return res.status(403).json({ message: 'Forbidden: Sales staff can only update the status.' });
+                }
+            } else {
+                return res.status(403).json({ message: 'Forbidden: You do not have permission to update stock requests.' });
+            }
+        }
+
         // Standard Status Updates
         if (status) request.status = status;
         if (expectedArrival !== undefined) request.expectedArrivalDate = expectedArrival;
         if (Array.isArray(trackingNumbers)) request.trackingNumbers = trackingNumbers;
         if (fulfillmentMethod) request.fulfillmentMethod = fulfillmentMethod;
 
-        // Content Updates (Title, Items, Note)
-        if (title) request.title = title;
-        if (note !== undefined) request.note = note;
-        if (items && Array.isArray(items)) {
-            request.items = items.map(item => ({
-                productName: item.name || item.productName,
-                quantity: Number(item.quantity) || 1
-            }));
+        // Content Updates (Title, Items, Note) - Only for Management/Stock
+        if (isAdminOrManager || isStockOrPurchasing) {
+            if (title) request.title = title;
+            if (note !== undefined) request.note = note;
+            if (items && Array.isArray(items)) {
+                request.items = items.map(item => ({
+                    productName: item.name || item.productName,
+                    quantity: Number(item.quantity) || 1,
+                    isTech: item.isTech === true
+                }));
+            }
         }
 
         await request.save();
@@ -132,7 +158,7 @@ exports.updateStockRequest = async (req, res) => {
                 [request.createdBy],
                 message,
                 null, // No task ID
-                req.user.id
+                req.user._id || req.user.id
             );
         }
 

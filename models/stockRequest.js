@@ -3,7 +3,8 @@ const Schema = mongoose.Schema;
 
 const StockRequestItemSchema = new Schema({
     productName: { type: String, required: true },
-    quantity: { type: Number, required: true, min: 1 }
+    quantity: { type: Number, required: true, min: 1 },
+    isTech: { type: Boolean, default: false }
 });
 
 const StockRequestSchema = new Schema({
