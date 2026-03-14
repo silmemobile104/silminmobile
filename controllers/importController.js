@@ -209,16 +209,8 @@ exports.updateImport = async (req, res) => {
 
         const { type, details, supplier, description } = req.body;
 
-        // 1. Handle Files (Append) - Robustness Fix
-        console.log(`DEBUG: Updating import ${req.params.id}. Files before: ${importRequest.files ? importRequest.files.length : 0}`);
-
-        if (req.files && req.files.length > 0) {
-            const newFiles = req.files.map(file => file.path);
-            const existingFiles = importRequest.files || []; // Safety check
-            importRequest.files = [...existingFiles, ...newFiles];
-
-            console.log(`DEBUG: Appended ${newFiles.length} new files. Total: ${importRequest.files.length}`);
-        }
+        // 1. Keep existing files unchanged on update
+        console.log(`DEBUG: Updating import ${req.params.id}. Keeping existing files unchanged. Existing: ${importRequest.files ? importRequest.files.length : 0}`);
 
         // 2. Handle Details
         let parsedDetails = {};

@@ -69,7 +69,7 @@ exports.saveDeposit = async (req, res) => {
     try {
         const {
             id, depositDate, customerName, phoneNumber, depositAmount, pickupDueDate,
-            billNo, imei, product, price, isSuccess,
+            billNo, imei, product, price, isSuccess, isCanceled,
             // รับค่าใหม่
             orderStatus, orderNote, expectedArrivalDate
         } = req.body;
@@ -89,14 +89,15 @@ exports.saveDeposit = async (req, res) => {
             deposit.imei = imei;
             deposit.product = product;
             deposit.price = price;
-            deposit.isSuccess = isSuccess;
+            deposit.isCanceled = !!isCanceled;
+            deposit.isSuccess = deposit.isCanceled ? false : !!isSuccess;
 
             // อัปเดตข้อมูลจัดซื้อ (ถ้าส่งมา)
             if (orderStatus) deposit.orderStatus = orderStatus;
             if (orderNote !== undefined) deposit.orderNote = orderNote;
             if (expectedArrivalDate !== undefined) deposit.expectedArrivalDate = expectedArrivalDate;
 
-            if (isSuccess && !deposit.signName) deposit.signName = req.user.name;
+            if (deposit.isSuccess && !deposit.signName) deposit.signName = req.user.name;
 
             await deposit.save();
             return res.status(200).json(deposit);
@@ -106,7 +107,9 @@ exports.saveDeposit = async (req, res) => {
                 companyId: req.user.companyId,
                 branch: req.user.branch || req.user.department,
                 depositDate, customerName, phoneNumber, depositAmount, pickupDueDate,
-                billNo, imei, product, price, isSuccess,
+                billNo, imei, product, price,
+                isCanceled: !!isCanceled,
+                isSuccess: (!!isCanceled) ? false : !!isSuccess,
                 signName: '',
                 // ค่าเริ่มต้น
                 orderStatus: 'pending',

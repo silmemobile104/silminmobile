@@ -20,6 +20,7 @@ const DepositSchema = new Schema({
     price: { type: Number, default: 0 },
 
     isSuccess: { type: Boolean, default: false },
+    isCanceled: { type: Boolean, default: false },
     signName: { type: String, default: '' },
 
     // === [NEW] ส่วนเพิ่มสำหรับฝ่ายจัดซื้อ ===
