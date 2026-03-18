@@ -1,4 +1,5 @@
 const Claim = require('../models/claim');
+const { logActivity } = require('../utils/logger'); // Activity Log
 
 // @desc    Create new claim
 // @route   POST /api/claims
@@ -27,6 +28,7 @@ exports.createClaim = async (req, res) => {
         });
 
         await newClaim.save();
+        await logActivity(req, 'CREATE', 'Claim', `แจ้งเคลมใหม่: ${newClaim.productName} (${newClaim.branch})`, { id: newClaim._id, productName: newClaim.productName, branch: newClaim.branch, quantity: newClaim.quantity });
         res.status(201).json(newClaim);
     } catch (error) {
         console.error('Create Claim Error:', error);
@@ -148,7 +150,7 @@ exports.updateClaimStatus = async (req, res) => {
         if (status) claim.status = status;
         if (supplier !== undefined) claim.supplier = supplier;
         await claim.save();
-
+        await logActivity(req, 'UPDATE', 'Claim', `อัปเดตสถานะเคลม: ${claim.productName} เป็น "${claim.status}"`, { id: claim._id, status: claim.status, productName: claim.productName });
         res.status(200).json(claim);
     } catch (error) {
         console.error('Update Claim Status Error:', error);
@@ -181,6 +183,7 @@ exports.updateClaim = async (req, res) => {
         }
 
         const updatedClaim = await Claim.findByIdAndUpdate(id, updates, { new: true });
+        await logActivity(req, 'UPDATE', 'Claim', `แก้ไขข้อมูลเคลม: ${updatedClaim.productName}`, { id, updates });
         res.status(200).json(updatedClaim);
     } catch (error) {
         console.error('Update Claim Error:', error);
@@ -214,6 +217,7 @@ exports.deleteClaim = async (req, res) => {
         }
 
         await Claim.findByIdAndDelete(id);
+        await logActivity(req, 'DELETE', 'Claim', `ลบรายการเคลม: ${claim.productName} (${claim.branch})`, { id, productName: claim.productName });
         res.status(200).json({ message: 'Claim deleted' });
     } catch (error) {
         console.error('Delete Claim Error:', error);

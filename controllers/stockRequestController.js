@@ -1,5 +1,6 @@
 const StockRequest = require('../models/stockRequest');
 const notificationController = require('./notificationController');
+const { logActivity } = require('../utils/logger'); // Activity Log
 
 // @desc    Create new stock request
 // @route   POST /api/stock-requests
@@ -40,6 +41,7 @@ exports.createStockRequest = async (req, res) => {
         });
 
         await newRequest.save();
+        await logActivity(req, 'CREATE', 'StockRequest', `สร้างรายการเบิกสินค้า: "${newRequest.title}" (${newRequest.branch})`, { id: newRequest._id, title: newRequest.title, branch: newRequest.branch, itemCount: mappedItems.length });
         console.log('[CreateStockRequest] Success:', newRequest._id);
         res.status(201).json(newRequest);
     } catch (error) {
@@ -150,6 +152,7 @@ exports.updateStockRequest = async (req, res) => {
         }
 
         await request.save();
+        await logActivity(req, 'UPDATE', 'StockRequest', `อัปเดตรายการเบิก: "${request.title}" เป็น "${request.status}"`, { id: req.params.id, status: request.status, title: request.title });
 
         // Send Notification if status changed to 'shipped'
         if (status === 'shipped' && request.createdBy) {
@@ -190,6 +193,7 @@ exports.deleteStockRequest = async (req, res) => {
         }
 
         await request.deleteOne();
+        await logActivity(req, 'DELETE', 'StockRequest', `ลบรายการเบิก: "${request.title}" (${request.branch})`, { id: req.params.id, title: request.title });
         res.status(200).json({ message: 'Request removed' });
     } catch (error) {
         console.error('Delete Stock Request Error:', error);

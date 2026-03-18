@@ -3,6 +3,7 @@
 const Task = require('../models/task');
 const User = require('../models/user');
 const { createNotification } = require('./notificationController');
+const { logActivity } = require('../utils/logger'); // Activity Log
 
 // @desc    สร้างงานใหม่
 // @route   POST /api/tasks
@@ -37,6 +38,7 @@ exports.createTask = async (req, res) => {
 
         const savedTask = await newTask.save();
         console.log(`[Task] User ${req.user.username} สั่งงานใหม่ (ID: ${savedTask._id})`);
+        await logActivity(req, 'CREATE', 'Task', `สร้างงานใหม่: "${savedTask.title}"`, { taskId: savedTask._id, title: savedTask.title, assignedTo: savedTask.assignedTo });
 
         // 2. สร้างการแจ้งเตือน "งานใหม่"
         const message = `คุณได้รับมอบหมายงานใหม่: "${savedTask.title}"`;
@@ -208,6 +210,8 @@ exports.updateTask = async (req, res) => {
         }
 
         const updatedTask = await task.save();
+        
+        await logActivity(req, 'UPDATE', 'Task', `อัปเดตงาน: "${task.title}"`, { taskId: taskId, status: req.body.status, commentAdded });
 
         // --- Notification Logic ---
         const executives = await User.find({ companyId: task.companyId, role: 'executive' }).select('_id');
@@ -266,6 +270,7 @@ exports.deleteTask = async (req, res) => {
         }
 
         await task.deleteOne();
+        await logActivity(req, 'DELETE', 'Task', `ลบงาน: "${task.title}"`, { taskId });
         console.log(`[Task] User ${req.user.username} ลบงาน (ID: ${taskId})`);
         res.status(200).json({ message: 'ลบงานสำเร็จ' });
 

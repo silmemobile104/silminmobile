@@ -1,4 +1,5 @@
 const ImportRequest = require('../models/importRequest');
+const { logActivity } = require('../utils/logger'); // Activity Log
 
 // @desc    Create new import request (Phone or Accessory)
 exports.createImport = async (req, res) => {
@@ -52,6 +53,8 @@ exports.createImport = async (req, res) => {
         });
 
         await newImport.save();
+        const importTypeName = type === 'phone' ? 'โทรศัพท์' : 'อุปกรณ์';
+        await logActivity(req, 'CREATE', 'Import', `นำเข้าสินค้า (${importTypeName}) สาขา: ${newImport.branch}`, { id: newImport._id, type, branch: newImport.branch });
         res.status(201).json(newImport);
     } catch (error) {
         console.error('Create Import Error:', error);
@@ -147,7 +150,7 @@ exports.updateImportStatus = async (req, res) => {
 
         importRequest.status = status;
         await importRequest.save();
-
+        await logActivity(req, 'UPDATE', 'Import', `อัปเดตสถานะนำเข้าเป็น "${status}"`, { id: req.params.id, status });
         res.status(200).json(importRequest);
     } catch (error) {
         console.error('Update Import Status Error:', error);
@@ -179,7 +182,7 @@ exports.deleteImport = async (req, res) => {
         }
 
         await importRequest.deleteOne();
-
+        await logActivity(req, 'DELETE', 'Import', `ลบรายการนำเข้า (${importRequest.type}) สาขา: ${importRequest.branch}`, { id: req.params.id, type: importRequest.type });
         res.status(200).json({ message: 'Import request removed' });
     } catch (error) {
         console.error('Delete Import Error:', error);
@@ -252,6 +255,7 @@ exports.updateImport = async (req, res) => {
         importRequest.markModified('details');
 
         await importRequest.save();
+        await logActivity(req, 'UPDATE', 'Import', `แก้ไขรายการนำเข้า (${importRequest.type})`, { id: req.params.id, type: importRequest.type });
         res.status(200).json(importRequest);
     } catch (error) {
         console.error('Update Import Error:', error);

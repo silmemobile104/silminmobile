@@ -3,6 +3,7 @@
 
 const User = require('../models/user'); // <-- 1. ใช้ตัวพิมพ์ใหญ่ 'User'
 const bcrypt = require('bcryptjs'); // Import bcrypt for password hashing
+const { logActivity } = require('../utils/logger'); // Activity Log
 
 // @desc    ดึงรายชื่อ User ทั้งหมด (เพื่อใช้ใน Dropdown มอบหมายงาน)
 // @route   GET /api/users
@@ -95,6 +96,7 @@ exports.adminUpdateUser = async (req, res) => {
         }
 
         const updatedUser = await user.save();
+        await logActivity(req, 'UPDATE', 'User', `แก้ไขข้อมูลผู้ใช้: ${updatedUser.username}`, { userId, name: updatedUser.name, role: updatedUser.role, branch: updatedUser.branch });
         console.log(`[Admin] User ${req.user.username} แก้ไขข้อมูล ${updatedUser.username}`);
         res.status(200).json({
             _id: updatedUser._id,
@@ -129,7 +131,7 @@ exports.adminDeleteUser = async (req, res) => {
         }
 
         await user.deleteOne();
-
+        await logActivity(req, 'DELETE', 'User', `ลบผู้ใช้: ${user.username}`, { deletedUserId: userId, username: user.username });
         console.log(`[Admin] User ${req.user.username} ลบ User ${user.username}`);
         res.status(200).json({ message: 'ลบผู้ใช้สำเร็จ' });
 

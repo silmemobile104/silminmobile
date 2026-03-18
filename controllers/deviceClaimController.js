@@ -1,5 +1,6 @@
 const { google } = require('googleapis');
 const path = require('path');
+const { logActivity } = require('../utils/logger'); // Activity Log
 
 // Load Service Account Credentials
 const keyFile = path.join(process.cwd(), 'splendid-yeti-484510-u9-fb19d01ef226.json');
@@ -92,6 +93,8 @@ exports.submitDeviceClaim = async (req, res) => {
         }
 
         res.status(201).json({ message: 'Device claim submitted successfully' });
+        // Log after responding (fire-and-forget)
+        logActivity(req, 'CREATE', 'DeviceClaim', `ส่งแบฟอร์มแจ้งซ่อมเครื่อง: ${customerName} (${product})`, { customerName, product, imei, branch, claimCase });
 
     } catch (error) {
         console.error('Error submitting device claim:', error);
@@ -265,6 +268,8 @@ exports.updateDeviceClaim = async (req, res) => {
         });
 
         res.status(200).json({ message: 'Device claim updated successfully' });
+        // Log after responding (fire-and-forget)
+        logActivity(req, 'UPDATE', 'DeviceClaim', `แก้ไขข้อมูลแจ้งซ่อมเครื่อง: ${customerName} (แถว ${id})`, { rowId: id, customerName, product, status });
 
     } catch (error) {
         console.error('Error updating device claim:', error);

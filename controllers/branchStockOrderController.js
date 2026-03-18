@@ -1,5 +1,6 @@
 const BranchStockOrder = require('../models/branchStockOrder');
 const User = require('../models/user');
+const { logActivity } = require('../utils/logger'); // Activity Log
 
 // Create a new order (Purchasing only)
 exports.createOrder = async (req, res) => {
@@ -19,6 +20,7 @@ exports.createOrder = async (req, res) => {
         });
 
         await newOrder.save();
+        await logActivity(req, 'CREATE', 'BranchStockOrder', `สร้างคำสั่งซื้อสาขา: ${newOrder.orderName || '-'} (${newOrder.branch})`, { id: newOrder._id, orderName: newOrder.orderName, branch: newOrder.branch });
         res.status(201).json(newOrder);
     } catch (err) {
         console.error('Error creating branch order:', err);
@@ -114,6 +116,7 @@ exports.updateOrder = async (req, res) => {
         }
 
         console.log(`[DEBUG] Order ${id} updated successfully:`, order.status);
+        await logActivity(req, 'UPDATE', 'BranchStockOrder', `อัปเดตคำสั่งซื้อ: ${order.orderName || id}`, { id, updates });
         res.json(order);
     } catch (err) {
         console.error(`[DEBUG] Error updating order ${id}:`, err);
@@ -136,6 +139,7 @@ exports.deleteOrder = async (req, res) => {
         }
 
         await BranchStockOrder.findByIdAndDelete(id);
+        await logActivity(req, 'DELETE', 'BranchStockOrder', `ลบคำสั่งซื้อสาขา ID: ${id}`, { id });
         res.json({ message: 'Order deleted' });
     } catch (err) {
         res.status(500).json({ message: 'Server error' });

@@ -1,5 +1,6 @@
 // controllers/depositController.js
 const Deposit = require('../models/deposit');
+const { logActivity } = require('../utils/logger'); // Activity Log
 
 // @desc    ดึงข้อมูล
 exports.getDeposits = async (req, res) => {
@@ -100,6 +101,7 @@ exports.saveDeposit = async (req, res) => {
             if (deposit.isSuccess && !deposit.signName) deposit.signName = req.user.name;
 
             await deposit.save();
+            await logActivity(req, 'UPDATE', 'Deposit', `แก้ไขข้อมูลมัดจำ: ${deposit.customerName} (${deposit.product})`, { id: deposit._id, product: deposit.product, customerName: deposit.customerName });
             return res.status(200).json(deposit);
         } else {
             // --- สร้างใหม่ ---
@@ -117,6 +119,7 @@ exports.saveDeposit = async (req, res) => {
                 expectedArrivalDate: null
             });
             await newDeposit.save();
+            await logActivity(req, 'CREATE', 'Deposit', `บันทึกมัดจำใหม่: ${newDeposit.customerName} (${newDeposit.product})`, { id: newDeposit._id, product: newDeposit.product, customerName: newDeposit.customerName, depositAmount: newDeposit.depositAmount });
             return res.status(201).json(newDeposit);
         }
     } catch (error) {
@@ -127,7 +130,14 @@ exports.saveDeposit = async (req, res) => {
 
 // ... (functions อื่นๆ เหมือนเดิม)
 exports.deleteDeposit = async (req, res) => {
-    try { await Deposit.findByIdAndDelete(req.params.id); res.status(200).json({ message: 'Deleted' }); } catch (e) { res.status(500).json({ message: 'Error' }); }
+    try {
+        const deposit = await Deposit.findById(req.params.id);
+        if (deposit) {
+            await Deposit.findByIdAndDelete(req.params.id);
+            await logActivity(req, 'DELETE', 'Deposit', `ลบข้อมูลมัดจำ: ${deposit.customerName} (${deposit.product})`, { id: req.params.id });
+        }
+        res.status(200).json({ message: 'Deleted' });
+    } catch (e) { res.status(500).json({ message: 'Error' }); }
 };
 exports.getDepositProducts = async (req, res) => {
     try { const p = await Deposit.distinct('product', { companyId: req.user.companyId, product: { $ne: null } }); res.status(200).json(p); } catch (e) { res.status(500).json({ message: 'Error' }); }

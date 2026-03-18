@@ -1,8 +1,9 @@
 // controllers/authController.js (V2 - ฉบับแก้ไข)
 
 const User = require('../models/user'); // 1. Import User Model
-const bcrypt = require('bcryptjs');     // 2. Import Bcrypt
-const jwt = require('jsonwebtoken');    // 3. Import JWT
+const bcrypt = require('bcryptjs');     // 2. Import Bcrypt
+const jwt = require('jsonwebtoken');    // 3. Import JWT
+const { logActivity } = require('../utils/logger'); // Activity Log
 require('dotenv').config();
 
 // --- ฟังก์ชันสำหรับสร้าง User ใหม่ (เข้ารหัสผ่าน) ---
@@ -36,6 +37,9 @@ exports.registerUser = async (req, res) => {
         // 4. บันทึก User ลง DB
         await user.save();
         console.log(`[Register] User ${username} ถูกสร้างสำเร็จ!`);
+
+        // Log กิจกรรม (ใช้ req.user อาจจะยังไม่มี — ส่ง null ผ่าน logActivity ได้)
+        await logActivity(req, 'REGISTER', 'Auth', `สร้างบัญชีผู้ใช้ใหม่: ${username}`, { username, role, branch });
 
         // 5. สร้าง Token (JWT) เพื่อส่งกลับไป
         const payload = {
@@ -87,6 +91,10 @@ exports.loginUser = async (req, res) => {
 
         // 3. ถ้ารหัสผ่านถูกต้อง!
         console.log(`[Login] User ${username} เข้าสู่ระบบสำเร็จ!`);
+
+        // ชั่วคราว: แนบข้อมูล user ลงใน req เพื่อให้ logActivity ดึง userId ได้
+        req.user = user;
+        await logActivity(req, 'LOGIN', 'Auth', `${username} เข้าสู่ระบบ`, { username, role: user.role });
 
         // 4. สร้าง Token (JWT) ส่งกลับไป
         const payload = {
