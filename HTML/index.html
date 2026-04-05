@@ -377,6 +377,24 @@
                             class="w-5 h-5 mr-3 text-slate-400 group-hover:text-blue-500 transition-colors"></ion-icon>
                         <span class="font-medium">แจ้งเคลมเครื่อง (Google Sheets)</span>
                     </a>
+                    <a href="/stock-management.html" id="nav-stock-management"
+                        class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group hidden">
+                        <ion-icon name="cloud-upload-outline"
+                            class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
+                        <span class="font-medium">นำเข้าสต็อกรายวัน</span>
+                    </a>
+                    <a href="/stock-dashboard.html" id="nav-stock-dashboard"
+                        class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group hidden">
+                        <ion-icon name="stats-chart-outline"
+                            class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
+                        <span class="font-medium">แดชบอร์ดสต็อกสินค้า</span>
+                    </a>
+                    <a href="/branch-daily-check.html" id="nav-branch-daily-check"
+                        class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group hidden">
+                        <ion-icon name="barcode-outline"
+                            class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
+                        <span class="font-medium">เช็คสต็อกประจำวัน</span>
+                    </a>
                     <a href="#" onclick="updateNavActiveState('admin')" id="nav-admin"
                         class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group">
                         <ion-icon name="people-outline"
@@ -597,14 +615,15 @@
                                     <option value="ยะลา">ยะลา</option>
                                     <option value="นราธิวาส">นราธิวาส</option>
                                     <option value="หาดใหญ่">หาดใหญ่</option>
-                                    <option value="บิ๊กซี">บิ๊กซี</option>
+                                    <option value="บิ๊กซี (หาดใหญ่)">บิ๊กซี (หาดใหญ่)</option>
                                     <option value="ปัตตานี">ปัตตานี</option>
-                                    <option value="โคลีเซียม">โคลีเซียม</option>
-                                    <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                                    <option value="โคลีเซี่ยม">โคลีเซี่ยม</option>
+                                    <option value="สุราษฏร์">สุราษฏร์</option>
                                     <option value="ปากแมว">ปากแมว</option>
                                     <option value="ภูเก็ต">ภูเก็ต</option>
-                                    <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                                    <option value="นคร">นคร</option>
                                     <option value="กระบี่">กระบี่</option>
+                                    <option value="เหนือคลอง">เหนือคลอง</option>
                                     <option value="กะทู้">กะทู้</option>
                                     <option value="ตรัง">ตรัง</option>
                                     <option value="คุรุ">คุรุ</option>
@@ -612,6 +631,7 @@
                                     <option value="สตูล">สตูล</option>
                                     <option value="พัทลุง">พัทลุง</option>
                                     <option value="สงขลา">สงขลา</option>
+                                    <option value="เบตง">เบตง</option>
                                 </select>
                             </div>
                             <div id="filter-status-container">
@@ -725,14 +745,15 @@
                                     <option value="ยะลา">ยะลา</option>
                                     <option value="นราธิวาส">นราธิวาส</option>
                                     <option value="หาดใหญ่">หาดใหญ่</option>
-                                    <option value="บิ๊กซี">บิ๊กซี</option>
+                                    <option value="บิ๊กซี (หาดใหญ่)">บิ๊กซี (หาดใหญ่)</option>
                                     <option value="ปัตตานี">ปัตตานี</option>
-                                    <option value="โคลีเซียม">โคลีเซียม</option>
-                                    <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                                    <option value="โคลีเซี่ยม">โคลีเซี่ยม</option>
+                                    <option value="สุราษฏร์">สุราษฏร์</option>
                                     <option value="ปากแมว">ปากแมว</option>
                                     <option value="ภูเก็ต">ภูเก็ต</option>
-                                    <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                                    <option value="นคร">นคร</option>
                                     <option value="กระบี่">กระบี่</option>
+                                    <option value="เหนือคลอง">เหนือคลอง</option>
                                     <option value="กะทู้">กะทู้</option>
                                     <option value="ตรัง">ตรัง</option>
                                     <option value="คุรุ">คุรุ</option>
@@ -740,6 +761,7 @@
                                     <option value="สตูล">สตูล</option>
                                     <option value="พัทลุง">พัทลุง</option>
                                     <option value="สงขลา">สงขลา</option>
+                                    <option value="เบตง">เบตง</option>
                                 </select>
                             </div>
                             <button onclick="fetchPurchasingOrders()"
@@ -946,14 +968,15 @@
                                         <option value="ยะลา">ยะลา</option>
                                         <option value="นราธิวาส">นราธิวาส</option>
                                         <option value="หาดใหญ่">หาดใหญ่</option>
-                                        <option value="บิ๊กซี">บิ๊กซี</option>
+                                        <option value="บิ๊กซี (หาดใหญ่)">บิ๊กซี (หาดใหญ่)</option>
                                         <option value="ปัตตานี">ปัตตานี</option>
-                                        <option value="โคลีเซียม">โคลีเซียม</option>
-                                        <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                                        <option value="โคลีเซี่ยม">โคลีเซี่ยม</option>
+                                        <option value="สุราษฏร์">สุราษฏร์</option>
                                         <option value="ปากแมว">ปากแมว</option>
                                         <option value="ภูเก็ต">ภูเก็ต</option>
-                                        <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                                        <option value="นคร">นคร</option>
                                         <option value="กระบี่">กระบี่</option>
+                                        <option value="เหนือคลอง">เหนือคลอง</option>
                                         <option value="กะทู้">กะทู้</option>
                                         <option value="ตรัง">ตรัง</option>
                                         <option value="คุรุ">คุรุ</option>
@@ -961,6 +984,7 @@
                                         <option value="สตูล">สตูล</option>
                                         <option value="พัทลุง">พัทลุง</option>
                                         <option value="สงขลา">สงขลา</option>
+                                        <option value="เบตง">เบตง</option>
                                     </select>
                                     <div
                                         class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
@@ -1192,14 +1216,15 @@
                                     <option value="ยะลา">ยะลา</option>
                                     <option value="นราธิวาส">นราธิวาส</option>
                                     <option value="หาดใหญ่">หาดใหญ่</option>
-                                    <option value="บิ๊กซี">บิ๊กซี</option>
+                                    <option value="บิ๊กซี (หาดใหญ่)">บิ๊กซี (หาดใหญ่)</option>
                                     <option value="ปัตตานี">ปัตตานี</option>
-                                    <option value="โคลีเซียม">โคลีเซียม</option>
-                                    <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                                    <option value="โคลีเซี่ยม">โคลีเซี่ยม</option>
+                                    <option value="สุราษฏร์">สุราษฏร์</option>
                                     <option value="ปากแมว">ปากแมว</option>
                                     <option value="ภูเก็ต">ภูเก็ต</option>
-                                    <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                                    <option value="นคร">นคร</option>
                                     <option value="กระบี่">กระบี่</option>
+                                    <option value="เหนือคลอง">เหนือคลอง</option>
                                     <option value="กะทู้">กะทู้</option>
                                     <option value="ตรัง">ตรัง</option>
                                     <option value="คุรุ">คุรุ</option>
@@ -1207,6 +1232,7 @@
                                     <option value="สตูล">สตูล</option>
                                     <option value="พัทลุง">พัทลุง</option>
                                     <option value="สงขลา">สงขลา</option>
+                                    <option value="เบตง">เบตง</option>
                                 </select>
                                 <ion-icon name="chevron-down-outline"
                                     class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs"></ion-icon>
@@ -1283,14 +1309,15 @@
                                     <option value="ยะลา">ยะลา</option>
                                     <option value="นราธิวาส">นราธิวาส</option>
                                     <option value="หาดใหญ่">หาดใหญ่</option>
-                                    <option value="บิ๊กซี">บิ๊กซี</option>
+                                    <option value="บิ๊กซี (หาดใหญ่)">บิ๊กซี (หาดใหญ่)</option>
                                     <option value="ปัตตานี">ปัตตานี</option>
-                                    <option value="โคลีเซียม">โคลีเซียม</option>
-                                    <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                                    <option value="โคลีเซี่ยม">โคลีเซี่ยม</option>
+                                    <option value="สุราษฏร์">สุราษฏร์</option>
                                     <option value="ปากแมว">ปากแมว</option>
                                     <option value="ภูเก็ต">ภูเก็ต</option>
-                                    <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                                    <option value="นคร">นคร</option>
                                     <option value="กระบี่">กระบี่</option>
+                                    <option value="เหนือคลอง">เหนือคลอง</option>
                                     <option value="กะทู้">กะทู้</option>
                                     <option value="ตรัง">ตรัง</option>
                                     <option value="คุรุ">คุรุ</option>
@@ -1298,6 +1325,7 @@
                                     <option value="สตูล">สตูล</option>
                                     <option value="พัทลุง">พัทลุง</option>
                                     <option value="สงขลา">สงขลา</option>
+                                    <option value="เบตง">เบตง</option>
                                 </select>
                                 <ion-icon name="chevron-down"
                                     class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs"></ion-icon>
@@ -2417,14 +2445,15 @@
                                         <option value="ยะลา">ยะลา</option>
                                         <option value="นราธิวาส">นราธิวาส</option>
                                         <option value="หาดใหญ่">หาดใหญ่</option>
-                                        <option value="บิ๊กซี">บิ๊กซี</option>
+                                        <option value="บิ๊กซี (หาดใหญ่)">บิ๊กซี (หาดใหญ่)</option>
                                         <option value="ปัตตานี">ปัตตานี</option>
-                                        <option value="โคลีเซียม">โคลีเซียม</option>
-                                        <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                                        <option value="โคลีเซี่ยม">โคลีเซี่ยม</option>
+                                        <option value="สุราษฏร์">สุราษฏร์</option>
                                         <option value="ปากแมว">ปากแมว</option>
                                         <option value="ภูเก็ต">ภูเก็ต</option>
-                                        <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                                        <option value="นคร">นคร</option>
                                         <option value="กระบี่">กระบี่</option>
+                                        <option value="เหนือคลอง">เหนือคลอง</option>
                                         <option value="กะทู้">กะทู้</option>
                                         <option value="ตรัง">ตรัง</option>
                                         <option value="คุรุ">คุรุ</option>
@@ -2432,6 +2461,7 @@
                                         <option value="สตูล">สตูล</option>
                                         <option value="พัทลุง">พัทลุง</option>
                                         <option value="สงขลา">สงขลา</option>
+                                        <option value="เบตง">เบตง</option>
                                     </select>
                                     <div
                                         class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
@@ -3458,6 +3488,45 @@
                 } else {
                     deviceClaimNav.classList.add('hidden');
                     deviceClaimNav.style.display = 'none';
+                }
+            }
+
+            // =======================================================
+            // 2.9 [ใหม่] ควบคุมเมนู "สต็อกรายวัน"
+            // =======================================================
+            const navStockManagement = document.getElementById('nav-stock-management');
+            if (navStockManagement) {
+                const isStockTeam = userDept.includes('Store') || userDept.includes('Stock') || userDept.includes('สต๊อก');
+                if (isStockTeam || ['admin', 'executive', 'manager'].includes(currentUser.role)) {
+                    navStockManagement.classList.remove('hidden');
+                    navStockManagement.style.display = 'flex';
+                } else {
+                    navStockManagement.classList.add('hidden');
+                    navStockManagement.style.display = 'none';
+                }
+            }
+
+            const navStockDashboard = document.getElementById('nav-stock-dashboard');
+            if (navStockDashboard) {
+                const isStockTeam = userDept.includes('Store') || userDept.includes('Stock') || userDept.includes('สต๊อก');
+                if (isStockTeam || ['admin', 'executive', 'manager'].includes(currentUser.role)) {
+                    navStockDashboard.classList.remove('hidden');
+                    navStockDashboard.style.display = 'flex';
+                } else {
+                    navStockDashboard.classList.add('hidden');
+                    navStockDashboard.style.display = 'none';
+                }
+            }
+
+            const navBranchDailyCheck = document.getElementById('nav-branch-daily-check');
+            if (navBranchDailyCheck) {
+                const isSales = userDept.toLowerCase().includes('ขาย') || userDept.toLowerCase().includes('sales');
+                if (isSales || ['admin', 'executive', 'manager'].includes(currentUser.role)) {
+                    navBranchDailyCheck.classList.remove('hidden');
+                    navBranchDailyCheck.style.display = 'flex';
+                } else {
+                    navBranchDailyCheck.classList.add('hidden');
+                    navBranchDailyCheck.style.display = 'none';
                 }
             }
 
@@ -5324,7 +5393,7 @@
         };
 
         const populateBranchSelects = () => {
-            const branches = ['ยะลา', 'นราธิวาส', 'ปัตตานี', 'หาดใหญ่', 'บิ๊กซี', 'โคลีเซียม', 'สุราษฎร์ธานี', 'ปากแมว', 'ภูเก็ต', 'นครศรีธรรมราช', 'กระบี่', 'กะทู้', 'ตรัง', 'คุรุ', 'ชุมพร', 'สตูล', 'พัทลุง', 'สงขลา'];
+            const branches = ['ยะลา', 'นราธิวาส', 'ปัตตานี', 'หาดใหญ่', 'บิ๊กซี (หาดใหญ่)', 'โคลีเซี่ยม', 'สุราษฏร์', 'ปากแมว', 'ภูเก็ต', 'นคร', 'กระบี่', 'เหนือคลอง', 'กะทู้', 'ตรัง', 'คุรุ', 'ชุมพร', 'สตูล', 'พัทลุง', 'สงขลา', 'เบตง'];
             const selects = ['deposit-filter-branch', 'purchasing-filter-branch', 'manage-request-branch-filter', 'stock-request-branch-filter', 'import-branch-filter', 'stock-import-branch-filter'];
 
             selects.forEach(id => {

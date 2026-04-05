@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แดชบอร์ดรายงานสต็อกสินค้า</title>
+    <link rel="icon" type="image/png" href="/image/icon_silme.png">
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS & Frameworks -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', '"Noto Sans Thai"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex">
+
+    <!-- Sidebar -->
+    <aside
+        class="w-64 bg-white border-r border-slate-200 flex-shrink-0 hidden md:flex flex-col shadow-sm h-screen sticky top-0">
+        <div class="h-20 flex items-center px-6 border-b border-slate-100">
+            <img src="/image/icon_silme.png" alt="Icon" class="w-8 h-8 mr-3 rounded-lg shadow-sm" />
+            <h1 class="text-lg font-bold text-slate-800 tracking-tight">SILMIN ระบบสต็อก</h1>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">จัดการสต็อกส่วนกลาง</div>
+            <a href="/stock-dashboard.html"
+                class="flex items-center px-4 py-3 bg-yellow-50 text-yellow-700 rounded-xl transition-all font-medium border border-yellow-100">
+                <ion-icon name="stats-chart-outline" class="w-5 h-5 mr-3"></ion-icon>
+                แดชบอร์ดรายงาน
+            </a>
+            <!-- เผื่อเมนูอื่นๆ ในอนาคต -->
+            <a href="/dashboard"
+                class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all">
+                <ion-icon name="arrow-back-outline" class="w-5 h-5 mr-3 text-slate-400"></ion-icon>
+                กลับหน้าหลัก
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-800">แดชบอร์ดรายงานสต็อกสินค้า</h2>
+                <p class="text-slate-500 mt-1">ดูสรุปผลการเช็คสต็อกแบบยืดหยุ่น (รายวัน, รายเดือน, กำหนดเอง)</p>
+            </div>
+
+            <!-- Dashboard Section & Filters -->
+            <div
+                class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row gap-4 items-end">
+                <div class="flex-1 w-full flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">รูปแบบรายงาน</label>
+                        <select id="report-type" onchange="handleReportTypeChange()"
+                            class="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
+                            <option value="today">วันนี้</option>
+                            <option value="monthly">รายเดือน</option>
+                            <option value="yearly">รายปี</option>
+                            <option value="custom">กำหนดช่วงวัน</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex-1">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">สาขา</label>
+                        <select id="branch-filter" onchange="applyBranchFilter()"
+                            class="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
+                            <option value="all">ทั้งหมด (ทุกสาขา)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="filter-input-container" class="flex-1 w-full flex gap-2">
+                    <!-- Dynamic inputs will appear here -->
+                </div>
+
+                <div class="w-full md:w-auto">
+                    <button onclick="updateDashboard()"
+                        class="w-full md:w-auto px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
+                        <ion-icon name="search-outline"></ion-icon> ดูรายงาน
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+                <!-- Total -->
+                <div
+                    class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-2 border border-blue-100">
+                        <ion-icon name="cube-outline"></ion-icon>
+                    </div>
+                    <p class="text-xs font-bold text-slate-400 mb-1">รายการทั้งหมด</p>
+                    <div class="flex items-baseline">
+                        <h4 id="sum-total" class="text-xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
+                <!-- Pending -->
+                <div
+                    class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center text-2xl mb-2 border border-slate-200">
+                        <ion-icon name="time-outline"></ion-icon>
+                    </div>
+                    <p class="text-xs font-bold text-slate-400 mb-1">รอฝ่ายขายตรวจ</p>
+                    <div class="flex items-baseline">
+                        <h4 id="sum-pending" class="text-xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
+                <!-- Waiting -->
+                <div
+                    class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-2xl mb-2 border border-yellow-100">
+                        <ion-icon name="hourglass-outline"></ion-icon>
+                    </div>
+                    <p class="text-xs font-bold text-slate-400 mb-1">รอสต็อกยืนยัน</p>
+                    <div class="flex items-baseline">
+                        <h4 id="sum-waiting" class="text-xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
+                <!-- Success -->
+                <div
+                    class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-2xl mb-2 border border-green-100">
+                        <ion-icon name="checkmark-done-circle"></ion-icon>
+                    </div>
+                    <p class="text-xs font-bold text-slate-400 mb-1">ตรวจสำเร็จ</p>
+                    <div class="flex items-baseline">
+                        <h4 id="sum-success" class="text-xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
+                <!-- Failed -->
+                <div onclick="showFailedBreakdown()"
+                    class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center cursor-pointer hover:bg-red-50 transition-colors">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-2xl mb-2 border border-red-100">
+                        <ion-icon name="alert-circle"></ion-icon>
+                    </div>
+                    <p class="text-xs font-bold text-red-400 mb-1">ตรวจไม่สำเร็จ</p>
+                    <div class="flex items-baseline">
+                        <h4 id="sum-failed" class="text-xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table & Tabs -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12">
+                <!-- Tabs -->
+                <div class="flex border-b border-slate-200 px-4 pt-4 bg-slate-50/50 overflow-x-auto gap-1">
+                    <button onclick="setTab('all')" id="tab-all"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-yellow-500 text-yellow-600 transition-colors whitespace-nowrap">
+                        ทั้งหมด
+                    </button>
+                    <button onclick="setTab('pending')" id="tab-pending"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                        รอฝ่ายขายตรวจ
+                    </button>
+                    <button onclick="setTab('waiting')" id="tab-waiting"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                        รอสต็อกยืนยัน
+                    </button>
+                    <button onclick="setTab('success')" id="tab-success"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                        ตรวจสอบสำเร็จ
+                    </button>
+                    <button onclick="setTab('failed')" id="tab-failed"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                        ตรวจสอบไม่สำเร็จ
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left min-w-[800px]">
+                        <thead
+                            class="bg-white border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                            <tr>
+                                <th class="px-6 py-4">ที่</th>
+                                <th class="px-6 py-4">รหัสสินค้า / IMEI</th>
+                                <th class="px-6 py-4">ชื่อสินค้า</th>
+                                <th class="px-6 py-4">สาขา</th>
+                                <th class="px-6 py-4">สถานะ</th>
+                                <th class="px-6 py-4">ผู้ตรวจ / เวลา</th>
+                                <th class="px-6 py-4 text-center">รูปหลักฐาน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-table-body" class="divide-y divide-slate-100 text-sm">
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center text-slate-400">กำลังโหลด...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Check Auth
+        const token = localStorage.getItem('token');
+        const userString = localStorage.getItem('user');
+        if (!token || !userString) {
+            window.location.href = '/';
+        }
+
+        // Authorization check
+        const currentUser = JSON.parse(userString);
+        const userDept = currentUser.department || '';
+        const isStockTeam = userDept.includes('Store') || userDept.includes('Stock') || userDept.includes('สต๊อก');
+        if (!isStockTeam && !['admin', 'executive', 'manager'].includes(currentUser.role)) {
+            alert('สิทธิ์การเข้าถึงถูกปฏิเสธ: เฉพาะพนักงานฝ่ายสต็อกเท่านั้น');
+            window.location.href = '/dashboard';
+        }
+
+        // Filter UI Handling
+        function handleReportTypeChange() {
+            const type = document.getElementById('report-type').value;
+            const container = document.getElementById('filter-input-container');
+            container.innerHTML = '';
+
+            const today = new Date();
+
+            if (type === 'monthly') {
+                const monthInput = document.createElement('input');
+                monthInput.type = 'month';
+                monthInput.id = 'filter-month';
+                monthInput.className = 'w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500';
+                monthInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'w-full';
+                wrapper.innerHTML = '<label class="block text-sm font-bold text-slate-700 mb-2">เลือกเดือน</label>';
+                wrapper.appendChild(monthInput);
+                container.appendChild(wrapper);
+            }
+            else if (type === 'yearly') {
+                const yearInput = document.createElement('input');
+                yearInput.type = 'number';
+                yearInput.id = 'filter-year';
+                yearInput.min = '2000';
+                yearInput.max = '2100';
+                yearInput.className = 'w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500';
+                yearInput.value = today.getFullYear();
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'w-full';
+                wrapper.innerHTML = '<label class="block text-sm font-bold text-slate-700 mb-2">ระบุปี (ค.ศ.)</label>';
+                wrapper.appendChild(yearInput);
+                container.appendChild(wrapper);
+            }
+            else if (type === 'custom') {
+                container.innerHTML = `
+                    <div class="w-1/2">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">วันเริ่มต้น</label>
+                        <input type="date" id="filter-start" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">วันสิ้นสุด</label>
+                        <input type="date" id="filter-end" class="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500">
+                    </div>
+                `;
+                // Set default to today
+                const d = today.toISOString().split('T')[0];
+                document.getElementById('filter-start').value = d;
+                document.getElementById('filter-end').value = d;
+            }
+            // type === 'today' needs no additional inputs
+        }
+
+        // ------------------------------------
+        // Dashboard JS
+        // ------------------------------------
+        let allStockData = [];
+        let currentTab = 'all';
+
+        async function updateDashboard() {
+            const type = document.getElementById('report-type').value;
+            let startDate, endDate;
+            const today = new Date();
+
+            if (type === 'today') {
+                startDate = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+                endDate = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+            } else if (type === 'monthly') {
+                const monthVal = document.getElementById('filter-month').value; // YYYY-MM
+                if (!monthVal) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกเดือน', 'warning');
+                const [y, m] = monthVal.split('-');
+                startDate = new Date(parseInt(y), parseInt(m) - 1, 1, 0, 0, 0, 0).toISOString();
+                endDate = new Date(parseInt(y), parseInt(m), 0, 23, 59, 59, 999).toISOString();
+            } else if (type === 'yearly') {
+                const yearVal = document.getElementById('filter-year').value;
+                if (!yearVal) return Swal.fire('แจ้งเตือน', 'กรุณาระบุปี', 'warning');
+                startDate = new Date(parseInt(yearVal), 0, 1, 0, 0, 0, 0).toISOString();
+                endDate = new Date(parseInt(yearVal), 11, 31, 23, 59, 59, 999).toISOString();
+            } else if (type === 'custom') {
+                const startVal = document.getElementById('filter-start').value;
+                const endVal = document.getElementById('filter-end').value;
+                if (!startVal || !endVal) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกช่วงวันให้ครบถ้วน', 'warning');
+
+                startDate = new Date(startVal + 'T00:00:00').toISOString();
+                endDate = new Date(endVal + 'T23:59:59.999').toISOString();
+            }
+
+            try {
+                // Show loading
+                document.getElementById('stock-table-body').innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400"><div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-yellow-500 rounded-full mb-2"></div><br>กำลังโหลดข้อมูล...</td></tr>`;
+
+                const response = await fetch(`/api/daily-stocks/report?startDate=${startDate}&endDate=${endDate}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    allStockData = data.data;
+
+                    // Extract and populate branches
+                    const branches = [...new Set(allStockData.map(i => i.branch))].filter(Boolean).sort();
+                    const branchSelect = document.getElementById('branch-filter');
+                    if (branchSelect) {
+                        const currentVal = branchSelect.value;
+                        let options = '<option value="all">ทั้งหมด (ทุกสาขา)</option>';
+                        branches.forEach(b => {
+                            options += `<option value="${b}">${b}</option>`;
+                        });
+                        branchSelect.innerHTML = options;
+                        
+                        // Preserve selected choice if it exists
+                        if (branches.includes(currentVal)) {
+                            branchSelect.value = currentVal;
+                        } else {
+                            branchSelect.value = 'all';
+                        }
+                    }
+
+                    updateCards();
+                    renderTable();
+                } else {
+                    console.error('Failed to fetch report');
+                    document.getElementById('stock-table-body').innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">เรียกข้อมูลล้มเหลว</td></tr>`;
+                }
+            } catch (e) {
+                console.error('Error fetching report:', e);
+            }
+        }
+
+        function getBranchFilteredData() {
+            const branchSelect = document.getElementById('branch-filter');
+            if (branchSelect && branchSelect.value !== 'all') {
+                return allStockData.filter(i => i.branch === branchSelect.value);
+            }
+            return allStockData;
+        }
+
+        function applyBranchFilter() {
+            updateCards();
+            renderTable();
+        }
+
+        function updateCards() {
+            const data = getBranchFilteredData();
+            const total = data.length;
+            const pending = data.filter(i => i.status === 'pending').length;
+            const waiting = data.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting').length;
+            const success = data.filter(i => i.status === 'checked' && i.verificationStatus === 'success').length;
+            const failed = data.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed').length;
+
+            document.getElementById('sum-total').textContent = total;
+            document.getElementById('sum-pending').textContent = pending;
+            document.getElementById('sum-waiting').textContent = waiting;
+            document.getElementById('sum-success').textContent = success;
+            document.getElementById('sum-failed').textContent = failed;
+        }
+
+        function showFailedBreakdown() {
+            const data = getBranchFilteredData();
+            const failedItems = data.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed');
+            if (failedItems.length === 0) {
+                Swal.fire('ข้อมูล', 'ไม่มีรายการที่ไม่สำเร็จ', 'info');
+                return;
+            }
+
+            const breakdown = {
+                'not_checked': 0, 'in_transit': 0, 'imei_mismatch': 0,
+                'repair': 0, 'claim': 0, 'backup': 0, 'other': 0
+            };
+
+            failedItems.forEach(item => {
+                let reason = item.failReason;
+                if (!reason) reason = 'not_checked';
+                if (!breakdown.hasOwnProperty(reason)) {
+                    breakdown.other++;
+                } else {
+                    breakdown[reason]++;
+                }
+            });
+
+            let htmlList = '<ul class="text-left mt-4 text-slate-600 bg-slate-50 p-4 rounded-lg space-y-2">';
+            const orderedKeys = Object.keys(reasonMap);
+            orderedKeys.forEach(k => {
+                if (breakdown[k] > 0) {
+                    htmlList += `<li class="flex justify-between items-center border-b border-slate-200 pb-2 last:border-b-0 last:pb-0">
+                        <span class="font-medium flex items-center gap-2"><ion-icon name="caret-forward-outline" class="text-red-400"></ion-icon> ${reasonMap[k]}</span>
+                        <span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">${breakdown[k]} รายการ</span>
+                    </li>`;
+                }
+            });
+            htmlList += '</ul>';
+
+            Swal.fire({
+                title: 'รายละเอียดไม่สำเร็จ',
+                html: htmlList,
+                confirmButtonText: 'ปิด',
+                confirmButtonColor: '#eab308'
+            });
+        }
+
+        function setTab(tab) {
+            currentTab = tab;
+            const tabs = ['all', 'pending', 'waiting', 'success', 'failed'];
+
+            tabs.forEach(t => {
+                const tr = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    tr.classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-700');
+                    tr.classList.add('border-yellow-500', 'text-yellow-600');
+                } else {
+                    tr.classList.remove('border-yellow-500', 'text-yellow-600');
+                    tr.classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700');
+                }
+            });
+            renderTable();
+        }
+
+        const reasonMap = {
+            'not_checked': 'ไม่ตรวจสอบ',
+            'in_transit': 'เครื่องกำลังจัดส่ง',
+            'imei_mismatch': 'อีมี่ไม่ตรง',
+            'repair': 'ส่งซ่อม',
+            'claim': 'ส่งเคลม',
+            'backup': 'สำรองลูกค้า',
+            'other': 'อื่นๆ'
+        };
+
+        function renderTable() {
+            const tbody = document.getElementById('stock-table-body');
+            tbody.innerHTML = '';
+
+            let filtered = getBranchFilteredData();
+            if (currentTab === 'pending') filtered = filtered.filter(i => i.status === 'pending');
+            if (currentTab === 'waiting') filtered = filtered.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting');
+            if (currentTab === 'success') filtered = filtered.filter(i => i.status === 'checked' && i.verificationStatus === 'success');
+            if (currentTab === 'failed') filtered = filtered.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed');
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">ไม่พบรายการสินค้าในหมวดหมู่นี้</td></tr>`;
+                return;
+            }
+
+            filtered.forEach((item, index) => {
+                let statusBadge = '';
+
+                if (item.status === 'pending') {
+                    statusBadge = `<span class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1"><ion-icon name="time"></ion-icon> รอฝ่ายขายตรวจ</span>`;
+                } else if (item.status === 'not_checked') {
+                    statusBadge = `<div class="flex flex-col gap-1 items-start">
+                        <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1"><ion-icon name="close-circle"></ion-icon> ฝ่ายขายไม่ได้ตรวจสอบ</span>
+                    </div>`;
+                } else {
+                    // status === 'checked'
+                    if (item.verificationStatus === 'waiting') {
+                        statusBadge = `<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1"><ion-icon name="hourglass-outline"></ion-icon> รอสต็อกยืนยัน</span>`;
+                    } else if (item.verificationStatus === 'success') {
+                        statusBadge = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1"><ion-icon name="checkmark-done-circle"></ion-icon> ตรวจสมบูรณ์</span>`;
+                    } else if (item.verificationStatus === 'failed') {
+                        const reasonText = reasonMap[item.failReason] || item.failReason;
+                        statusBadge = `<div class="flex flex-col gap-1 items-start">
+                            <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1"><ion-icon name="alert-circle"></ion-icon> ${reasonText}</span>
+                            ${item.failDetail ? `<span class="text-xs text-red-400 font-medium ml-1" title="${item.failDetail}">* ${item.failDetail.substring(0, 15)}${item.failDetail.length > 15 ? '...' : ''}</span>` : ''}
+                        </div>`;
+                    }
+                }
+
+                let checkerInfo = '<span class="text-slate-300">-</span>';
+                let evidenceBtn = '<span class="text-slate-300">-</span>';
+
+                if (item.status === 'checked') {
+                    if (item.checkedBy) {
+                        const time = new Date(item.scannedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        checkerInfo = `<div class="text-xs">
+                            <div class="font-bold text-slate-700"><ion-icon name="person-circle-outline" class="align-middle"></ion-icon> ${item.checkedBy.fullname || item.checkedBy.username}</div>
+                            <div class="text-slate-400 mt-0.5"><ion-icon name="time-outline" class="align-middle"></ion-icon> ${time} น.</div>
+                        </div>`;
+                    }
+
+                    if (item.evidenceImage) {
+                        evidenceBtn = `<button onclick="viewEvidence('${item.evidenceImage}')" class="p-2 text-blue-500 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition" title="ดูรูป">
+                            <ion-icon name="image-outline" class="text-xl"></ion-icon>
+                        </button>`;
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 text-slate-500 font-medium">${index + 1}</td>
+                    <td class="px-6 py-4 font-black text-slate-800">${item.productCode}</td>
+                    <td class="px-6 py-4 text-slate-600 max-w-[200px] truncate" title="${item.productName}">${item.productName}</td>
+                    <td class="px-6 py-4 text-slate-600 font-medium"><span class="bg-slate-100 px-2 py-1 rounded-md">${item.branch}</span></td>
+                    <td class="px-6 py-4">${statusBadge}</td>
+                    <td class="px-6 py-4">${checkerInfo}</td>
+                    <td class="px-6 py-4 text-center">${evidenceBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function viewEvidence(url) {
+            Swal.fire({
+                title: 'รูปหลักฐานการตรวจสอบ',
+                imageUrl: url,
+                imageAlt: 'Evidence',
+                confirmButtonText: 'ปิดหน้าต่าง',
+                confirmButtonColor: '#eab308'
+            });
+        }
+
+        // Initialize on load
+        // Initialize on load
+        handleReportTypeChange();
+        updateDashboard();
+    </script>
+</body>
+
+</html>

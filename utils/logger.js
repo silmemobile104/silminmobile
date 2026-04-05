@@ -15,9 +15,9 @@ const logActivity = async (req, action, module, description, details = null) => 
 
         // รองรับ Proxy (เช่น Vercel, nginx)
         const ipAddress =
-            req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-            req.socket?.remoteAddress ||
-            req.ip ||
+            (req && req.headers && req.headers['x-forwarded-for']?.split(',')[0]?.trim()) ||
+            (req && req.socket && req.socket.remoteAddress) ||
+            (req && req.ip) ||
             'unknown';
 
         await ActivityLog.create({

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เช็คสต็อกประจำวัน - ระบบสาขา</title>
+    <link rel="icon" type="image/png" href="/image/icon_silme.png">
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS & Frameworks -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', '"Noto Sans Thai"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .tab-btn.active {
+            border-bottom: 2px solid #eab308;
+            color: #ca8a04;
+        }
+
+        /* Modal Transition */
+        .modal {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease-out;
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            transform: scale(0.95);
+            transition: transform 0.2s ease-out;
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex">
+
+    <!-- Sidebar -->
+    <aside
+        class="w-64 bg-white border-r border-slate-200 flex-shrink-0 hidden md:flex flex-col shadow-sm h-screen sticky top-0">
+        <div class="h-20 flex items-center px-6 border-b border-slate-100">
+            <img src="/image/icon_silme.png" alt="Icon" class="w-8 h-8 mr-3 rounded-lg shadow-sm" />
+            <h1 class="text-lg font-bold text-slate-800 tracking-tight">SILMIN MOBILE</h1>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">ระบบสาขา</div>
+            <a href="/branch-daily-check.html"
+                class="flex items-center px-4 py-3 bg-yellow-50 text-yellow-700 rounded-xl transition-all font-medium border border-yellow-100">
+                <ion-icon name="barcode-outline" class="w-5 h-5 mr-3"></ion-icon>
+                เช็คสต็อกประจำวัน
+            </a>
+            <!-- เมนูอื่นๆ -->
+            <a href="/dashboard"
+                class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all">
+                <ion-icon name="arrow-back-outline" class="w-5 h-5 mr-3 text-slate-400"></ion-icon>
+                กลับหน้าหลัก
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto h-screen">
+        <div class="p-4 md:p-8 max-w-5xl mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">เช็คสต็อกประจำวัน</h2>
+                    <p class="text-slate-500 mt-1">ใช้ปืนสแกนบาร์โค้ด หรือพิมพ์รหัสสินค้าเพื่อตรวจสอบสถานะ</p>
+                </div>
+                <div class="text-sm font-medium bg-slate-100 text-slate-600 px-4 py-2 rounded-lg" id="branch-display">
+                    สาขา: กำลังโหลด...
+                </div>
+            </div>
+
+            <!-- Scan Input Area -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 flex gap-4">
+                <div class="flex-1 relative">
+                    <ion-icon name="barcode-outline"
+                        class="absolute left-4 top-1/2 transform -translate-y-1/2 text-2xl text-slate-400"></ion-icon>
+                    <input type="text" id="barcodeInput" autofocus
+                        placeholder="สแกนบาร์โค้ด หรือ พิมพ์ IMEI ตรงนี้และกด Enter..."
+                        class="w-full pl-12 pr-4 py-4 text-lg border-2 border-slate-200 rounded-xl focus:border-yellow-400 focus:outline-none transition-colors"
+                        autocomplete="off">
+                </div>
+                <button onclick="handleScanSubmit()"
+                    class="px-8 py-4 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl whitespace-nowrap shadow-sm transition-colors">
+                    ตรวจเช็ครหัส
+                </button>
+            </div>
+
+            <!-- Content Tabs -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12">
+                <!-- Tabs -->
+                <div class="flex border-b border-slate-200 px-4 pt-4 bg-slate-50/50 overflow-x-auto gap-1">
+                    <button onclick="setTab('all')" id="tab-all"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-yellow-500 text-yellow-600 transition-colors whitespace-nowrap">
+                        ทั้งหมด
+                    </button>
+                    <button onclick="setTab('pending')" id="tab-pending"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                        รอตรวจสอบ <span id="count-pending"
+                            class="ml-1 bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-xs">0</span>
+                    </button>
+                    <button onclick="setTab('waiting')" id="tab-waiting"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                        รอสต็อกยืนยัน <span id="count-waiting"
+                            class="ml-1 bg-yellow-100 text-yellow-600 px-2 py-0.5 rounded-full text-xs">0</span>
+                    </button>
+                    <button onclick="setTab('success')" id="tab-success"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                        ตรวจสำเร็จ <span id="count-success"
+                            class="ml-1 bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">0</span>
+                    </button>
+                    <button onclick="setTab('failed')" id="tab-failed"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                        ตรวจไม่สำเร็จ <span id="count-failed"
+                            class="ml-1 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">0</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto p-0">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50 text-slate-500 border-b border-slate-100">
+                            <tr>
+                                <th class="px-6 py-4 font-medium uppercase">รหัสสินค้า / IMEI</th>
+                                <th class="px-6 py-4 font-medium uppercase min-w-[200px]">ชื่อสินค้า</th>
+                                <th class="px-6 py-4 font-medium uppercase">เวลาสแกน</th>
+                                <th class="px-6 py-4 font-medium uppercase text-center">หลักฐาน</th>
+                                <th class="px-6 py-4 font-medium uppercase text-center">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-slate-100">
+                            <!-- JS injected -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scan Modal -->
+    <div id="scanModal"
+        class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div class="modal-content bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center">
+                    <ion-icon name="checkmark-circle" class="text-green-500 mr-2 text-2xl"></ion-icon>
+                    พบสินค้าในระบบ
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <ion-icon name="close" class="text-2xl"></ion-icon>
+                </button>
+            </div>
+
+            <div class="p-6">
+                <div class="mb-4 text-center">
+                    <p class="text-slate-500 text-sm mb-1">รหัสที่สแกน</p>
+                    <p class="text-2xl font-bold text-slate-800 font-mono tracking-wider bg-slate-100 inline-block px-4 py-1 rounded-lg"
+                        id="modalProductCode"></p>
+                </div>
+
+                <form id="scanForm" class="space-y-4">
+                    <!-- ถ่ายรูปหลักฐาน -->
+                    <div class="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center">
+                        <label class="block text-sm font-semibold text-slate-700 mb-2 font-bold text-red-600">
+                            * ถ่ายภาพ/อัปโหลดภาพหลักฐาน
+                        </label>
+                        <input type="file" id="evidenceImage" name="evidenceImage" accept="image/*"
+                            capture="environment" class="hidden">
+                        <button type="button" onclick="document.getElementById('evidenceImage').click()"
+                            class="bg-slate-100 hover:bg-slate-200 text-slate-700 w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center">
+                            <ion-icon name="camera" class="mr-2 text-lg"></ion-icon> เปิดกล้อง / เลือกรูป
+                        </button>
+                        <div id="imagePreviewContainer" class="mt-4 hidden relative">
+                            <img id="imagePreview" src="" alt="Preview"
+                                class="w-full h-auto rounded-lg max-h-48 object-cover">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">หมายเหตุ (ถ้ามี)</label>
+                        <textarea id="scanNote" rows="2"
+                            class="w-full border border-slate-300 rounded-lg p-2 focus:border-yellow-400 focus:outline-none"
+                            placeholder="บันทึกเพิ่มเติม..."></textarea>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" id="submitScanBtn"
+                            class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center">
+                            <ion-icon name="checkbox-outline" class="mr-2 text-xl"></ion-icon> ยืนยันการตรวจสอบ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal for view -->
+    <div id="imageModal"
+        class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm"
+        onclick="closeImageModal()">
+        <img id="imageModalContent" class="modal-content max-w-full max-h-[90vh] object-contain rounded-lg" src=""
+            onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white text-4xl hover:text-slate-300">
+            <ion-icon name="close-circle"></ion-icon>
+        </button>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const userString = localStorage.getItem('user');
+        if (!token || !userString) {
+            window.location.href = '/';
+        }
+
+        // Authorization check
+        const currentUserData = JSON.parse(userString);
+        const userDept = currentUserData.department || '';
+        const isSales = userDept.toLowerCase().includes('ขาย') || userDept.toLowerCase().includes('sales');
+        if (!isSales && !['admin', 'executive', 'manager'].includes(currentUserData.role)) {
+            alert('สิทธิ์การเข้าถึงถูกปฏิเสธ: เฉพาะพนักงานฝ่ายขายเท่านั้น');
+            window.location.href = '/dashboard';
+        }
+
+        let userBranch = '';
+        let allStockData = [];
+        let currentTab = 'all';
+        let curScannedCode = '';
+
+        // Get Current User
+        async function fetchUser() {
+            try {
+                const userString = localStorage.getItem('user');
+                if (userString) {
+                    const currentUser = JSON.parse(userString);
+                    userBranch = currentUser.branch || currentUser.department || 'สำนักงานใหญ่';
+                    document.getElementById('branch-display').textContent = `สาขา: ${userBranch}`;
+                } else {
+                    document.getElementById('branch-display').textContent = `สาขา: ไม่ระบุสาขา`;
+                }
+            } catch (err) {
+                console.error('Error parsing user data:', err);
+                document.getElementById('branch-display').textContent = `สาขา: ไม่ระบุสาขา`;
+            }
+        }
+
+        // Fetch Branch Stock
+        async function fetchStock() {
+            try {
+                const res = await fetch('/api/daily-stocks/my-branch', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const stocks = await res.json();
+
+                if (Array.isArray(stocks)) {
+                    allStockData = stocks;
+                    updateCards();
+                    renderTable();
+                } else {
+                    Toastify({ text: "ดึงข้อมูลล้มเหลว", backgroundColor: "#ef4444" }).showToast();
+                }
+            } catch (err) {
+                console.error(err);
+                Toastify({ text: "Error fetching data", backgroundColor: "#ef4444" }).showToast();
+            }
+        }
+
+        function updateCards() {
+            const pending = allStockData.filter(i => i.status === 'pending').length;
+            const waiting = allStockData.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting').length;
+            const success = allStockData.filter(i => i.status === 'checked' && i.verificationStatus === 'success').length;
+            const failed = allStockData.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed').length;
+
+            document.getElementById('count-pending').textContent = pending;
+            document.getElementById('count-waiting').textContent = waiting;
+            document.getElementById('count-success').textContent = success;
+            document.getElementById('count-failed').textContent = failed;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+
+            let filtered = allStockData;
+            if (currentTab === 'pending') {
+                filtered = allStockData.filter(i => i.status === 'pending');
+            } else if (currentTab === 'waiting') {
+                filtered = allStockData.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting');
+            } else if (currentTab === 'success') {
+                filtered = allStockData.filter(i => i.status === 'checked' && i.verificationStatus === 'success');
+            } else if (currentTab === 'failed') {
+                filtered = allStockData.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed');
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400">ไม่มีข้อมูล</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(s => {
+                let statusBadge = '';
+                if (s.status === 'pending') {
+                    statusBadge = `<span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold border border-gray-200">รอส่งตรวจ</span>`;
+                } else if (s.status === 'not_checked') {
+                    statusBadge = `<span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-200" title="เหตุผล: ${s.failDetail || ''}">ไม่ตรวจสอบ</span>`;
+                } else if (s.status === 'checked') {
+                    if (s.verificationStatus === 'waiting') {
+                        statusBadge = `<span class="bg-yellow-100 text-yellow-600 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">รอสต็อกยืนยัน</span>`;
+                    } else if (s.verificationStatus === 'success') {
+                        statusBadge = `<span class="bg-green-100 text-green-600 px-3 py-1 rounded-full text-xs font-bold border border-green-200">ตรวจสำเร็จ</span>`;
+                    } else if (s.verificationStatus === 'failed') {
+                        statusBadge = `<span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-200" title="เหตุผล: ${s.failDetail || ''}">ตรวจไม่สำเร็จ</span>`;
+                    }
+                }
+
+                const evidenceBlock = s.evidenceImage ?
+                    `<button onclick="viewImage('${s.evidenceImage}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg flex items-center justify-center mx-auto transition-colors">
+                        <ion-icon name="image" class="mr-1.5"></ion-icon> ดูรูป
+                    </button>` :
+                    `<span class="text-slate-400">-</span>`;
+
+                const timeStr = s.scannedAt ? new Date(s.scannedAt).toLocaleTimeString('th-TH') : '-';
+
+                html += `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
+                        <td class="px-6 py-4 font-mono font-bold text-slate-800">${s.productCode}</td>
+                        <td class="px-6 py-4 text-slate-600 min-w-[200px] whitespace-normal">${s.productName || '-'}</td>
+                        <td class="px-6 py-4 text-slate-600">${timeStr}</td>
+                        <td class="px-6 py-4 text-center">${evidenceBlock}</td>
+                        <td class="px-6 py-4 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // Tab Switching
+        function setTab(tab) {
+            currentTab = tab;
+            const tabs = ['all', 'pending', 'waiting', 'success', 'failed'];
+
+            tabs.forEach(t => {
+                const tr = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    tr.classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-700');
+                    tr.classList.add('border-yellow-500', 'text-yellow-600');
+                } else {
+                    tr.classList.remove('border-yellow-500', 'text-yellow-600');
+                    tr.classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700');
+                }
+            });
+            renderTable();
+        }
+
+        // Listener for Barcode Scanner (Enter Key)
+        document.getElementById('barcodeInput').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleScanSubmit();
+            }
+        });
+
+        function handleScanSubmit() {
+            const code = document.getElementById('barcodeInput').value.trim();
+            if (!code) return;
+
+            // Check if code exists in pending setup
+            curScannedCode = code;
+
+            // Clear input so scanner is ready for next time
+            document.getElementById('barcodeInput').value = '';
+
+            // Open Modal 
+            document.getElementById('modalProductCode').textContent = code;
+            openModal();
+        }
+
+        function openModal() {
+            // Reset Form and preview first
+            document.getElementById('scanForm').reset();
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('imagePreview').src = '';
+            document.getElementById('scanModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('scanModal').classList.remove('active');
+            curScannedCode = '';
+            document.getElementById('barcodeInput').focus();
+        }
+
+        // Preview Image
+        document.getElementById('evidenceImage').addEventListener('change', function (e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (evt) {
+                    document.getElementById('imagePreview').src = evt.target.result;
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        // Submit Scan Data
+        document.getElementById('scanForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('evidenceImage');
+            if (!fileInput.files[0]) {
+                const result = await Swal.fire({
+                    title: 'คำเตือน: ไม่ได้แนบรูปหลักฐาน',
+                    text: 'คุณแน่ใจหรือไม่ว่าต้องการยืนยันส่งข้อมูลโดยไม่แนบรูปหลักฐาน?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#eab308',
+                    cancelButtonColor: '#94a3b8',
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    reverseButtons: true
+                });
+
+                if (!result.isConfirmed) {
+                    return;
+                }
+            }
+
+            const formData = new FormData();
+            formData.append('productCode', curScannedCode);
+            formData.append('evidenceImage', fileInput.files[0]);
+            formData.append('note', document.getElementById('scanNote').value);
+
+            const submitBtn = document.getElementById('submitScanBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = 'กำลังบันทึก...';
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/daily-stocks/scan', {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    Toastify({
+                        text: "บันทึกการเช็คสต็อกสำเร็จ",
+                        backgroundColor: "#10b981",
+                        gravity: "top", position: "right"
+                    }).showToast();
+                    closeModal();
+                    fetchStock(); // Reload table
+                } else {
+                    Swal.fire('ข้อผิดพลาด', data.message || 'ไม่สามารถบันทึกได้', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire('Error', 'เชื่อมต่อขัดข้อง', 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // View Image Modal
+        function viewImage(url) {
+            document.getElementById('imageModalContent').src = url;
+            document.getElementById('imageModal').classList.add('active');
+        }
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.remove('active');
+            setTimeout(() => { document.getElementById('imageModalContent').src = ''; }, 200);
+        }
+
+        // Init
+        fetchUser().then(fetchStock);
+
+    </script>
+</body>
+
+</html>
