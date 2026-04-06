@@ -98,15 +98,28 @@
             </div>
 
             <!-- Dashboard Section -->
-            <div class="mt-12 flex justify-between items-end mb-6">
+            <div class="mt-12 flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
                 <div>
                     <h3 class="text-xl font-bold text-slate-800">สรุปการเช็คสต็อกประจำวัน (ทุกสาขา)</h3>
                     <p class="text-slate-500 text-sm mt-1">ข้อมูลสถานะการตรวจสอบสต็อกทั้งหมดของวันนี้</p>
                 </div>
-                <button onclick="fetchDailySummary()"
-                    class="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium transition-colors shadow-sm flex items-center gap-2">
-                    <ion-icon name="refresh-outline"></ion-icon> รีเฟรช
-                </button>
+                <div class="flex flex-col sm:flex-row w-full md:w-auto gap-2">
+                    <div class="px-4 py-3 w-full xl:w-80 flex-shrink-0">
+                        <div class="relative w-full group">
+                            <ion-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-yellow-500 transition-colors"></ion-icon>
+                            <input type="text" id="imei-search" oninput="renderTable()" placeholder="ค้นหา IMEI/รหัสสินค้า..." 
+                                class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20 transition-all bg-white shadow-sm">
+                        </div>
+                    </div>
+                    <select id="branch-filter" onchange="applyBranchFilter()"
+                        class="w-full sm:w-auto px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
+                        <option value="all">ทั้งหมด (ทุกสาขา)</option>
+                    </select>
+                    <button onclick="fetchDailySummary()"
+                        class="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
+                        <ion-icon name="refresh-outline"></ion-icon> รีเฟรช
+                    </button>
+                </div>
             </div>
 
             <!-- Summary Cards -->
@@ -179,28 +192,30 @@
 
             <!-- Table & Tabs -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12">
-                <!-- Tabs -->
-                <div class="flex border-b border-slate-200 px-4 pt-4 bg-slate-50/50 overflow-x-auto gap-1">
-                    <button onclick="setTab('all')" id="tab-all"
-                        class="px-6 py-3 text-sm font-bold border-b-2 border-yellow-500 text-yellow-600 transition-colors whitespace-nowrap">
-                        ทั้งหมด
-                    </button>
-                    <button onclick="setTab('pending')" id="tab-pending"
-                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
-                        รอฝ่ายขายตรวจ
-                    </button>
-                    <button onclick="setTab('waiting')" id="tab-waiting"
-                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
-                        รอสต็อกยืนยัน
-                    </button>
-                    <button onclick="setTab('success')" id="tab-success"
-                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
-                        ตรวจสอบสำเร็จ
-                    </button>
-                    <button onclick="setTab('failed')" id="tab-failed"
-                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
-                        ตรวจสอบไม่สำเร็จ
-                    </button>
+                <!-- Tabs and Search -->
+                <div class="flex flex-col xl:flex-row justify-between items-start xl:items-end border-b border-slate-200 bg-slate-50/50">
+                    <div class="flex px-4 pt-4 overflow-x-auto gap-1 w-full xl:w-auto">
+                        <button onclick="setTab('all')" id="tab-all"
+                            class="px-6 py-3 text-sm font-bold border-b-2 border-yellow-500 text-yellow-600 transition-colors whitespace-nowrap">
+                            ทั้งหมด
+                        </button>
+                        <button onclick="setTab('pending')" id="tab-pending"
+                            class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                            รอฝ่ายขายตรวจ
+                        </button>
+                        <button onclick="setTab('waiting')" id="tab-waiting"
+                            class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                            รอสต็อกยืนยัน
+                        </button>
+                        <button onclick="setTab('success')" id="tab-success"
+                            class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                            ตรวจสอบสำเร็จ
+                        </button>
+                        <button onclick="setTab('failed')" id="tab-failed"
+                            class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                            ตรวจสอบไม่สำเร็จ
+                        </button>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -214,7 +229,7 @@
                                 <th class="px-6 py-4">สาขา</th>
                                 <th class="px-6 py-4">สถานะ</th>
                                 <th class="px-6 py-4">ผู้ตรวจ / เวลา</th>
-                                <th class="px-6 py-4 text-center">รูปหลักฐาน</th>
+                                <th class="px-6 py-4 text-center">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="stock-table-body" class="divide-y divide-slate-100 text-sm">
@@ -227,6 +242,43 @@
             </div>
         </div>
     </main>
+
+    <!-- Edit Stock Modal -->
+    <div id="editStockModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm hidden">
+        <div class="modal-content bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-blue-50">
+                <h3 class="text-xl font-bold text-blue-700 flex items-center">
+                    <ion-icon name="create-outline" class="mr-2 text-2xl"></ion-icon> แก้ไขข้อมูล
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <ion-icon name="close" class="text-2xl"></ion-icon>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="editStockForm" class="space-y-4">
+                    <input type="hidden" id="editStockId">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">รหัสสินค้า / IMEI</label>
+                        <input type="text" id="editProductCode" required class="w-full border border-slate-300 rounded-lg p-3 text-slate-800 font-mono font-bold focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">ชื่อสินค้า</label>
+                        <input type="text" id="editProductName" required class="w-full border border-slate-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">สาขา</label>
+                        <input type="text" id="editBranch" required class="w-full border border-slate-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div class="pt-2">
+                        <button type="submit" id="submitEditBtn"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center">
+                            <ion-icon name="save" class="mr-2 text-xl"></ion-icon> บันทึกข้อมูล
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Check Auth
@@ -336,6 +388,25 @@
                 if (response.ok) {
                     const data = await response.json();
                     allStockData = data.data;
+
+                    // Extract and populate branches
+                    const branches = [...new Set(allStockData.map(i => i.branch))].filter(Boolean).sort();
+                    const branchSelect = document.getElementById('branch-filter');
+                    if (branchSelect) {
+                        const currentVal = branchSelect.value;
+                        let options = '<option value="all">ทั้งหมด (ทุกสาขา)</option>';
+                        branches.forEach(b => {
+                            options += `<option value="${b}">${b}</option>`;
+                        });
+                        branchSelect.innerHTML = options;
+                        
+                        if (branches.includes(currentVal)) {
+                            branchSelect.value = currentVal;
+                        } else {
+                            branchSelect.value = 'all';
+                        }
+                    }
+
                     updateCards();
                     renderTable();
                 } else {
@@ -347,12 +418,26 @@
             }
         }
 
+        function getBranchFilteredData() {
+            const branchSelect = document.getElementById('branch-filter');
+            if (branchSelect && branchSelect.value !== 'all') {
+                return allStockData.filter(i => i.branch === branchSelect.value);
+            }
+            return allStockData;
+        }
+
+        function applyBranchFilter() {
+            updateCards();
+            renderTable();
+        }
+
         function updateCards() {
-            const total = allStockData.length;
-            const pending = allStockData.filter(i => i.status === 'pending').length;
-            const waiting = allStockData.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting').length;
-            const success = allStockData.filter(i => i.status === 'checked' && i.verificationStatus === 'success').length;
-            const failed = allStockData.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed').length;
+            const data = getBranchFilteredData();
+            const total = data.length;
+            const pending = data.filter(i => i.status === 'pending').length;
+            const waiting = data.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting').length;
+            const success = data.filter(i => i.status === 'checked' && i.verificationStatus === 'success').length;
+            const failed = data.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed').length;
 
             document.getElementById('sum-total').textContent = total;
             document.getElementById('sum-pending').textContent = pending;
@@ -362,7 +447,8 @@
         }
 
         function showFailedBreakdown() {
-            const failedItems = allStockData.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed');
+            const data = getBranchFilteredData();
+            const failedItems = data.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed');
             if (failedItems.length === 0) {
                 Swal.fire('ข้อมูล', 'ไม่มีรายการที่ไม่สำเร็จ', 'info');
                 return;
@@ -434,11 +520,22 @@
             const tbody = document.getElementById('stock-table-body');
             tbody.innerHTML = '';
 
-            let filtered = allStockData;
-            if (currentTab === 'pending') filtered = allStockData.filter(i => i.status === 'pending');
-            if (currentTab === 'waiting') filtered = allStockData.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting');
-            if (currentTab === 'success') filtered = allStockData.filter(i => i.status === 'checked' && i.verificationStatus === 'success');
-            if (currentTab === 'failed') filtered = allStockData.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed');
+            let filtered = getBranchFilteredData();
+            if (currentTab === 'pending') filtered = filtered.filter(i => i.status === 'pending');
+            if (currentTab === 'waiting') filtered = filtered.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting');
+            if (currentTab === 'success') filtered = filtered.filter(i => i.status === 'checked' && i.verificationStatus === 'success');
+            if (currentTab === 'failed') filtered = filtered.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed');
+
+            const searchInput = document.getElementById('imei-search');
+            if (searchInput) {
+                const keyword = searchInput.value.trim().toLowerCase();
+                if (keyword) {
+                    filtered = filtered.filter(i => 
+                        (i.productCode && i.productCode.toLowerCase().includes(keyword)) ||
+                        (i.productName && i.productName.toLowerCase().includes(keyword))
+                    );
+                }
+            }
 
             if (filtered.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">ไม่พบรายการสินค้าในหมวดหมู่นี้</td></tr>`;
@@ -492,6 +589,12 @@
                     }
                 }
 
+                const editBtn = `<button onclick="openEditModal('${item._id}')" class="p-2 text-slate-400 hover:bg-slate-100 hover:text-blue-600 rounded-lg transition" title="แก้ไข">
+                    <ion-icon name="create-outline" class="text-xl"></ion-icon>
+                </button>`;
+
+                const actionDiv = `<div class="flex items-center justify-center gap-1">${evidenceBtn}${editBtn}</div>`;
+
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-colors";
                 tr.innerHTML = `
@@ -501,7 +604,7 @@
                     <td class="px-6 py-4 text-slate-600 font-medium"><span class="bg-slate-100 px-2 py-1 rounded-md">${item.branch}</span></td>
                     <td class="px-6 py-4">${statusBadge}</td>
                     <td class="px-6 py-4">${checkerInfo}</td>
-                    <td class="px-6 py-4 text-center">${evidenceBtn}</td>
+                    <td class="px-6 py-4 text-center">${actionDiv}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -512,13 +615,27 @@
             const noteText = (item && item.note) ? item.note : '- ไม่มีหมายเหตุ -';
 
             const imgHtml = (imgUrl && imgUrl !== 'null' && imgUrl !== 'undefined') ?
-                `<img src="${imgUrl}" class="w-full h-auto max-h-[400px] object-contain rounded-lg border border-slate-200" />` :
+                `<a href="${imgUrl}" target="_blank" title="คลิกเพื่อขยายรูป (เปิดแท็บใหม่)" class="block relative cursor-pointer group mb-1">
+                    <img src="${imgUrl}" class="w-full h-auto max-h-[400px] object-contain rounded-lg border border-slate-200 group-hover:brightness-90 transition-all" />
+                    <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 rounded-lg">
+                        <div class="bg-white/90 text-slate-800 px-4 py-2 rounded-full text-sm font-bold shadow flex items-center gap-2">
+                            <ion-icon name="scan-outline" class="text-lg"></ion-icon> แตะเพื่อขยายรูป
+                        </div>
+                    </div>
+                </a>` :
                 `<div class="w-full py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-400">
                     <ion-icon name="image-outline" class="text-4xl mb-2 text-slate-300"></ion-icon>
                     <span>ไม่มีรูปหลักฐานแนบมาด้วย</span>
                 </div>`;
 
             const html = `
+                <div class="mb-4 text-left p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                    <p class="text-sm text-slate-700"><span class="font-bold text-slate-900">สินค้า:</span> ${item.productName || '-'}</p>
+                    <p class="text-sm text-slate-700"><span class="font-bold text-slate-900">รหัส/IMEI:</span> <span class="font-mono bg-white px-2 py-0.5 rounded border border-slate-200">${item.productCode}</span></p>
+                    <p class="text-sm text-slate-700"><span class="font-bold text-slate-900">สาขา:</span> ${item.branch}</p>
+                    ${item.checkedBy ? `<p class="text-sm text-slate-700 mt-2 block pt-2 border-t border-slate-200"><span class="font-bold text-slate-900">ผู้ตรวจ:</span> ${item.checkedBy.fullname || item.checkedBy.username} (${new Date(item.scannedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.)</p>` : ''}
+                </div>
+
                 <div class="mb-4">
                     ${imgHtml}
                 </div>
@@ -631,6 +748,61 @@
                 confirmButtonColor: '#eab308'
             });
         }
+
+        // Open/Submit Edit Daily Stock Modal
+        function openEditModal(id) {
+            const item = allStockData.find(i => i._id === id);
+            if(item) {
+                document.getElementById('editStockId').value = item._id;
+                document.getElementById('editProductCode').value = item.productCode;
+                document.getElementById('editProductName').value = item.productName || '';
+                document.getElementById('editBranch').value = item.branch;
+                document.getElementById('editStockModal').classList.remove('hidden');
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editStockModal').classList.add('hidden');
+        }
+
+        document.getElementById('editStockForm').addEventListener('submit', async function(e){
+            e.preventDefault();
+            const id = document.getElementById('editStockId').value;
+            const code = document.getElementById('editProductCode').value;
+            const name = document.getElementById('editProductName').value;
+            const branch = document.getElementById('editBranch').value;
+
+            const submitBtn = document.getElementById('submitEditBtn');
+            const origHTML = submitBtn.innerHTML;
+            submitBtn.innerHTML = 'กำลังบันทึก...';
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/daily-stocks/edit/${id}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ productCode: code, productName: name, branch: branch })
+                });
+
+                const data = await res.json();
+                if(res.ok) {
+                    Toastify({ text: "แก้ไขข้อมูลสำเร็จ", backgroundColor: "#10b981", gravity: "bottom", position: "right" }).showToast();
+                    closeEditModal();
+                    fetchDailySummary();
+                } else {
+                    Swal.fire('ข้อผิดพลาด', data.message || 'บันทึกไม่สำเร็จ', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire('ข้อผิดพลาด', 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'error');
+            } finally {
+                submitBtn.innerHTML = origHTML;
+                submitBtn.disabled = false;
+            }
+        });
 
         // Initialize on load
         fetchDailySummary();

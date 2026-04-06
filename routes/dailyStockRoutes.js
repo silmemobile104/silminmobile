@@ -62,7 +62,10 @@ router.get('/summary', verifyToken, checkRole(['admin', 'manager', 'executive', 
 // 5. ดึงข้อมูลรายงานการเช็คสต็อก (ยืดหยุ่นตามช่วงเวลา)
 router.get('/report', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), dailyStockController.getDailyStockReport);
 
-// 6. ยืนยันข้อมูลเช็คสต็อก (ฝ่ายสต็อก)
+// 6. แทรก/แก้ไข รายการตอนนำเข้าสต็อกแล้ว (ฝ่ายสต็อก) สามารถทำได้ทุกเวลา
+router.put('/edit/:id', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), dailyStockController.editDailyStock);
+
+// 7. ยืนยันข้อมูลเช็คสต็อก (ฝ่ายสต็อก)
 router.put('/verify', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), dailyStockController.verifyStock);
 
 module.exports = router;

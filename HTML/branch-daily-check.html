@@ -234,6 +234,58 @@
         </button>
     </div>
 
+    <!-- Issue Modal -->
+    <div id="issueModal"
+        class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div class="modal-content bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-red-50">
+                <h3 class="text-xl font-bold text-red-700 flex items-center">
+                    <ion-icon name="warning" class="mr-2 text-2xl"></ion-icon> แจ้งปัญหา
+                </h3>
+                <button onclick="closeIssueModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <ion-icon name="close" class="text-2xl"></ion-icon>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-5 text-center">
+                    <p class="text-slate-500 text-sm mb-1">รหัสที่แจ้งปัญหา</p>
+                    <p class="text-2xl font-bold text-slate-800 font-mono tracking-wider bg-slate-100 inline-block px-4 py-1 rounded-lg"
+                        id="issueModalProductCode"></p>
+                </div>
+                <form id="issueForm" class="space-y-4">
+                    <input type="hidden" id="issueProductCode">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2 font-bold text-red-600">* ระบุสาเหตุของปัญหา</label>
+                        <select id="issueReason" required onchange="toggleCustomIssueNote()"
+                            class="w-full border border-slate-300 rounded-lg p-3 text-slate-700 focus:border-red-400 focus:outline-none bg-white font-medium cursor-pointer">
+                            <option value="" disabled selected>-- กรุณาเลือกปัญหา --</option>
+                            <option value="อีมี่ไม่ตรง">อีมี่ไม่ตรง</option>
+                            <option value="เครื่องกำลังจัดส่ง">เครื่องกำลังจัดส่ง</option>
+                            <option value="เครื่องหาย">เครื่องหาย</option>
+                            <option value="เครื่องสำรองลูกค้า">เครื่องสำรองลูกค้า</option>
+                            <option value="เครื่องส่งซ่อม">เครื่องส่งซ่อม</option>
+                            <option value="เครื่องส่งเคลม">เครื่องส่งเคลม</option>
+                            <option value="ขายแล้ว">ขายแล้ว</option>
+                            <option value="อื่นๆ">อื่น (กรอกรายละเอียดอื่นๆ)</option>
+                        </select>
+                    </div>
+                    <div id="customIssueNoteContainer" class="hidden animate-fade-in">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">รายละเอียดเพิ่มเติม</label>
+                        <textarea id="customIssueNote" rows="2"
+                            class="w-full border border-slate-300 rounded-lg p-3 focus:border-red-400 focus:outline-none placeholder-slate-400"
+                            placeholder="ระบุรายละเอียดอื่นๆ..."></textarea>
+                    </div>
+                    <div class="pt-2">
+                        <button type="submit" id="submitIssueBtn"
+                            class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center">
+                            <ion-icon name="paper-plane" class="mr-2 text-xl"></ion-icon> ยืนยันแจ้งปัญหา
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         const token = localStorage.getItem('token');
         const userString = localStorage.getItem('user');
@@ -243,10 +295,12 @@
 
         // Authorization check
         const currentUserData = JSON.parse(userString);
-        const userDept = currentUserData.department || '';
-        const isSales = userDept.toLowerCase().includes('ขาย') || userDept.toLowerCase().includes('sales');
-        if (!isSales && !['admin', 'executive', 'manager'].includes(currentUserData.role)) {
-            alert('สิทธิ์การเข้าถึงถูกปฏิเสธ: เฉพาะพนักงานฝ่ายขายเท่านั้น');
+        const userDept = currentUserData.department ? currentUserData.department.toLowerCase() : '';
+        const isSales = userDept.includes('ขาย') || userDept.includes('sales');
+        const isTech = userDept.includes('เทคนิค') || userDept.includes('tech');
+        
+        if (!isSales && !isTech && !['admin', 'executive', 'manager'].includes(currentUserData.role)) {
+            alert('สิทธิ์การเข้าถึงถูกปฏิเสธ: เฉพาะพนักงานฝ่ายขายและฝ่ายเทคนิคเท่านั้น');
             window.location.href = '/dashboard';
         }
 
@@ -261,7 +315,14 @@
                 const userString = localStorage.getItem('user');
                 if (userString) {
                     const currentUser = JSON.parse(userString);
-                    userBranch = currentUser.branch || currentUser.department || 'สำนักงานใหญ่';
+                    const dept = (currentUser.department || '').toLowerCase();
+                    const isTech = dept.includes('เทคนิค') || dept.includes('tech');
+                    
+                    if (isTech) {
+                        userBranch = 'สำนักงานใหญ่';
+                    } else {
+                        userBranch = currentUser.branch || currentUser.department || 'สำนักงานใหญ่';
+                    }
                     document.getElementById('branch-display').textContent = `สาขา: ${userBranch}`;
                 } else {
                     document.getElementById('branch-display').textContent = `สาขา: ไม่ระบุสาขา`;
@@ -349,13 +410,26 @@
 
                 const timeStr = s.scannedAt ? new Date(s.scannedAt).toLocaleTimeString('th-TH') : '-';
 
+                let actionBtn = '';
+                if (s.status === 'pending') {
+                    actionBtn = `
+                        <button onclick="openIssueModal('${s.productCode}')" 
+                                class="mt-2 text-red-600 hover:bg-red-100 bg-red-50 px-2 py-1.5 rounded-lg w-full border border-red-200 font-bold transition-colors text-xs flex justify-center items-center gap-1 whitespace-nowrap overflow-hidden">
+                            <ion-icon name="warning-outline" class="text-sm"></ion-icon> แจ้งปัญหา
+                        </button>
+                    `;
+                }
+
                 html += `
                     <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
                         <td class="px-6 py-4 font-mono font-bold text-slate-800">${s.productCode}</td>
                         <td class="px-6 py-4 text-slate-600 min-w-[200px] whitespace-normal">${s.productName || '-'}</td>
                         <td class="px-6 py-4 text-slate-600">${timeStr}</td>
                         <td class="px-6 py-4 text-center">${evidenceBlock}</td>
-                        <td class="px-6 py-4 text-center">${statusBadge}</td>
+                        <td class="px-6 py-4 text-center align-top">
+                            <div>${statusBadge}</div>
+                            ${actionBtn}
+                        </td>
                     </tr>
                 `;
             });
@@ -501,10 +575,83 @@
             setTimeout(() => { document.getElementById('imageModalContent').src = ''; }, 200);
         }
 
-        // Init
-        fetchUser().then(fetchStock);
+        // Action: Issue Modal handlers
+        function openIssueModal(code) {
+            document.getElementById('issueForm').reset();
+            document.getElementById('customIssueNoteContainer').classList.add('hidden');
+            document.getElementById('issueModalProductCode').textContent = code;
+            document.getElementById('issueProductCode').value = code;
+            document.getElementById('issueModal').classList.add('active');
+        }
 
+        function closeIssueModal() {
+            document.getElementById('issueModal').classList.remove('active');
+        }
+
+        function toggleCustomIssueNote() {
+            const reason = document.getElementById('issueReason').value;
+            const container = document.getElementById('customIssueNoteContainer');
+            if (reason === 'อื่นๆ') {
+                container.classList.remove('hidden');
+                document.getElementById('customIssueNote').required = true;
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('customIssueNote').required = false;
+            }
+        }
+
+        document.getElementById('issueForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            
+            const code = document.getElementById('issueProductCode').value;
+            const reason = document.getElementById('issueReason').value;
+            const customNote = document.getElementById('customIssueNote').value;
+            
+            let finalNote = reason;
+            if (reason === 'อื่นๆ') {
+                finalNote = customNote;
+            }
+            
+            const submitBtn = document.getElementById('submitIssueBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = 'กำลังบันทึก...';
+            submitBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('productCode', code);
+                formData.append('note', finalNote);
+
+                const response = await fetch('/api/daily-stocks/scan', {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    Toastify({
+                        text: "แจ้งปัญหาสำเร็จ",
+                        backgroundColor: "#10b981",
+                        gravity: "top", position: "right"
+                    }).showToast();
+                    closeIssueModal();
+                    fetchStock();
+                } else {
+                    Swal.fire('ข้อผิดพลาด', data.message || 'บันทึกไม่สำเร็จ', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire('ข้อผิดพลาด', 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Initialize Fetch
+        fetchUser();
+        fetchStock();
     </script>
 </body>
-
 </html>

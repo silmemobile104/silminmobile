@@ -82,7 +82,14 @@ exports.importDailyStock = async (req, res) => {
 // 2. ดึงรายการสต็อกเฉพาะสาขาของพนักงาน
 exports.getMyBranchStock = async (req, res) => {
     try {
-        const branch = req.user.branch;
+        let branch = req.user.branch;
+        const userDept = (req.user.department || '').toLowerCase();
+        const isTech = userDept.includes('เทคนิค') || userDept.includes('tech');
+        
+        if (isTech) {
+            branch = 'สำนักงานใหญ่';
+        }
+
         if (!branch) {
             return res.status(400).json({ message: 'ไม่พบข้อมูลสาขาของพนักงาน' });
         }
@@ -110,7 +117,13 @@ exports.getMyBranchStock = async (req, res) => {
 exports.scanStock = async (req, res) => {
     try {
         const { productCode, note } = req.body;
-        const branch = req.user.branch;
+        let branch = req.user.branch;
+        const userDept = (req.user.department || '').toLowerCase();
+        const isTech = userDept.includes('เทคนิค') || userDept.includes('tech');
+        
+        if (isTech) {
+            branch = 'สำนักงานใหญ่';
+        }
 
         if (!productCode) {
             return res.status(400).json({ message: 'กรุณาระบุรหัสสินค้า (Product Code)' });
@@ -317,5 +330,33 @@ exports.verifyStock = async (req, res) => {
     } catch (error) {
         console.error('Verify Stock Error:', error);
         res.status(500).json({ message: 'เกิดข้อผิดพลาดในการยืนยัน' });
+    }
+};
+
+// 7. แก้ไขข้อมูลรายการสต็อกที่นำเข้ามาแล้ว (ฝ่ายสต็อก) 
+exports.editDailyStock = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { productCode, productName, branch } = req.body;
+
+        if (!productCode || !productName || !branch) {
+            return res.status(400).json({ message: 'กรุณาส่งข้อมูลให้ครบถ้วน (รหัสสินค้า, ชื่อสินค้า, สาขา)' });
+        }
+
+        const stock = await DailyStock.findById(id);
+        if (!stock) {
+            return res.status(404).json({ message: 'ไม่พบรายการสต็อกนี้' });
+        }
+
+        stock.productCode = productCode;
+        stock.productName = productName;
+        stock.branch = branch;
+
+        await stock.save();
+
+        res.status(200).json({ message: 'แก้ไขข้อมูลสำเร็จ', data: stock });
+    } catch (error) {
+        console.error('Edit Daily Stock Error:', error);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูลสต็อก' });
     }
 };

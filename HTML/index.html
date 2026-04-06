@@ -3521,7 +3521,8 @@
             const navBranchDailyCheck = document.getElementById('nav-branch-daily-check');
             if (navBranchDailyCheck) {
                 const isSales = userDept.toLowerCase().includes('ขาย') || userDept.toLowerCase().includes('sales');
-                if (isSales || ['admin', 'executive', 'manager'].includes(currentUser.role)) {
+                const isTech = userDept.toLowerCase().includes('เทคนิค') || userDept.toLowerCase().includes('tech');
+                if (isSales || isTech || ['admin', 'executive', 'manager'].includes(currentUser.role)) {
                     navBranchDailyCheck.classList.remove('hidden');
                     navBranchDailyCheck.style.display = 'flex';
                 } else {
