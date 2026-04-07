@@ -22,6 +22,9 @@
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 
+    <!-- SheetJS (xlsx) for reading file before upload -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -35,14 +38,34 @@
     </script>
 </head>
 
-<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col md:flex-row relative">
+
+    <!-- Mobile Header -->
+    <div class="md:hidden bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-40 flex justify-between items-center w-full shadow-sm">
+        <button onclick="toggleSidebar()" class="text-slate-600 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+            <ion-icon name="menu-outline" class="text-2xl"></ion-icon>
+        </button>
+        <span class="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+            SILMIN ระบบสต็อก
+        </span>
+        <div class="w-8"></div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm transition-opacity"></div>
 
     <!-- Sidebar -->
-    <aside
-        class="w-64 bg-white border-r border-slate-200 flex-shrink-0 hidden md:flex flex-col shadow-sm h-screen sticky top-0">
-        <div class="h-20 flex items-center px-6 border-b border-slate-100">
-            <img src="/image/icon_silme.png" alt="Icon" class="w-8 h-8 mr-3 rounded-lg shadow-sm" />
-            <h1 class="text-lg font-bold text-slate-800 tracking-tight">SILMIN ระบบสต็อก</h1>
+    <aside id="sidebar"
+        class="w-64 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col shadow-xl md:shadow-sm h-screen fixed md:sticky top-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+        <div class="h-20 flex items-center px-6 border-b border-slate-100 flex-shrink-0 justify-between">
+            <div class="flex items-center">
+                <img src="/image/icon_silme.png" alt="Icon" class="w-8 h-8 mr-3 rounded-lg shadow-sm" />
+                <h1 class="text-lg font-bold text-slate-800 tracking-tight">SILMIN</h1>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-slate-600">
+                <ion-icon name="close" class="text-2xl"></ion-icon>
+            </button>
         </div>
         <nav class="flex-1 px-4 py-6 space-y-2">
             <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">จัดการสต็อกส่วนกลาง</div>
@@ -61,14 +84,19 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-8">
+    <main class="flex-1 p-4 md:p-8 w-full overflow-x-hidden">
         <div class="max-w-4xl mx-auto">
-            <div class="mb-8">
-                <h2 class="text-2xl font-bold text-slate-800">นำเข้าสต็อกรายวัน</h2>
-                <p class="text-slate-500 mt-1">อัปโหลดไฟล์ Excel (.xlsx) หรือ CSV สำหรับเริ่มการเช็คสต็อก</p>
+            <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">นำเข้าสต็อกรายวัน</h2>
+                    <p class="text-slate-500 mt-1">อัปโหลดไฟล์ Excel (.xlsx) หรือ CSV สำหรับเริ่มการเช็คสต็อก</p>
+                </div>
+                <button onclick="toggleImportSection()" id="toggle-import-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-sm transition-colors flex items-center whitespace-nowrap">
+                    <ion-icon name="cloud-upload-outline" class="mr-2 text-xl"></ion-icon> นำเข้าสต็อก / ไฟล์
+                </button>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <div id="import-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 hidden transition-all origin-top duration-300">
                 <form id="uploadForm" class="space-y-6">
                     <div class="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center hover:bg-slate-50 transition-colors"
                         id="drop-zone">
@@ -87,8 +115,8 @@
                     </div>
 
                     <div class="flex justify-end gap-4">
-                        <button type="reset"
-                            class="px-6 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors bg-white font-medium">ลบทิ้ง</button>
+                        <button type="button" onclick="toggleImportSection()" class="px-6 py-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors font-medium">ยกเลิก</button>
+                        <button type="reset" class="px-6 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors bg-white font-medium">ลบทิ้ง</button>
                         <button type="submit" id="submitBtn"
                             class="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors font-medium shadow-sm flex items-center">
                             <ion-icon name="save-outline" class="mr-2"></ion-icon> นำเข้าข้อมูล
@@ -115,15 +143,15 @@
                         class="w-full sm:w-auto px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
                         <option value="all">ทั้งหมด (ทุกสาขา)</option>
                     </select>
-                    <button onclick="fetchDailySummary()"
-                        class="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
-                        <ion-icon name="refresh-outline"></ion-icon> รีเฟรช
+                    <button onclick="fetchDailySummary()" id="refresh-btn"
+                        class="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium transition-colors shadow-sm flex items-center justify-center gap-2 disabled:bg-slate-100 disabled:text-slate-400">
+                        <ion-icon name="refresh-outline" id="refresh-icon"></ion-icon> รีเฟรช
                     </button>
                 </div>
             </div>
 
             <!-- Summary Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                 <!-- Total -->
                 <div
                     class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center">
@@ -176,6 +204,19 @@
                     </div>
                 </div>
 
+                <!-- Not Checked -->
+                <div
+                    class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-2xl mb-2 border border-orange-100">
+                        <ion-icon name="close-circle-outline"></ion-icon>
+                    </div>
+                    <p class="text-xs font-bold text-slate-400 mb-1">ฝ่ายขายไม่ได้ตรวจสอบ</p>
+                    <div class="flex items-baseline">
+                        <h4 id="sum-not-checked" class="text-xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
                 <!-- Failed -->
                 <div onclick="showFailedBreakdown()"
                     class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center cursor-pointer hover:bg-red-50 transition-colors">
@@ -214,6 +255,10 @@
                         <button onclick="setTab('failed')" id="tab-failed"
                             class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
                             ตรวจสอบไม่สำเร็จ
+                        </button>
+                        <button onclick="setTab('not_checked')" id="tab-not-checked"
+                            class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                            ฝ่ายขายไม่ได้ตรวจสอบ
                         </button>
                     </div>
                 </div>
@@ -332,16 +377,85 @@
         // Handle Submit
         document.getElementById('uploadForm').addEventListener('submit', async function (e) {
             e.preventDefault();
-            if (!fileInput.files[0]) {
+            const file = fileInput.files[0];
+            if (!file) {
                 Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกไฟล์ก่อนอัปโหลด', 'warning');
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.innerHTML;
+
+            // Reading the file to count how many items
+            submitBtn.innerHTML = '<div class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div> กำลังตรวจสอบไฟล์...';
+            submitBtn.disabled = true;
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" }); // parse sheet to json
+
+                        // Counting non-empty rows heuristically (based on how sheet_to_json works)
+                        const count = json.length;
+
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+
+                        const result = await Swal.fire({
+                            title: 'ยืนยันการนำเข้าสต็อก?',
+                            html: `คุณกำลังนำเข้าสต็อกจำนวน <b>${count}</b> รายการ (แถว)<br/>ต้องการดำเนินการต่อหรือไม่?`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#eab308', // yellow-500
+                            cancelButtonColor: '#94a3b8', // slate-400
+                            confirmButtonText: 'ยืนยัน',
+                            cancelButtonText: 'ยกเลิก',
+                        });
+
+                        if (result.isConfirmed) {
+                            processUpload(file, submitBtn, originalText);
+                        }
+
+                    } catch (err) {
+                        console.error('Error parsing file:', err);
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                        
+                        // If parsing failed (e.g. not a valid excel format but CSV string), fallback to asking without count
+                        const result = await Swal.fire({
+                            title: 'ยืนยันการนำเข้าสต็อก?',
+                            text: `ต้องการดำเนินการนำเข้าไฟล์นี้หรือไม่?`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#eab308',
+                            cancelButtonColor: '#94a3b8',
+                            confirmButtonText: 'ยืนยัน',
+                            cancelButtonText: 'ยกเลิก',
+                        });
+                        
+                        if (result.isConfirmed) {
+                            processUpload(file, submitBtn, originalText);
+                        }
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } catch (err) {
+                console.error('Error reading file:', err);
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถอ่านไฟล์ได้', 'error');
+            }
+        });
+
+        async function processUpload(file, submitBtn, originalText) {
+            const formData = new FormData();
+            formData.append('file', file);
+
             submitBtn.innerHTML = '<div class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div> กำลังอัปโหลด...';
             submitBtn.disabled = true;
 
@@ -358,8 +472,8 @@
 
                 if (response.ok) {
                     Swal.fire('สำเร็จ', `นำเข้าข้อมูลสำเร็จ ${data.count || 0} รายการ`, 'success');
-                    this.reset();
-                    fileNameDisplay.classList.add('hidden');
+                    document.getElementById('uploadForm').reset();
+                    document.getElementById('file-name-display').classList.add('hidden');
                     fetchDailySummary(); // รีเฟรชแดชบอร์ดหลังนำเข้าสำเร็จ
                 } else {
                     Swal.fire('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถอัปโหลดได้', 'error');
@@ -371,7 +485,7 @@
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
             }
-        });
+        }
 
         // ------------------------------------
         // Dashboard JS
@@ -380,6 +494,12 @@
         let currentTab = 'all';
 
         async function fetchDailySummary() {
+            const refreshIcon = document.getElementById('refresh-icon');
+            const refreshBtn = document.getElementById('refresh-btn');
+
+            if (refreshIcon) refreshIcon.classList.add('animate-spin');
+            if (refreshBtn) refreshBtn.disabled = true;
+
             try {
                 const response = await fetch('/api/daily-stocks/summary', {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -415,6 +535,9 @@
                 }
             } catch (e) {
                 console.error('Error fetching summary:', e);
+            } finally {
+                if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+                if (refreshBtn) refreshBtn.disabled = false;
             }
         }
 
@@ -437,12 +560,14 @@
             const pending = data.filter(i => i.status === 'pending').length;
             const waiting = data.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting').length;
             const success = data.filter(i => i.status === 'checked' && i.verificationStatus === 'success').length;
-            const failed = data.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed').length;
+            const notChecked = data.filter(i => i.status === 'not_checked').length;
+            const failed = data.filter(i => i.status !== 'not_checked' && i.verificationStatus === 'failed').length;
 
             document.getElementById('sum-total').textContent = total;
             document.getElementById('sum-pending').textContent = pending;
             document.getElementById('sum-waiting').textContent = waiting;
             document.getElementById('sum-success').textContent = success;
+            document.getElementById('sum-not-checked').textContent = notChecked;
             document.getElementById('sum-failed').textContent = failed;
         }
 
@@ -491,10 +616,12 @@
 
         function setTab(tab) {
             currentTab = tab;
-            const tabs = ['all', 'pending', 'waiting', 'success', 'failed'];
+            const tabs = ['all', 'pending', 'waiting', 'success', 'failed', 'not_checked'];
 
             tabs.forEach(t => {
                 const tr = document.getElementById(`tab-${t}`);
+                if (!tr) return;
+
                 if (t === tab) {
                     tr.classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-700');
                     tr.classList.add('border-yellow-500', 'text-yellow-600');
@@ -524,7 +651,8 @@
             if (currentTab === 'pending') filtered = filtered.filter(i => i.status === 'pending');
             if (currentTab === 'waiting') filtered = filtered.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting');
             if (currentTab === 'success') filtered = filtered.filter(i => i.status === 'checked' && i.verificationStatus === 'success');
-            if (currentTab === 'failed') filtered = filtered.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed');
+            if (currentTab === 'failed') filtered = filtered.filter(i => i.status !== 'not_checked' && i.verificationStatus === 'failed');
+            if (currentTab === 'not_checked') filtered = filtered.filter(i => i.status === 'not_checked');
 
             const searchInput = document.getElementById('imei-search');
             if (searchInput) {
@@ -803,6 +931,38 @@
                 submitBtn.disabled = false;
             }
         });
+
+        // Toggle Import Section
+        function toggleImportSection() {
+            const section = document.getElementById('import-section');
+            const btn = document.getElementById('toggle-import-btn');
+            if (section.classList.contains('hidden')) {
+                section.classList.remove('hidden');
+                btn.classList.replace('bg-yellow-500', 'bg-slate-200');
+                btn.classList.replace('text-white', 'text-slate-700');
+                btn.classList.replace('hover:bg-yellow-600', 'hover:bg-slate-300');
+                btn.innerHTML = `<ion-icon name="close-outline" class="mr-2 text-xl"></ion-icon> ซ่อนหน้าต่างนำเข้า`;
+            } else {
+                section.classList.add('hidden');
+                btn.classList.replace('bg-slate-200', 'bg-yellow-500');
+                btn.classList.replace('text-slate-700', 'text-white');
+                btn.classList.replace('hover:bg-slate-300', 'hover:bg-yellow-600');
+                btn.innerHTML = `<ion-icon name="cloud-upload-outline" class="mr-2 text-xl"></ion-icon> นำเข้าสต็อก / ไฟล์`;
+            }
+        }
+
+        // Toggle Sidebar for Mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if(sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
 
         // Initialize on load
         fetchDailySummary();

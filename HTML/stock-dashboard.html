@@ -35,14 +35,37 @@
     </script>
 </head>
 
-<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col md:flex-row relative">
+
+    <!-- Mobile Header -->
+    <div
+        class="md:hidden bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-40 flex justify-between items-center w-full shadow-sm">
+        <button onclick="toggleSidebar()"
+            class="text-slate-600 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+            <ion-icon name="menu-outline" class="text-2xl"></ion-icon>
+        </button>
+        <span class="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+            SILMIN ระบบสต็อก
+        </span>
+        <div class="w-8"></div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()"
+        class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm transition-opacity"></div>
 
     <!-- Sidebar -->
-    <aside
-        class="w-64 bg-white border-r border-slate-200 flex-shrink-0 hidden md:flex flex-col shadow-sm h-screen sticky top-0">
-        <div class="h-20 flex items-center px-6 border-b border-slate-100">
-            <img src="/image/icon_silme.png" alt="Icon" class="w-8 h-8 mr-3 rounded-lg shadow-sm" />
-            <h1 class="text-lg font-bold text-slate-800 tracking-tight">SILMIN ระบบสต็อก</h1>
+    <aside id="sidebar"
+        class="w-64 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col shadow-xl md:shadow-sm h-screen fixed md:sticky top-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+        <div class="h-20 flex items-center px-6 border-b border-slate-100 flex-shrink-0 justify-between">
+            <div class="flex items-center">
+                <img src="/image/icon_silme.png" alt="Icon" class="w-8 h-8 mr-3 rounded-lg shadow-sm" />
+                <h1 class="text-lg font-bold text-slate-800 tracking-tight">SILMIN</h1>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-slate-600">
+                <ion-icon name="close" class="text-2xl"></ion-icon>
+            </button>
         </div>
         <nav class="flex-1 px-4 py-6 space-y-2">
             <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">จัดการสต็อกส่วนกลาง</div>
@@ -61,7 +84,7 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-8">
+    <main class="flex-1 p-4 md:p-8 w-full overflow-x-hidden">
         <div class="max-w-4xl mx-auto">
             <div class="mb-8">
                 <h2 class="text-2xl font-bold text-slate-800">แดชบอร์ดรายงานสต็อกสินค้า</h2>
@@ -82,10 +105,10 @@
                             <option value="custom">กำหนดช่วงวัน</option>
                         </select>
                     </div>
-                    
+
                     <div class="flex-1">
                         <label class="block text-sm font-bold text-slate-700 mb-2">สาขา</label>
-                        <select id="branch-filter" onchange="applyBranchFilter()"
+                        <select id="branch-filter" onchange="applyFilters()"
                             class="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
                             <option value="all">ทั้งหมด (ทุกสาขา)</option>
                         </select>
@@ -99,13 +122,33 @@
                 <div class="w-full md:w-auto">
                     <button onclick="updateDashboard()"
                         class="w-full md:w-auto px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
-                        <ion-icon name="search-outline"></ion-icon> ดูรายงาน
+                        <ion-icon name="search-outline"></ion-icon> ดึงข้อมูลรายงาน
                     </button>
                 </div>
             </div>
 
+            <!-- Client-Side Search Filters -->
+            <div
+                class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">ประเภทสินค้า</label>
+                    <select id="filterType" onchange="applyFilters()"
+                        class="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
+                        <option value="ทั้งหมด">ทั้งหมด</option>
+                        <option value="iPhone">iPhone</option>
+                        <option value="iPad">iPad</option>
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">ค้นหารุ่น (Model)</label>
+                    <input type="text" id="filterModel" oninput="applyFilters()"
+                        placeholder="พิมพ์ชื่อรุ่น เช่น 14, Gen11"
+                        class="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
+                </div>
+            </div>
+
             <!-- Summary Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                 <!-- Total -->
                 <div
                     class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center">
@@ -158,6 +201,19 @@
                     </div>
                 </div>
 
+                <!-- Not Checked -->
+                <div
+                    class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-2xl mb-2 border border-orange-100">
+                        <ion-icon name="close-circle-outline"></ion-icon>
+                    </div>
+                    <p class="text-xs font-bold text-slate-400 mb-1">ฝ่ายขายไม่ได้ตรวจสอบ</p>
+                    <div class="flex items-baseline">
+                        <h4 id="sum-not-checked" class="text-xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
                 <!-- Failed -->
                 <div onclick="showFailedBreakdown()"
                     class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center text-center cursor-pointer hover:bg-red-50 transition-colors">
@@ -195,6 +251,10 @@
                     <button onclick="setTab('failed')" id="tab-failed"
                         class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
                         ตรวจสอบไม่สำเร็จ
+                    </button>
+                    <button onclick="setTab('not_checked')" id="tab-not-checked"
+                        class="px-6 py-3 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">
+                        ฝ่ายขายไม่ได้ตรวจสอบ
                     </button>
                 </div>
 
@@ -296,10 +356,23 @@
         }
 
         // ------------------------------------
-        // Dashboard JS
+        // Dashboard Core JS
         // ------------------------------------
         let allStockData = [];
         let currentTab = 'all';
+
+        // Toggle Sidebar for Mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
 
         async function updateDashboard() {
             const type = document.getElementById('report-type').value;
@@ -351,7 +424,7 @@
                             options += `<option value="${b}">${b}</option>`;
                         });
                         branchSelect.innerHTML = options;
-                        
+
                         // Preserve selected choice if it exists
                         if (branches.includes(currentVal)) {
                             branchSelect.value = currentVal;
@@ -371,36 +444,56 @@
             }
         }
 
-        function getBranchFilteredData() {
+        function getFilteredData() {
+            let filtered = allStockData;
+
+            // 1. Branch Filter
             const branchSelect = document.getElementById('branch-filter');
             if (branchSelect && branchSelect.value !== 'all') {
-                return allStockData.filter(i => i.branch === branchSelect.value);
+                filtered = filtered.filter(i => i.branch === branchSelect.value);
             }
-            return allStockData;
+
+            // 2. Type Filter (iPhone หรือ iPad)
+            const filterType = document.getElementById('filterType').value;
+            if (filterType === 'iPad') {
+                filtered = filtered.filter(i => (i.productName || '').toLowerCase().includes('ipad'));
+            } else if (filterType === 'iPhone') {
+                filtered = filtered.filter(i => !(i.productName || '').toLowerCase().includes('ipad'));
+            }
+
+            // 3. Model Filter (กรอกชื่อรุ่น)
+            const filterModelValue = document.getElementById('filterModel').value.toLowerCase().trim();
+            if (filterModelValue) {
+                filtered = filtered.filter(i => (i.productName || '').toLowerCase().includes(filterModelValue));
+            }
+
+            return filtered;
         }
 
-        function applyBranchFilter() {
+        function applyFilters() {
             updateCards();
             renderTable();
         }
 
         function updateCards() {
-            const data = getBranchFilteredData();
+            const data = getFilteredData();
             const total = data.length;
             const pending = data.filter(i => i.status === 'pending').length;
             const waiting = data.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting').length;
             const success = data.filter(i => i.status === 'checked' && i.verificationStatus === 'success').length;
-            const failed = data.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed').length;
+            const notChecked = data.filter(i => i.status === 'not_checked').length;
+            const failed = data.filter(i => i.status !== 'not_checked' && i.verificationStatus === 'failed').length;
 
             document.getElementById('sum-total').textContent = total;
             document.getElementById('sum-pending').textContent = pending;
             document.getElementById('sum-waiting').textContent = waiting;
             document.getElementById('sum-success').textContent = success;
+            document.getElementById('sum-not-checked').textContent = notChecked;
             document.getElementById('sum-failed').textContent = failed;
         }
 
         function showFailedBreakdown() {
-            const data = getBranchFilteredData();
+            const data = getFilteredData();
             const failedItems = data.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed');
             if (failedItems.length === 0) {
                 Swal.fire('ข้อมูล', 'ไม่มีรายการที่ไม่สำเร็จ', 'info');
@@ -444,10 +537,12 @@
 
         function setTab(tab) {
             currentTab = tab;
-            const tabs = ['all', 'pending', 'waiting', 'success', 'failed'];
+            const tabs = ['all', 'pending', 'waiting', 'success', 'failed', 'not_checked'];
 
             tabs.forEach(t => {
                 const tr = document.getElementById(`tab-${t}`);
+                if (!tr) return;
+
                 if (t === tab) {
                     tr.classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-700');
                     tr.classList.add('border-yellow-500', 'text-yellow-600');
@@ -473,11 +568,12 @@
             const tbody = document.getElementById('stock-table-body');
             tbody.innerHTML = '';
 
-            let filtered = getBranchFilteredData();
+            let filtered = getFilteredData();
             if (currentTab === 'pending') filtered = filtered.filter(i => i.status === 'pending');
             if (currentTab === 'waiting') filtered = filtered.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting');
             if (currentTab === 'success') filtered = filtered.filter(i => i.status === 'checked' && i.verificationStatus === 'success');
-            if (currentTab === 'failed') filtered = filtered.filter(i => i.status === 'not_checked' || i.verificationStatus === 'failed');
+            if (currentTab === 'failed') filtered = filtered.filter(i => i.status !== 'not_checked' && i.verificationStatus === 'failed');
+            if (currentTab === 'not_checked') filtered = filtered.filter(i => i.status === 'not_checked');
 
             if (filtered.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">ไม่พบรายการสินค้าในหมวดหมู่นี้</td></tr>`;

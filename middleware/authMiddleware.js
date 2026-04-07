@@ -35,7 +35,10 @@ exports.protect = async (req, res, next) => {
 
         } catch (error) {
             console.error('Token ล้มเหลว:', error.message);
-            res.status(401).json({ message: 'Token ไม่ถูกต้อง, การเข้าถึงถูกปฏิเสธ' });
+            if (error.name === 'TokenExpiredError') {
+                 return res.status(401).json({ message: 'Token หมดอายุ, เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่' });
+            }
+            res.status(401).json({ message: 'Token หมดอายุ หรือไม่ถูกต้อง, การเข้าถึงถูกปฏิเสธ' });
         }
     }
 
