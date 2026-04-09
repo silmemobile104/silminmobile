@@ -68,4 +68,7 @@ router.put('/edit/:id', verifyToken, checkRole(['admin', 'manager', 'executive',
 // 7. ยืนยันข้อมูลเช็คสต็อก (ฝ่ายสต็อก)
 router.put('/verify', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), dailyStockController.verifyStock);
 
+// 8. ดึงข้อมูลเปรียบเทียบสต็อก (สรุประหว่าง 2 วัน)
+router.get('/comparison', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), dailyStockController.getComparisonReport);
+
 module.exports = router;

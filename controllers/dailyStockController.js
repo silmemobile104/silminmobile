@@ -360,3 +360,91 @@ exports.editDailyStock = async (req, res) => {
         res.status(500).json({ message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูลสต็อก' });
     }
 };
+
+// 8. ดึงข้อมูลเปรียบเทียบสต็อกระหว่างสองวัน (วันฐานและวันเปรียบเทียบ)
+exports.getComparisonReport = async (req, res) => {
+    try {
+        const { baseDate, targetDate } = req.query;
+        if (!baseDate || !targetDate) {
+            return res.status(400).json({ message: 'กรุณาระบุวันฐาน (baseDate) และวันเปรียบเทียบ (targetDate)' });
+        }
+
+        const baseStart = new Date(baseDate);
+        baseStart.setHours(0, 0, 0, 0);
+        const baseEnd = new Date(baseDate);
+        baseEnd.setHours(23, 59, 59, 999);
+
+        const targetStart = new Date(targetDate);
+        targetStart.setHours(0, 0, 0, 0);
+        const targetEnd = new Date(targetDate);
+        targetEnd.setHours(23, 59, 59, 999);
+
+        const baseStocks = await DailyStock.find({
+            date: { $gte: baseStart, $lte: baseEnd }
+        }).lean();
+
+        const targetStocks = await DailyStock.find({
+            date: { $gte: targetStart, $lte: targetEnd }
+        }).lean();
+
+        const baseMap = new Map();
+        baseStocks.forEach(s => baseMap.set(s.productCode, s));
+
+        const targetMap = new Map();
+        targetStocks.forEach(s => targetMap.set(s.productCode, s));
+
+        const changes = [];
+        let newItemsCount = 0;
+        let transferredInCount = 0;
+        let soldOutCount = 0;
+
+        targetStocks.forEach(targetItem => {
+            const baseItem = baseMap.get(targetItem.productCode);
+            if (!baseItem) {
+                changes.push({
+                    productCode: targetItem.productCode,
+                    productName: targetItem.productName,
+                    type: 'NEW',
+                    branch: targetItem.branch
+                });
+                newItemsCount++;
+            } else {
+                if (baseItem.branch !== targetItem.branch) {
+                    changes.push({
+                        productCode: targetItem.productCode,
+                        productName: targetItem.productName,
+                        type: 'TRANSFERRED',
+                        fromBranch: baseItem.branch,
+                        toBranch: targetItem.branch
+                    });
+                    transferredInCount++;
+                }
+            }
+        });
+
+        baseStocks.forEach(baseItem => {
+            if (!targetMap.has(baseItem.productCode)) {
+                changes.push({
+                    productCode: baseItem.productCode,
+                    productName: baseItem.productName,
+                    type: 'SOLD',
+                    branch: baseItem.branch
+                });
+                soldOutCount++;
+            }
+        });
+
+        res.status(200).json({
+            summary: {
+                newItems: newItemsCount,
+                transferredIn: transferredInCount,
+                soldOut: soldOutCount
+            },
+            details: changes
+        });
+
+    } catch (error) {
+        console.error('Comparison Report Error:', error);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงรายงานเปรียบเทียบ' });
+    }
+};
