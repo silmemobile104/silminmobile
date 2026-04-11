@@ -869,9 +869,17 @@
         }
 
         function viewEvidence(url) {
+            let displayUrl = url;
+            if (displayUrl && displayUrl.includes('drive.google.com/uc?export=view&id=')) {
+                const fileId = displayUrl.split('id=')[1];
+                if (fileId) {
+                    displayUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+                }
+            }
+            
             Swal.fire({
                 title: 'รูปหลักฐานการตรวจสอบ',
-                imageUrl: url,
+                imageUrl: displayUrl,
                 imageAlt: 'Evidence',
                 confirmButtonText: 'ปิดหน้าต่าง',
                 confirmButtonColor: '#eab308'

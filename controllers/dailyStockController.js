@@ -3,6 +3,14 @@ const fs = require('fs');
 const csv = require('csv-parser');
 const xlsx = require('xlsx');
 const { logActivity } = require('../utils/logger'); // assuming this exists based on history
+const { uploadUrlToDrive } = require('../utils/googleDrive');
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // 1. นำเข้าสต็อกรายวันจากไฟล์ CSV / XLSX
 exports.importDailyStock = async (req, res) => {
@@ -308,6 +316,39 @@ exports.verifyStock = async (req, res) => {
 
         if (decision === 'success') {
             stock.verificationStatus = 'success';
+            
+            if (stock.evidenceImage && stock.evidenceImage.includes('cloudinary.com')) {
+                try {
+                    const urlParts = stock.evidenceImage.split('/');
+                    const lastPart = urlParts[urlParts.length - 1];
+                    const driveFileName = `stock_evd_${stock.productCode}_${Date.now()}_${lastPart}`;
+                    
+                    const driveLink = await uploadUrlToDrive(stock.evidenceImage, driveFileName);
+                    if (driveLink) {
+                        const oldImageUrl = stock.evidenceImage;
+                        stock.evidenceImage = driveLink;
+                        try {
+                            const splitByUpload = oldImageUrl.split('/upload/');
+                            if (splitByUpload.length > 1) {
+                                let path = splitByUpload[1];
+                                path = path.replace(/^v\d+\//, '');
+                                const extIdx = path.lastIndexOf('.');
+                                const publicId = extIdx !== -1 ? path.substring(0, extIdx) : path;
+                                if (publicId) {
+                                    cloudinary.uploader.destroy(publicId, (err, result) => {
+                                        if (err) console.error('Cloudinary destroy error:', err);
+                                        else console.log('Successfully deleted from Cloudinary: ' + publicId, result);
+                                    });
+                                }
+                            }
+                        } catch (delErr) {
+                            console.error('Error extracting/deleting publicId from Cloudinary:', delErr);
+                        }
+                    }
+                } catch (driveUploadError) {
+                    console.error('Google Drive Upload Failed, retaining Cloudinary link:', driveUploadError);
+                }
+            }
         } else if (decision === 'failed') {
             stock.verificationStatus = 'failed';
             stock.failReason = reason;
