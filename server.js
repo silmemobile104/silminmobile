@@ -5,7 +5,8 @@ const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
 require('dotenv').config();
-
+const cron = require('node-cron');
+const dailyStockController = require('./controllers/dailyStockController');
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
@@ -66,6 +67,15 @@ app.use((err, req, res, next) => {
 // =======================================================
 
 const PORT = process.env.PORT || 5000;
+
+// ตั้งค่า Cron Job สำหรับ Nightly Batch ไปรันเคลียร์รูปตอน 02:00
+cron.schedule('0 2 * * *', () => {
+    console.log('เริ่มรัน Nightly Batch: ย้ายรูปลง Google Drive (02:00)');
+    dailyStockController.autoMigrateToDrive();
+}, {
+    scheduled: true,
+    timezone: "Asia/Bangkok"
+});
 
 if (require.main === module) {
     app.listen(PORT, () => {

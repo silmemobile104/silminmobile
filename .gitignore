@@ -31,3 +31,6 @@ Thumbs.db
 .idea/
 *.sublime-project
 *.sublime-workspace
+
+# Scripts_สำหรับย้ายรูป
+migrate-images.js

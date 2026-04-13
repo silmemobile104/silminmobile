@@ -316,39 +316,6 @@ exports.verifyStock = async (req, res) => {
 
         if (decision === 'success') {
             stock.verificationStatus = 'success';
-            
-            if (stock.evidenceImage && stock.evidenceImage.includes('cloudinary.com')) {
-                try {
-                    const urlParts = stock.evidenceImage.split('/');
-                    const lastPart = urlParts[urlParts.length - 1];
-                    const driveFileName = `stock_evd_${stock.productCode}_${Date.now()}_${lastPart}`;
-                    
-                    const driveLink = await uploadUrlToDrive(stock.evidenceImage, driveFileName);
-                    if (driveLink) {
-                        const oldImageUrl = stock.evidenceImage;
-                        stock.evidenceImage = driveLink;
-                        try {
-                            const splitByUpload = oldImageUrl.split('/upload/');
-                            if (splitByUpload.length > 1) {
-                                let path = splitByUpload[1];
-                                path = path.replace(/^v\d+\//, '');
-                                const extIdx = path.lastIndexOf('.');
-                                const publicId = extIdx !== -1 ? path.substring(0, extIdx) : path;
-                                if (publicId) {
-                                    cloudinary.uploader.destroy(publicId, (err, result) => {
-                                        if (err) console.error('Cloudinary destroy error:', err);
-                                        else console.log('Successfully deleted from Cloudinary: ' + publicId, result);
-                                    });
-                                }
-                            }
-                        } catch (delErr) {
-                            console.error('Error extracting/deleting publicId from Cloudinary:', delErr);
-                        }
-                    }
-                } catch (driveUploadError) {
-                    console.error('Google Drive Upload Failed, retaining Cloudinary link:', driveUploadError);
-                }
-            }
         } else if (decision === 'failed') {
             stock.verificationStatus = 'failed';
             stock.failReason = reason;
@@ -368,9 +335,104 @@ exports.verifyStock = async (req, res) => {
         await stock.save();
 
         res.status(200).json({ message: 'ยืนยันการตรวจสอบสำเร็จ', data: stock });
+
+        // ฝากการย้ายรูปภาพไปทำงานเบื้องหลัง (Fire-and-Forget) ทันทีหลังตอบกลับเสร็จ
+        if (decision === 'success' && stock.evidenceImage && stock.evidenceImage.includes('cloudinary.com')) {
+            migrateImageInBackground(stock._id, stock.evidenceImage, stock.productCode);
+        }
+
     } catch (error) {
         console.error('Verify Stock Error:', error);
         res.status(500).json({ message: 'เกิดข้อผิดพลาดในการยืนยัน' });
+    }
+};
+
+const migrateImageInBackground = async (stockId, imageUrl, productCode) => {
+    try {
+        const urlParts = imageUrl.split('/');
+        const lastPart = urlParts[urlParts.length - 1];
+        const driveFileName = `stock_evd_${productCode}_${Date.now()}_${lastPart}`;
+        
+        const driveLink = await uploadUrlToDrive(imageUrl, driveFileName);
+        
+        if (driveLink) {
+            let targetPublicId = null;
+            const splitByUpload = imageUrl.split('/upload/');
+            if (splitByUpload.length > 1) {
+                let path = splitByUpload[1];
+                path = path.replace(/^v\d+\//, '');
+                const extIdx = path.lastIndexOf('.');
+                targetPublicId = extIdx !== -1 ? path.substring(0, extIdx) : path;
+            }
+            
+            if (targetPublicId) {
+                cloudinary.uploader.destroy(targetPublicId, (err, result) => {
+                    if (err) console.error(`Background Cloudinary destroy error for ${targetPublicId}:`, err);
+                    else console.log(`Background successfully deleted from Cloudinary: ${targetPublicId}`);
+                });
+            }
+
+            await DailyStock.findByIdAndUpdate(stockId, { evidenceImage: driveLink });
+            console.log(`Background migration successful for stock ${stockId}`);
+        }
+    } catch (error) {
+        console.error(`Background migration failed for stock ${stockId}:`, error);
+        // ไม่ต้อง throw เพื่อปล่อยให้การทำงานเงียบไป แล้วรอระบบตี 2 ตามเก็บกวาด
+    }
+};
+
+exports.autoMigrateToDrive = async () => {
+    try {
+        const items = await DailyStock.find({ 
+            verificationStatus: 'success', 
+            evidenceImage: { $regex: /cloudinary/ } 
+        }).limit(500);
+
+        if (items.length === 0) {
+            console.log('Nightly Batch: ไม่มีรูปภาพติดค้างให้ย้าย');
+            return;
+        }
+
+        console.log(`Nightly Batch: พบรูปภาพตกหล่น ${items.length} รายการ กำลังทยอยย้าย...`);
+
+        for (const item of items) {
+            try {
+                const oldImageUrl = item.evidenceImage;
+                const urlParts = oldImageUrl.split('/');
+                const lastPart = urlParts[urlParts.length - 1];
+                const driveFileName = `stock_evd_${item.productCode}_${Date.now()}_${lastPart}`;
+
+                const newDriveLink = await uploadUrlToDrive(oldImageUrl, driveFileName);
+                
+                if (newDriveLink) {
+                    const splitByUpload = oldImageUrl.split('/upload/');
+                    if (splitByUpload.length > 1) {
+                        let path = splitByUpload[1];
+                        path = path.replace(/^v\d+\//, '');
+                        const extIdx = path.lastIndexOf('.');
+                        const publicId = extIdx !== -1 ? path.substring(0, extIdx) : path;
+                        
+                        if (publicId) {
+                            await new Promise((resolve) => {
+                                cloudinary.uploader.destroy(publicId, (err, result) => {
+                                    if (err) console.error(`Error deleting ${publicId} from Cloudinary:`, err);
+                                    else console.log(`Deleted ${publicId} from Cloudinary`);
+                                    resolve();
+                                });
+                            });
+                        }
+                    }
+
+                    item.evidenceImage = newDriveLink;
+                    await item.save();
+                }
+            } catch (err) {
+                console.error(`Nightly Batch Error: เกิดข้อผิดพลาดในการย้ายรูปรหัสสินค้า ${item.productCode}:`, err);
+            }
+        }
+        console.log('Nightly Batch: ย้ายข้อมูลที่ตกหล่นเสร็จสิ้น');
+    } catch (error) {
+        console.error('Nightly Batch Fatal Error:', error);
     }
 };
 

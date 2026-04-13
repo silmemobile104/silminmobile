@@ -4578,250 +4578,207 @@
                 return;
             }
 
-            const printWindow = window.open('', '', 'width=400,height=600');
+            const printWindow = window.open('', '', 'width=800,height=900');
             if (!printWindow) {
                 AppToast.error('Pop-up blocked! Please allow pop-ups for this site.');
                 return;
             }
 
-            const companyName = "SILMIN MOBILE"; // หรือดึงจาก config
             const today = new Date().toLocaleString('th-TH');
             const price = deposit.price || 0;
             const depAmount = deposit.depositAmount || 0;
-            const balance = price - depAmount;
+            const balance = price > 0 ? (price - depAmount) : 0;
+            const autoBillNo = deposit.billNo || ('DEP-' + String(deposit._id).slice(-5).toUpperCase());
+            const receiverName = currentUser ? currentUser.name : (deposit.signName || 'ผู้รับเงิน');
 
             const htmlContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>ใบเสร็จรับเงินมัดจำ - ${deposit.customerName}</title>
-                    <style>
-                        @page { size: auto; margin: 0; }
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ใบรับเงินมัดจำ - ${deposit.customerName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Sarabun', 'Tahoma', sans-serif;
+      background: #f4f4f0;
+      display: flex; justify-content: center; align-items: flex-start;
+      min-height: 100vh; padding: 2rem;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page {
+      background: #ffffff; width: 720px; padding: 2.5rem;
+      box-shadow: 0 2px 24px rgba(0,0,0,0.08); border: 1px solid #e0ddd6;
+    }
+    .header { padding-bottom: 1.25rem; border-bottom: 2px solid #222; margin-bottom: 1.5rem; }
+    .doc-title-row { text-align: center; margin-bottom: 1.25rem; }
+    .doc-title {
+      font-size: 20px; font-weight: 700; color: #111;
+      border: 2px solid #111; padding: 10px 32px; letter-spacing: 0.05em; display: inline-block;
+    }
+    .header-info-row { display: flex; justify-content: space-between; align-items: flex-start; }
+    .company-name { font-size: 17px; font-weight: 700; color: #111; margin-bottom: 6px; letter-spacing: 0.01em; }
+    .company-info { font-size: 13px; color: #555; line-height: 1.8; }
+    .branch-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+    .branch-label { font-size: 13px; color: #555; }
+    .branch-line { display: inline-block; border-bottom: 1px solid #aaa; width: 140px; height: 16px; font-size:13px; line-height: 18px; color: #111; font-weight:500;}
+    .logo-box { flex-shrink: 0; }
+    .logo-box img { height: 72px; width: auto; object-fit: contain; display: block; }
+    
+    .meta-section { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.5rem; margin-bottom: 1.5rem; }
+    .meta-field { display: flex; align-items: center; gap: 8px; }
+    .meta-label { font-size: 13px; color: #444; white-space: nowrap; font-weight: 500; }
+    .meta-value { flex: 1; border-bottom: 1px solid #bbb; min-height: 22px; font-size: 13px; color: #111; }
+    
+    .table-wrap { margin-bottom: 0; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #ffffff; }
+    th { font-size: 13px; font-weight: 600; color: #000000; padding: 10px 12px; text-align: center; border: 1px solid #111; }
+    td { font-size: 13px; color: #222; padding: 9px 12px; border: 1px solid #ccc; min-height: 32px; }
+    td.center { text-align: center; }
+    td.right { text-align: right; }
+    tr:nth-child(even) td { background: #fafaf8; }
+    .col-no { width: 60px; }
+    .col-item { width: auto; }
+    .col-amount { width: 150px; }
+    tbody tr td { height: 36px; }
+    
+    .bottom { display: flex; gap: 2rem; padding-top: 1rem; border-top: 1px solid #ccc; margin-top: 0; }
+    .notes-block { flex: 1; }
+    .notes-label { font-size: 12px; font-weight: 600; color: #444; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .notes-area { border: 1px solid #ccc; min-height: 90px; padding: 8px 10px; font-size: 13px; color: #222; background: #fafaf8; }
+    .summary-block { width: 230px; flex-shrink: 0; }
+    .sum-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #e0e0da; font-size: 13px; }
+    .sum-row .sl { color: #555; }
+    .sum-row .sv { border-bottom: 1px dotted #aaa; min-width: 90px; text-align: right; color: #111; }
+    .sum-row.total-row { border-bottom: none; border-top: 2px solid #111; margin-top: 4px; padding-top: 10px; font-weight: 700; font-size: 14px; }
+    .sum-row.total-row .sl { color: #111; }
+    
+    .signature-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #ccc; }
+    .sig-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .sig-role { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; }
+    .sig-line { width: 100%; border-bottom: 1px solid #666; height: 44px; }
+    .sig-name { font-size: 12px; color: #888; margin-top: 4px; }
+    
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page { box-shadow: none; border: none; width: 100%; }
+    }
+  </style>
+</head>
+<body>
 
-                        * { box-sizing: border-box; }
+<div class="page">
+  <div class="header">
+    <div class="doc-title-row">
+      <div class="doc-title">ใบรับเงินมัดจำ</div>
+    </div>
+    <div class="header-info-row">
+      <div>
+        <div class="company-name">บริษัท ซิลมีนโมบาย จำกัด</div>
+        <div class="company-info">เลขที่ 883 ถนนสิโรรส ต.สะเตง อ.เมือง จังหวัดยะลา 95000</div>
+        <div class="company-info">เลขผู้เสียภาษี : 0955562000701</div>
+        <div class="branch-row">
+          <span class="branch-label">สาขา :</span>
+          <span class="branch-line" style="border-bottom:none;">${deposit.branch || '-'}</span>
+        </div>
+      </div>
+      <div class="logo-box">
+        <img src="/image/logo_silminmobile.png" alt="Silmin Mobile Logo" />
+      </div>
+    </div>
+  </div>
 
-                        body {
-                            font-family: 'Sarabun', sans-serif;
-                            margin: 0;
-                            padding: 0;
-                            color: #000;
-                            font-size: 12px;
-                            line-height: 1.35;
-                            -webkit-print-color-adjust: exact;
-                            print-color-adjust: exact;
-                        }
+  <div class="meta-section">
+    <div class="meta-field">
+      <span class="meta-label">ชื่อลูกค้า :</span>
+      <span class="meta-value">${deposit.customerName || '-'}</span>
+    </div>
+    <div class="meta-field">
+      <span class="meta-label">วันที่นัดรับ :</span>
+      <span class="meta-value">${formatDateShort(deposit.pickupDueDate)}</span>
+    </div>
+    <div class="meta-field">
+      <span class="meta-label">เลขที่ใบเสร็จ :</span>
+      <span class="meta-value">${autoBillNo}</span>
+    </div>
+    <div class="meta-field">
+      <span class="meta-label">วันที่ออกใบเสร็จ :</span>
+      <span class="meta-value">${today}</span>
+    </div>
+  </div>
 
-                        .receipt {
-                            width: 100%;
-                            padding: 8px 10px;
-                        }
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-no">ลำดับ</th>
+          <th class="col-item">รายการ</th>
+          <th class="col-amount">จำนวนเงิน (บาท)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="center">1</td><td>ชำระเงินมัดจำ ${deposit.product || '-'}${deposit.imei ? '<br><small>IMEI: ' + deposit.imei + '</small>' : ''}</td><td class="right">${depAmount.toLocaleString()}</td></tr>
+        <tr><td class="center"></td><td></td><td class="right"></td></tr>
+        <tr><td class="center"></td><td></td><td class="right"></td></tr>
+        <tr><td class="center"></td><td></td><td class="right"></td></tr>
+        <tr><td class="center"></td><td></td><td class="right"></td></tr>
+      </tbody>
+    </table>
+  </div>
 
-                        .header {
-                            text-align: center;
-                            padding-bottom: 6px;
-                        }
+  <div class="bottom">
+    <div class="notes-block">
+      <div class="notes-label">หมายเหตุ</div>
+      <div class="notes-area">${deposit.orderNote || ''}</div>
+    </div>
+    <div class="summary-block">
+      <div class="sum-row">
+        <span class="sl">รวมเงิน</span>
+        <span class="sv">${depAmount.toLocaleString()}</span>
+      </div>
+      <div class="sum-row">
+        <span class="sl">ส่วนลด</span>
+        <span class="sv">0</span>
+      </div>
+      <div class="sum-row total-row">
+        <span class="sl">จำนวนทั้งสิ้น</span>
+        <span class="sv">${depAmount.toLocaleString()}</span>
+      </div>
+    </div>
+  </div>
 
-                        .title {
-                            font-size: 15px;
-                            font-weight: 700;
-                            letter-spacing: 0.2px;
-                        }
+  <div class="signature-section">
+    <div class="sig-block">
+      <div class="sig-role">ผู้จ่ายเงิน</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">( ${deposit.customerName || 'ชื่อผู้จ่ายเงิน'} )</div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-role">ผู้รับเงิน</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">( ${receiverName} )</div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-role">ผู้มีอำนาจลงนาม</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">( ผู้บริหาร )</div>
+    </div>
+  </div>
+</div>
 
-                        .subtitle {
-                            font-size: 10px;
-                            margin-top: 2px;
-                        }
-
-                        .sep {
-                            border-top: 1px dashed #000;
-                            margin: 8px 0;
-                        }
-
-                        .row {
-                            display: flex;
-                            justify-content: space-between;
-                            gap: 10px;
-                            margin: 2px 0;
-                        }
-
-                        .row .label {
-                            flex: 1;
-                            min-width: 0;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                            white-space: nowrap;
-                        }
-
-                        .row .value {
-                            flex: 0 0 auto;
-                            text-align: right;
-                            white-space: nowrap;
-                        }
-
-                        .block {
-                            margin: 6px 0;
-                        }
-
-                        .block-title {
-                            font-weight: 700;
-                            margin-bottom: 4px;
-                        }
-
-                        .product {
-                            padding-left: 6px;
-                            word-break: break-word;
-                            overflow-wrap: anywhere;
-                        }
-
-                        .product small {
-                            font-size: 10px;
-                        }
-
-                        .em {
-                            font-weight: 700;
-                        }
-
-                        .note {
-                            border: 1px dotted #000;
-                            padding: 6px;
-                            margin-top: 6px;
-                            word-break: break-word;
-                            overflow-wrap: anywhere;
-                        }
-
-                        .signature {
-                            display: flex;
-                            justify-content: space-between;
-                            gap: 10px;
-                            margin-top: 14px;
-                        }
-
-                        .signature-block {
-                            width: 50%;
-                            text-align: center;
-                            font-size: 10px;
-                        }
-
-                        .signature-line {
-                            border-bottom: 1px dotted #000;
-                            height: 18px;
-                            margin-bottom: 4px;
-                        }
-
-                        .footer {
-                            text-align: center;
-                            margin-top: 12px;
-                            font-size: 10px;
-                        }
-
-                        @media screen {
-                            body { background: #f3f4f6; }
-                            .receipt {
-                                max-width: 80mm;
-                                margin: 10px auto;
-                                background: #fff;
-                                box-shadow: 0 10px 20px rgba(0,0,0,0.12);
-                                border-radius: 6px;
-                            }
-                        }
-
-                        @media print {
-                            body { background: transparent; }
-                            .receipt {
-                                max-width: none;
-                                margin: 0;
-                                border-radius: 0;
-                                box-shadow: none;
-                            }
-                            .no-print { display: none; }
-                        }
-                    </style>
-                    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-                </head>
-                <body>
-                    <div class="receipt">
-                        <div class="header">
-                            <div class="title">${companyName}</div>
-                            <div class="subtitle">สาขา: ${deposit.branch || '-'}</div>
-                        </div>
-
-                        <div class="sep"></div>
-
-                        <div class="row">
-                            <div class="label">วันที่</div>
-                            <div class="value">${today}</div>
-                        </div>
-                        <div class="row">
-                            <div class="label">ลูกค้า</div>
-                            <div class="value">${deposit.customerName || '-'}</div>
-                        </div>
-                        <div class="row">
-                            <div class="label">เบอร์โทร</div>
-                            <div class="value">${deposit.phoneNumber || '-'}</div>
-                        </div>
-
-                        <div class="sep"></div>
-
-                        <div class="block">
-                            <div class="block-title">รายการสินค้า</div>
-                            <div class="product">
-                                <div>${deposit.product || '-'}</div>
-                                ${deposit.imei ? `<div><small>IMEI: ${deposit.imei}</small></div>` : ''}
-                            </div>
-                        </div>
-
-                        <div class="sep"></div>
-
-                        <div class="row">
-                            <div class="label">ราคาเต็ม</div>
-                            <div class="value">${price.toLocaleString()}</div>
-                        </div>
-                        <div class="row em">
-                            <div class="label">ยอดมัดจำ</div>
-                            <div class="value">${depAmount.toLocaleString()}</div>
-                        </div>
-                        <div class="row">
-                            <div class="label">คงเหลือชำระ</div>
-                            <div class="value">${balance.toLocaleString()}</div>
-                        </div>
-
-                        <div class="sep"></div>
-
-                        <div class="row">
-                            <div class="label">วันนัดรับสินค้า</div>
-                            <div class="value">${formatDateShort(deposit.pickupDueDate)}</div>
-                        </div>
-
-                        ${deposit.orderNote ? `
-                        <div class="note">
-                            <span class="em">หมายเหตุ:</span> ${deposit.orderNote}
-                        </div>` : ''}
-
-                        <div class="signature">
-                            <div class="signature-block">
-                                <div class="signature-line"></div>
-                                <div>ผู้จ่ายเงิน / ลูกค้า</div>
-                            </div>
-                            <div class="signature-block">
-                                <div class="signature-line"></div>
-                                <div>ผู้รับเงิน / พนักงาน</div>
-                            </div>
-                        </div>
-
-                        <div class="footer">
-                            ขอบคุณที่ใช้บริการ<br>
-                            Thank you
-                        </div>
-                    </div>
-
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                             // window.close(); // ปิดอัตโนมัติถ้าต้องการ context นี้ user ไม่ได้ขอ แต่ปกติ POS มักจะชอบ
-                        }
-                    <\/script>
-                </body>
-                </html>
+<script>
+  window.onload = function() {
+    setTimeout(() => {
+        window.print();
+    }, 500);
+  }
+<\/script>
+</body>
+</html>
             `;
 
             printWindow.document.write(htmlContent);
