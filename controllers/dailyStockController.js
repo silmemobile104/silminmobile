@@ -3,14 +3,7 @@ const fs = require('fs');
 const csv = require('csv-parser');
 const xlsx = require('xlsx');
 const { logActivity } = require('../utils/logger'); // assuming this exists based on history
-const { uploadUrlToDrive } = require('../utils/googleDrive');
-const cloudinary = require('cloudinary').v2;
-
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
-});
+const { uploadUrlToDrive, uploadBufferToDrive } = require('../utils/googleDrive');
 
 // 1. นำเข้าสต็อกรายวันจากไฟล์ CSV / XLSX
 exports.importDailyStock = async (req, res) => {
@@ -137,8 +130,13 @@ exports.scanStock = async (req, res) => {
             return res.status(400).json({ message: 'กรุณาระบุรหัสสินค้า (Product Code)' });
         }
 
-        // หารูปภาพจากที่ Cloudinary ส่งกลับมา (ถ้ามี)
-        const evidenceImageUrl = req.file ? req.file.path : (req.files && req.files.length > 0 ? req.files[0].path : null);
+        // อัปโหลดรูปภาพไปยัง Google Drive ผ่าน Memory Buffer โดยตรง
+        let evidenceImageUrl = null;
+        if (req.file && req.file.buffer) {
+            const fileExtension = req.file.originalname ? req.file.originalname.split('.').pop() : 'jpg';
+            const fileName = `stock_evd_${productCode}_${Date.now()}.${fileExtension}`;
+            evidenceImageUrl = await uploadBufferToDrive(req.file.buffer, req.file.mimetype, fileName);
+        }
 
         // เอาวันที่ปัจจุบัน
         const startOfDay = new Date();
@@ -336,48 +334,11 @@ exports.verifyStock = async (req, res) => {
 
         res.status(200).json({ message: 'ยืนยันการตรวจสอบสำเร็จ', data: stock });
 
-        // ฝากการย้ายรูปภาพไปทำงานเบื้องหลัง (Fire-and-Forget) ทันทีหลังตอบกลับเสร็จ
-        if (decision === 'success' && stock.evidenceImage && stock.evidenceImage.includes('cloudinary.com')) {
-            migrateImageInBackground(stock._id, stock.evidenceImage, stock.productCode);
-        }
+        // เอาการเรียกใช้งาน Cloudinary background migration ออก เพราะเปลี่ยนมาใช้ Drive ตั้งแต่ตอนอัปโหลดแล้ว
 
     } catch (error) {
         console.error('Verify Stock Error:', error);
         res.status(500).json({ message: 'เกิดข้อผิดพลาดในการยืนยัน' });
-    }
-};
-
-const migrateImageInBackground = async (stockId, imageUrl, productCode) => {
-    try {
-        const urlParts = imageUrl.split('/');
-        const lastPart = urlParts[urlParts.length - 1];
-        const driveFileName = `stock_evd_${productCode}_${Date.now()}_${lastPart}`;
-        
-        const driveLink = await uploadUrlToDrive(imageUrl, driveFileName);
-        
-        if (driveLink) {
-            let targetPublicId = null;
-            const splitByUpload = imageUrl.split('/upload/');
-            if (splitByUpload.length > 1) {
-                let path = splitByUpload[1];
-                path = path.replace(/^v\d+\//, '');
-                const extIdx = path.lastIndexOf('.');
-                targetPublicId = extIdx !== -1 ? path.substring(0, extIdx) : path;
-            }
-            
-            if (targetPublicId) {
-                cloudinary.uploader.destroy(targetPublicId, (err, result) => {
-                    if (err) console.error(`Background Cloudinary destroy error for ${targetPublicId}:`, err);
-                    else console.log(`Background successfully deleted from Cloudinary: ${targetPublicId}`);
-                });
-            }
-
-            await DailyStock.findByIdAndUpdate(stockId, { evidenceImage: driveLink });
-            console.log(`Background migration successful for stock ${stockId}`);
-        }
-    } catch (error) {
-        console.error(`Background migration failed for stock ${stockId}:`, error);
-        // ไม่ต้อง throw เพื่อปล่อยให้การทำงานเงียบไป แล้วรอระบบตี 2 ตามเก็บกวาด
     }
 };
 
@@ -405,24 +366,6 @@ exports.autoMigrateToDrive = async () => {
                 const newDriveLink = await uploadUrlToDrive(oldImageUrl, driveFileName);
                 
                 if (newDriveLink) {
-                    const splitByUpload = oldImageUrl.split('/upload/');
-                    if (splitByUpload.length > 1) {
-                        let path = splitByUpload[1];
-                        path = path.replace(/^v\d+\//, '');
-                        const extIdx = path.lastIndexOf('.');
-                        const publicId = extIdx !== -1 ? path.substring(0, extIdx) : path;
-                        
-                        if (publicId) {
-                            await new Promise((resolve) => {
-                                cloudinary.uploader.destroy(publicId, (err, result) => {
-                                    if (err) console.error(`Error deleting ${publicId} from Cloudinary:`, err);
-                                    else console.log(`Deleted ${publicId} from Cloudinary`);
-                                    resolve();
-                                });
-                            });
-                        }
-                    }
-
                     item.evidenceImage = newDriveLink;
                     await item.save();
                 }

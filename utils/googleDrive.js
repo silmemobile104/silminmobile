@@ -1,5 +1,6 @@
 const { google } = require('googleapis');
 const axios = require('axios');
+const stream = require('stream');
 
 const getDriveService = () => {
     try {
@@ -71,6 +72,42 @@ const uploadUrlToDrive = async (imageUrl, fileName) => {
     }
 };
 
+const uploadBufferToDrive = async (buffer, mimeType, fileName) => {
+    try {
+        const drive = getDriveService();
+        const bufferStream = new stream.PassThrough();
+        bufferStream.end(buffer);
+
+        const fileMetadata = {
+            name: fileName,
+            parents: [process.env.GOOGLE_DRIVE_FOLDER_ID]
+        };
+
+        const media = {
+            mimeType: mimeType,
+            body: bufferStream
+        };
+
+        const file = await drive.files.create({
+            resource: fileMetadata,
+            media: media,
+            fields: 'id'
+        });
+
+        await drive.permissions.create({
+            fileId: file.data.id,
+            requestBody: { role: 'reader', type: 'anyone' }
+        });
+
+        // ใช้ลิงก์แบบ thumbnail เพื่อให้สามารถแสดงในแท็ก <img> ได้โดยไม่โดนบล็อคจาก Google Drive
+        return `https://drive.google.com/thumbnail?id=${file.data.id}&sz=w1000`;
+    } catch (error) {
+        console.error('Error uploading buffer to Drive:', error);
+        throw error;
+    }
+};
+
 module.exports = {
-    uploadUrlToDrive
+    uploadUrlToDrive,
+    uploadBufferToDrive
 };
