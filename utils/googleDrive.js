@@ -72,15 +72,104 @@ const uploadUrlToDrive = async (imageUrl, fileName) => {
     }
 };
 
-const uploadBufferToDrive = async (buffer, mimeType, fileName) => {
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const uploadBufferToDrive = async (buffer, mimeType, fileName, maxRetries = 3) => {
+    let attempt = 0;
+    while (attempt <= maxRetries) {
+        try {
+            const drive = getDriveService();
+            const bufferStream = new stream.PassThrough();
+            bufferStream.end(buffer);
+
+            const fileMetadata = {
+                name: fileName,
+                parents: [process.env.GOOGLE_DRIVE_FOLDER_ID]
+            };
+
+            const media = {
+                mimeType: mimeType,
+                body: bufferStream
+            };
+
+            const file = await drive.files.create({
+                resource: fileMetadata,
+                media: media,
+                fields: 'id'
+            });
+
+            await drive.permissions.create({
+                fileId: file.data.id,
+                requestBody: { role: 'reader', type: 'anyone' }
+            });
+
+            return `https://drive.google.com/uc?export=view&id=${file.data.id}`;
+        } catch (error) {
+            console.error(`Upload buffer to Drive error (attempt ${attempt + 1}):`, error.message || error);
+            
+            // เช็คว่าเป็น error 403 (Rate Limit), 429 (Too Many Requests) หรือ >= 500 (Server Error)
+            if (error.code === 403 || error.code === 429 || error.code >= 500) {
+                if (attempt < maxRetries) {
+                    const delay = Math.pow(2, attempt) * 1000 + Math.floor(Math.random() * 1000);
+                    console.log(`Waiting for ${delay}ms before retrying (Error ${error.code})...`);
+                    await wait(delay);
+                    attempt++;
+                } else {
+                    console.error('Max retries reached. Throwing error.');
+                    throw error;
+                }
+            } else {
+                // ถ้าเป็น Error อื่นๆ เช่น ลืมแชร์สิทธิ์โฟลเดอร์ ให้ throw ทันที
+                throw error;
+            }
+        }
+    }
+};
+
+const getOrCreateSubFolderId = async (folderName) => {
+    const drive = getDriveService();
+    const parentFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+    if (!parentFolderId) {
+        throw new Error('GOOGLE_DRIVE_FOLDER_ID not set in environment');
+    }
+
+    const escapedName = String(folderName).replace(/'/g, "\\'");
+    const q = `name='${escapedName}' and mimeType='application/vnd.google-apps.folder' and '${parentFolderId}' in parents and trashed=false`;
+
+    const existing = await drive.files.list({
+        q,
+        fields: 'files(id, name)',
+        spaces: 'drive'
+    });
+
+    if (existing.data.files && existing.data.files.length > 0) {
+        return existing.data.files[0].id;
+    }
+
+    const created = await drive.files.create({
+        resource: {
+            name: folderName,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [parentFolderId]
+        },
+        fields: 'id'
+    });
+
+    return created.data.id;
+};
+
+const uploadBufferToDriveInFolder = async (buffer, mimeType, fileName, folderName) => {
     try {
         const drive = getDriveService();
+        const folderId = await getOrCreateSubFolderId(folderName);
+
         const bufferStream = new stream.PassThrough();
         bufferStream.end(buffer);
 
         const fileMetadata = {
             name: fileName,
-            parents: [process.env.GOOGLE_DRIVE_FOLDER_ID]
+            parents: [folderId]
         };
 
         const media = {
@@ -99,7 +188,6 @@ const uploadBufferToDrive = async (buffer, mimeType, fileName) => {
             requestBody: { role: 'reader', type: 'anyone' }
         });
 
-        // ใช้ลิงก์แบบ thumbnail เพื่อให้สามารถแสดงในแท็ก <img> ได้โดยไม่โดนบล็อคจาก Google Drive
         return `https://drive.google.com/thumbnail?id=${file.data.id}&sz=w1000`;
     } catch (error) {
         console.error('Error uploading buffer to Drive:', error);
@@ -109,5 +197,6 @@ const uploadBufferToDrive = async (buffer, mimeType, fileName) => {
 
 module.exports = {
     uploadUrlToDrive,
-    uploadBufferToDrive
+    uploadBufferToDrive,
+    uploadBufferToDriveInFolder
 };
