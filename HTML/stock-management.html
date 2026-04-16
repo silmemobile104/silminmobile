@@ -742,9 +742,17 @@
             const item = allStockData.find(i => i._id === id);
             const noteText = (item && item.note) ? item.note : '- ไม่มีหมายเหตุ -';
 
+            let displayImgUrl = imgUrl;
+            if (displayImgUrl && displayImgUrl.includes('drive.google.com/uc?export=view&id=')) {
+                const fileId = displayImgUrl.split('id=')[1];
+                if (fileId) {
+                    displayImgUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+                }
+            }
+
             const imgHtml = (imgUrl && imgUrl !== 'null' && imgUrl !== 'undefined') ?
                 `<a href="${imgUrl}" target="_blank" title="คลิกเพื่อขยายรูป (เปิดแท็บใหม่)" class="block relative cursor-pointer group mb-1">
-                    <img src="${imgUrl}" class="w-full h-auto max-h-[400px] object-contain rounded-lg border border-slate-200 group-hover:brightness-90 transition-all" />
+                    <img src="${displayImgUrl}" class="w-full h-auto max-h-[400px] object-contain rounded-lg border border-slate-200 group-hover:brightness-90 transition-all" />
                     <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 rounded-lg">
                         <div class="bg-white/90 text-slate-800 px-4 py-2 rounded-full text-sm font-bold shadow flex items-center gap-2">
                             <ion-icon name="scan-outline" class="text-lg"></ion-icon> แตะเพื่อขยายรูป
