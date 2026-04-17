@@ -69,9 +69,9 @@ exports.importDailyStock = async (req, res) => {
             logActivity(req.user.id, 'IMPORT_DAILY_STOCK', `นำเข้าสต็อกรายวันจำนวน ${stockItems.length} รายการ`, 'DailyStock');
         }
 
-        res.status(201).json({ 
-            message: 'นำเข้าข้อมูลสต็อกสำเร็จ', 
-            count: stockItems.length 
+        res.status(201).json({
+            message: 'นำเข้าข้อมูลสต็อกสำเร็จ',
+            count: stockItems.length
         });
 
     } catch (error) {
@@ -86,7 +86,7 @@ exports.getMyBranchStock = async (req, res) => {
         let branch = req.user.branch;
         const userDept = (req.user.department || '').toLowerCase();
         const isTech = userDept.includes('เทคนิค') || userDept.includes('tech');
-        
+
         if (isTech) {
             branch = 'สำนักงานใหญ่';
         }
@@ -121,7 +121,7 @@ exports.scanStock = async (req, res) => {
         let branch = req.user.branch;
         const userDept = (req.user.department || '').toLowerCase();
         const isTech = userDept.includes('เทคนิค') || userDept.includes('tech');
-        
+
         if (isTech) {
             branch = 'สำนักงานใหญ่';
         }
@@ -171,6 +171,7 @@ exports.scanStock = async (req, res) => {
 
         // อัปเดตข้อมูล
         stockItem.status = 'checked';
+        stockItem.verificationStatus = 'waiting';
         stockItem.scannedAt = new Date();
         stockItem.checkedBy = req.user._id || req.user.id;
         stockItem.evidenceImage = evidenceImageUrl;
@@ -206,12 +207,12 @@ exports.getDailySummary = async (req, res) => {
         try {
             await DailyStock.updateMany(
                 { status: 'pending', date: { $lt: startOfDay } },
-                { 
-                    $set: { 
-                        status: 'not_checked', 
-                        verificationStatus: 'failed', 
-                        failReason: 'not_checked' 
-                    } 
+                {
+                    $set: {
+                        status: 'not_checked',
+                        verificationStatus: 'failed',
+                        failReason: 'not_checked'
+                    }
                 }
             );
         } catch (updateErr) {
@@ -257,12 +258,12 @@ exports.getDailyStockReport = async (req, res) => {
             todayStart.setHours(0, 0, 0, 0);
             await DailyStock.updateMany(
                 { status: 'pending', date: { $lt: todayStart } },
-                { 
-                    $set: { 
-                        status: 'not_checked', 
-                        verificationStatus: 'failed', 
-                        failReason: 'not_checked' 
-                    } 
+                {
+                    $set: {
+                        status: 'not_checked',
+                        verificationStatus: 'failed',
+                        failReason: 'not_checked'
+                    }
                 }
             );
         } catch (updateErr) {
@@ -295,7 +296,7 @@ exports.getDailyStockReport = async (req, res) => {
 exports.verifyStock = async (req, res) => {
     try {
         const { id, decision, reason, detail } = req.body;
-        
+
         if (!id || !decision) {
             return res.status(400).json({ message: 'ข้อมูลไม่ครบถ้วน' });
         }
@@ -342,42 +343,6 @@ exports.verifyStock = async (req, res) => {
     }
 };
 
-exports.autoMigrateToDrive = async () => {
-    try {
-        const items = await DailyStock.find({ 
-            verificationStatus: 'success', 
-            evidenceImage: { $regex: /cloudinary/ } 
-        }).limit(500);
-
-        if (items.length === 0) {
-            console.log('Nightly Batch: ไม่มีรูปภาพติดค้างให้ย้าย');
-            return;
-        }
-
-        console.log(`Nightly Batch: พบรูปภาพตกหล่น ${items.length} รายการ กำลังทยอยย้าย...`);
-
-        for (const item of items) {
-            try {
-                const oldImageUrl = item.evidenceImage;
-                const urlParts = oldImageUrl.split('/');
-                const lastPart = urlParts[urlParts.length - 1];
-                const driveFileName = `stock_evd_${item.productCode}_${Date.now()}_${lastPart}`;
-
-                const newDriveLink = await uploadUrlToDrive(oldImageUrl, driveFileName);
-                
-                if (newDriveLink) {
-                    item.evidenceImage = newDriveLink;
-                    await item.save();
-                }
-            } catch (err) {
-                console.error(`Nightly Batch Error: เกิดข้อผิดพลาดในการย้ายรูปรหัสสินค้า ${item.productCode}:`, err);
-            }
-        }
-        console.log('Nightly Batch: ย้ายข้อมูลที่ตกหล่นเสร็จสิ้น');
-    } catch (error) {
-        console.error('Nightly Batch Fatal Error:', error);
-    }
-};
 
 // 7. แก้ไขข้อมูลรายการสต็อกที่นำเข้ามาแล้ว (ฝ่ายสต็อก) 
 exports.editDailyStock = async (req, res) => {
@@ -492,5 +457,133 @@ exports.getComparisonReport = async (req, res) => {
     } catch (error) {
         console.error('Comparison Report Error:', error);
         res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงรายงานเปรียบเทียบ' });
+    }
+};
+
+// Helper Function สำหรับทำ Data Normalization แปลงชื่อรุ่นให้เป็นมาตรฐาน
+const normalizePhoneModel = (rawName) => {
+    if (!rawName) return 'Unknown';
+    const lowerName = rawName.toLowerCase();
+    
+    // รบกวนนำ IMEI ในวงเล็บออกก่อน
+    let cleanedName = rawName.replace(/\s*\(\d+\)\s*/g, '').trim();
+
+    // ดักจับ iPad แยกต่างหาก ให้สกัดเฉพาะชื่อรุ่นหลักเหมือน iPhone
+    if (lowerName.includes('ipad')) {
+        // Regex จับซีรีส์ (pro, air, mini, gen) และเลขรุ่น เช่น 9, 10, 11, 12.9 หรือ m1, m2
+        const ipadMatch = lowerName.match(/ipad\s*(pro|air|mini|gen(?:eration)?)?\s*(m?\d+(?:\.\d+)?)/);
+        
+        if (ipadMatch) {
+            let series = ipadMatch[1] ? ipadMatch[1].toLowerCase() : 'gen';
+            let version = ipadMatch[2].toUpperCase(); // ให้ M1, M2 ตัวใหญ่
+
+            if (series.startsWith('gen')) series = 'Gen';
+            else if (series === 'pro') series = 'Pro';
+            else if (series === 'air') series = 'Air';
+            else if (series === 'mini') series = 'Mini';
+            
+            return `iPad ${series} ${version}`.trim();
+        }
+
+        // กรณีจับรูปแบบไม่ได้ ให้ใช้วิธีลบคำขยะออกให้สะอาดที่สุดแทน
+        let clean = cleanedName.replace(/\b(64|128|256|512)\s*(gb|go)\b/gi, '');
+        clean = clean.replace(/\b(1|2)\s*tb\b/gi, '');
+        clean = clean.replace(/\b(wifi|cellular|new|มือ\s*2|สี|ดำ|ขาว|เงิน|ทอง|ชมพู|น้ำเงิน|เขียว|ม่วง|เหลือง|แดง|สตาร์ไลท์|มิดไนท์|สเปซเกรย์|space gray|starlight|midnight)\b/gi, '');
+        
+        return clean.replace(/\s+/g, ' ').trim() || 'iPad';
+    }
+    
+    // Regex จับตัวเลขรุ่น (11-19) และอักษรต่อท้าย (pm, p, pro, plus, mini)
+    // ใช้ Lookaround (?<!\d) และ (?!\d) ป้องกันการจับตัวเลขความจุเช่น 128 หรือ 256
+    const match = lowerName.match(/(?:iphone\s*)?(?<!\d)(1[1-9])(?!\d)\s*(pm|p|pro\s*max|pro|plus|mini)?/);
+
+    if (match) {
+        const number = match[1]; // ตัวเลขรุ่น เช่น "14", "15"
+        let suffix = match[2] || '';
+
+        // แปลงอักษรย่อให้เป็นชื่อมาตรฐาน
+        if (suffix === 'pm' || suffix === 'pro max') suffix = 'Pro Max';
+        else if (suffix === 'p' || suffix === 'pro') suffix = 'Pro';
+        else if (suffix === 'plus') suffix = 'Plus';
+        else if (suffix === 'mini') suffix = 'Mini';
+
+        return `iPhone ${number} ${suffix}`.trim();
+    }
+    
+    // ถ้าไม่ใช่ iPhone, iPad หรือจับ Pattern ไม่ได้ ให้คืนค่าข้อความที่ทำความสะอาดตัดวงเล็บแล้ว
+    return cleanedName;
+};
+
+// 9. สรุปยอดสต็อกคงเหลือแยกตามรุ่นและสาขา (สำหรับพนักงานหน้าร้าน)
+exports.getStockBalance = async (req, res) => {
+    try {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // ดึงข้อมูลทั้งหมดของวันนี้ (ไม่จำกัดเฉพาะสถานะที่ยืนยันแล้ว)
+        const rawStocks = await DailyStock.find({
+            date: { $gte: startOfDay, $lte: endOfDay }
+        }).lean();
+
+        // จัดโครงสร้าง Master-Detail: Group ตาม Model ก่อน แล้วค่อยแยกตาม Branch
+        const groupedData = {};
+
+        rawStocks.forEach(item => {
+            const stdName = normalizePhoneModel(item.productName);
+            const branch = item.branch || 'Unknown';
+            
+            // สร้างกลุ่มสำหรับชื่อรุ่นถ้ายีงไม่มี
+            if (!groupedData[stdName]) {
+                groupedData[stdName] = {
+                    model: stdName,
+                    totalQuantity: 0,
+                    branchesMap: {}
+                };
+            }
+            
+            groupedData[stdName].totalQuantity += 1;
+            
+            // สร้างกลุ่มสำหรับสาขาภายในชื่อรุ่นนั้นๆ
+            if (!groupedData[stdName].branchesMap[branch]) {
+                groupedData[stdName].branchesMap[branch] = {
+                    branchName: branch,
+                    quantity: 0,
+                    items: []
+                };
+            }
+            
+            groupedData[stdName].branchesMap[branch].quantity += 1;
+            groupedData[stdName].branchesMap[branch].items.push({
+                imei: item.productCode || 'ไม่มี IMEI',
+                originalName: item.productName || 'Unknown Product'
+            });
+        });
+
+        // แปลงรูปแบบ Object ให้กลายเป็น Array ตามที่ออกแบบไว้
+        const stockBalance = Object.values(groupedData).map(modelData => {
+            const branchesArray = Object.values(modelData.branchesMap).sort((a, b) => {
+                if (a.branchName < b.branchName) return -1;
+                if (a.branchName > b.branchName) return 1;
+                return 0;
+            });
+            
+            return {
+                model: modelData.model,
+                totalQuantity: modelData.totalQuantity,
+                branches: branchesArray
+            };
+        }).sort((a, b) => {
+            if (a.model < b.model) return -1;
+            if (a.model > b.model) return 1;
+            return 0;
+        });
+
+        res.status(200).json(stockBalance);
+    } catch (error) {
+        console.error('Get Stock Balance Error:', error);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสต็อกคงเหลือ' });
     }
 };

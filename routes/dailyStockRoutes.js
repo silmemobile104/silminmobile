@@ -12,7 +12,10 @@ const uploadLocal = multer({ dest: 'uploads/' });
 
 // --- ตั้งค่า Multer (Memory Storage) สำหรับรูปภาพสแกนสต็อก ---
 const storageMemory = multer.memoryStorage();
-const uploadMemory = multer({ storage: storageMemory });
+const uploadMemory = multer({ 
+    storage: storageMemory,
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+});
 
 // -----------------------------------------
 // ROUTES
@@ -43,5 +46,8 @@ router.put('/verify', verifyToken, checkRole(['admin', 'manager', 'executive', '
 
 // 8. ดึงข้อมูลเปรียบเทียบสต็อก (สรุประหว่าง 2 วัน)
 router.get('/comparison', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), dailyStockController.getComparisonReport);
+
+// 9. สรุปยอดสต็อกคงเหลือ (พนักงานทั่วไปเข้าถึงได้)
+router.get('/stock-balance', verifyToken, dailyStockController.getStockBalance);
 
 module.exports = router;

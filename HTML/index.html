@@ -316,6 +316,27 @@
                             class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
                         <span class="font-medium">การมัดจำสินค้า</span>
                     </a>
+                    <a href="/stock-balance.html" id="nav-stock-balance"
+                        class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group">
+                        <ion-icon name="cube-outline"
+                            class="w-5 h-5 mr-3 text-slate-400 group-hover:text-amber-500 transition-colors"></ion-icon>
+                        <span class="font-medium">สต็อกเครื่องคงเหลือ</span>
+                    </a>
+                    <!--
+                    <a href="/purchase-orders.html" id="nav-purchase-orders"
+                        class="hidden flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group">
+                        <ion-icon name="cart-outline"
+                            class="w-5 h-5 mr-3 text-slate-400 group-hover:text-amber-500 transition-colors"></ion-icon>
+                        <span class="font-medium">การสั่งซื้อ</span>
+                    </a>
+
+                    <a href="/payments.html" id="nav-payments"
+                        class="hidden flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group">
+                        <ion-icon name="cash-outline"
+                            class="w-5 h-5 mr-3 text-slate-400 group-hover:text-green-500 transition-colors"></ion-icon>
+                        <span class="font-medium">การชำระเงิน</span>
+                    </a>
+                    -->
 
                     <a href="#" onclick="updateNavActiveState('import')" id="nav-import"
                         class="hidden flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group">
@@ -3316,6 +3337,32 @@
                     depositNav.style.display = 'flex';
                 } else {
                     depositNav.style.display = 'none';
+                }
+            }
+
+            const purchaseOrdersNav = document.getElementById('nav-purchase-orders');
+            if (purchaseOrdersNav) {
+                const isPurchasing = userDept.includes('จัดซื้อ') || userDept.includes('Purchase') || userDept.includes('purchase');
+
+                if (isPurchasing || ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role)) {
+                    purchaseOrdersNav.classList.remove('hidden');
+                    purchaseOrdersNav.style.display = 'flex';
+                } else {
+                    purchaseOrdersNav.classList.add('hidden');
+                    purchaseOrdersNav.style.display = 'none';
+                }
+            }
+
+            const paymentsNav = document.getElementById('nav-payments');
+            if (paymentsNav) {
+                const isFinance = userDept.includes('การเงิน') || userDept.includes('Finance') || userDept.includes('finance') || userDept.includes('บัญชี');
+
+                if (isFinance || ['admin', 'executive', 'manager'].includes(currentUser.role)) {
+                    paymentsNav.classList.remove('hidden');
+                    paymentsNav.style.display = 'flex';
+                } else {
+                    paymentsNav.classList.add('hidden');
+                    paymentsNav.style.display = 'none';
                 }
             }
 

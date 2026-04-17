@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สต็อกเครื่องคงเหลือ - SILMIN</title>
+    <link rel="icon" type="image/png" href="/image/icon_silme.png">
+
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Fuse.js for Fuzzy Search -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
+
+    <!-- Icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', '"Noto Sans Thai"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col md:flex-row relative">
+
+    <!-- Mobile Header -->
+    <div class="md:hidden bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-40 flex justify-between items-center w-full shadow-sm">
+        <button onclick="toggleSidebar()" class="text-slate-600 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+            <ion-icon name="menu-outline" class="text-2xl"></ion-icon>
+        </button>
+        <span class="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+            สต็อกเครื่องคงเหลือ
+        </span>
+        <div class="w-8"></div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="w-64 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col shadow-xl md:shadow-sm h-screen fixed md:sticky top-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+        <div class="h-20 flex items-center px-6 border-b border-slate-100 flex-shrink-0 justify-between">
+            <div class="flex items-center">
+                <img src="/image/icon_silme.png" alt="Icon" class="w-8 h-8 mr-3 rounded-lg shadow-sm" />
+                <h1 class="text-lg font-bold text-slate-800 tracking-tight">SILMIN</h1>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-slate-600">
+                <ion-icon name="close" class="text-2xl"></ion-icon>
+            </button>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">เมนูพนักงานหน้าร้าน</div>
+            
+            <a href="/stock-balance.html"
+                class="flex items-center px-4 py-3 bg-blue-50 text-blue-700 rounded-xl transition-all font-medium border border-blue-100 shadow-sm">
+                <ion-icon name="cube-outline" class="w-5 h-5 mr-3"></ion-icon>
+                สต็อกเครื่องคงเหลือ
+            </a>
+            
+            <a href="/dashboard"
+                class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all">
+                <ion-icon name="arrow-back-outline" class="w-5 h-5 mr-3 text-slate-400"></ion-icon>
+                กลับหน้าหลัก
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-4 md:p-8 w-full overflow-x-hidden relative">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header Section -->
+            <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                        <ion-icon name="layers-outline" class="text-blue-500"></ion-icon> สต็อกเครื่องคงเหลือ
+                    </h2>
+                    <p class="text-slate-500 mt-1">ตรวจสอบจำนวนสินค้าที่สามารถขายได้ (อัปเดตล่าสุดวันนี้)</p>
+                </div>
+                <!-- Total Balance Card (moved here for quick glance) -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 shadow-lg flex items-center gap-4 text-white min-w-[200px]">
+                    <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl backdrop-blur-sm">
+                        <ion-icon name="phone-portrait-outline"></ion-icon>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-blue-100 mb-0.5">รวมสินค้าพร้อมขายทั้งหมด</p>
+                        <div class="flex items-baseline gap-1">
+                            <h4 id="total-stock-count" class="text-2xl font-black">0</h4>
+                            <span class="text-sm font-medium text-blue-200">เครื่อง</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter & Search Panel -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-8 flex flex-col md:flex-row gap-4 items-center relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                
+                <div class="w-full md:w-1/4 relative z-10">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2"><ion-icon name="storefront-outline"></ion-icon> เลือกสาขา</label>
+                    <select id="branch-select" onchange="renderStockList()" class="w-full pl-4 pr-10 py-3 border border-slate-200 rounded-xl text-slate-700 bg-slate-50 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium appearance-none">
+                        <option value="all">🌐 แสดงทุกสาขา</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 pt-6 text-slate-500">
+                        <ion-icon name="chevron-down-outline"></ion-icon>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-1/4 relative z-10">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2"><ion-icon name="apps-outline"></ion-icon> หมวดหมู่</label>
+                    <select id="category-select" onchange="updateModelsAndRender()" class="w-full pl-4 pr-10 py-3 border border-slate-200 rounded-xl text-slate-700 bg-slate-50 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium appearance-none">
+                        <option value="all">📁 ทุกหมวดหมู่</option>
+                        <option value="iPhone">📱 iPhone</option>
+                        <option value="iPad">📝 iPad</option>
+                        <option value="Android">🤖 Android/อื่นๆ</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 pt-6 text-slate-500">
+                        <ion-icon name="chevron-down-outline"></ion-icon>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-1/4 relative z-10">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2"><ion-icon name="hardware-chip-outline"></ion-icon> เลือกรุ่น</label>
+                    <select id="model-select" onchange="renderStockList()" class="w-full pl-4 pr-10 py-3 border border-slate-200 rounded-xl text-slate-700 bg-slate-50 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium appearance-none">
+                        <option value="all">📱 แสดงทุกรุ่น</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 pt-6 text-slate-500">
+                        <ion-icon name="chevron-down-outline"></ion-icon>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-1/4 relative z-10">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2"><ion-icon name="search-outline"></ion-icon> ค้นหาสินค้า / IMEI</label>
+                    <div class="relative w-full group">
+                        <ion-icon name="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors text-lg"></ion-icon>
+                        <input type="text" id="search-input" oninput="renderStockList()" placeholder="พิมพ์ชื่อรุ่นที่ต้องการค้นหา..." 
+                            class="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all bg-white shadow-sm font-medium">
+                        <button onclick="document.getElementById('search-input').value=''; renderStockList();" id="clear-search" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 hidden">
+                            <ion-icon name="close-circle" class="text-xl"></ion-icon>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mb-4">
+                <p class="text-sm font-semibold text-slate-600">แสดงผล: <span id="display-count" class="text-blue-600 font-bold">0</span> รายการ</p>
+                <button onclick="fetchStockBalance()" id="refresh-btn" class="text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 border border-blue-100">
+                    <ion-icon name="refresh" id="refresh-icon" class="text-lg"></ion-icon> อัปเดตข้อมูล
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loading-state" class="py-20 flex flex-col items-center justify-center text-slate-400 w-full bg-white rounded-2xl shadow-sm border border-slate-200">
+                <ion-icon name="refresh-outline" class="text-5xl animate-spin text-blue-500 mb-4"></ion-icon>
+                <p class="font-medium text-lg">กำลังโหลดข้อมูลสต็อก...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden py-20 flex flex-col items-center justify-center text-slate-400 w-full bg-white rounded-2xl shadow-sm border border-slate-200 border-dashed">
+                <ion-icon name="search-outline" class="text-6xl text-slate-300 mb-4"></ion-icon>
+                <h3 class="font-bold text-xl text-slate-500 mb-2">ไม่พบสินค้า</h3>
+                <p class="text-sm">ลองค้นหาด้วยคำอื่น หรือเลือกสาขาใหม่</p>
+            </div>
+
+            <!-- Stock List Container -->
+            <div id="stock-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 hidden">
+                <!-- Data will be populated here -->
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Overlay logic -->
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+    </script>
+
+    <!-- Business Logic -->
+    <script>
+        // Authentication check
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        let rawStockData = [];
+        let autoRefreshInterval;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStockBalance();
+            
+            // Auto refresh every 5 minutes (300000 ms)
+            autoRefreshInterval = setInterval(fetchStockBalance, 300000);
+
+            // Setup clear button for search
+            const searchInput = document.getElementById('search-input');
+            const clearBtn = document.getElementById('clear-search');
+            
+            searchInput.addEventListener('input', () => {
+                if (searchInput.value.length > 0) {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+            });
+        });
+
+        async function fetchStockBalance() {
+            const refreshIcon = document.getElementById('refresh-icon');
+            const refreshBtn = document.getElementById('refresh-btn');
+            
+            if (refreshIcon) refreshIcon.classList.add('animate-spin');
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.classList.add('opacity-70');
+            }
+
+            document.getElementById('stock-container').classList.add('hidden');
+            document.getElementById('empty-state').classList.add('hidden');
+            
+            // Only show full loading screen if it's the first load
+            if (rawStockData.length === 0) {
+                document.getElementById('loading-state').classList.remove('hidden');
+                document.getElementById('loading-state').classList.add('flex');
+            } else {
+                // If it's a refresh, just dim the container slightly
+                document.getElementById('stock-container').classList.remove('hidden');
+                document.getElementById('stock-container').classList.add('opacity-50');
+            }
+
+            try {
+                const res = await fetch('/api/daily-stocks/stock-balance', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    rawStockData = data;
+                    
+                    populateBranchSelect();
+                    updateModelsAndRender(); // This will render the stock list inside
+                    
+                    // Show a tiny success toast just so user knows refresh happened if they clicked manually
+                    if (rawStockData.length > 0 && !refreshBtn.classList.contains('first-load')) {
+                        Toastify({
+                            text: "อัปเดตข้อมูลพึ่งเสร็จสิ้น",
+                            duration: 2000,
+                            gravity: "bottom",
+                            position: "center",
+                            style: { background: "#10b981", borderRadius: "10px" }
+                        }).showToast();
+                    }
+                    refreshBtn.classList.remove('first-load');
+                } else {
+                    console.error('Error fetching stock balance');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถดึงข้อมูลสต็อกได้ กรุณาลองใหม่อีกครั้ง'
+                    });
+                }
+            } catch (err) {
+                console.error('Fetch error:', err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เชื่อมต่อล้มเหลว',
+                    text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้'
+                });
+            } finally {
+                if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.classList.remove('opacity-70');
+                }
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('loading-state').classList.remove('flex');
+                document.getElementById('stock-container').classList.remove('opacity-50');
+            }
+        }
+
+        function populateBranchSelect() {
+            const branchSelect = document.getElementById('branch-select');
+            const currentSelected = branchSelect.value;
+            
+            const branches = new Set();
+            rawStockData.forEach(modelObj => {
+                if(modelObj.branches) {
+                    modelObj.branches.forEach(b => branches.add(b.branchName));
+                }
+            });
+            const branchArray = [...branches].sort();
+            
+            let optionsHtml = '<option value="all">🌐 แสดงทุกสาขา</option>';
+            branchArray.forEach(branch => {
+                optionsHtml += `<option value="${branch}">🏪 ${branch}</option>`;
+            });
+            
+            branchSelect.innerHTML = optionsHtml;
+            if (branchArray.includes(currentSelected)) branchSelect.value = currentSelected;
+        }
+
+        function updateModelsAndRender() {
+            populateModelSelect();
+            renderStockList();
+        }
+
+        function populateModelSelect() {
+            const modelSelect = document.getElementById('model-select');
+            const categoryFilter = document.getElementById('category-select').value;
+            const currentSelected = modelSelect.value;
+            
+            let availableData = rawStockData.map(item => ({ ...item, category: getCategory(item.model) }));
+            if (categoryFilter !== 'all') {
+                availableData = availableData.filter(item => item.category === categoryFilter);
+            }
+
+            const models = [...new Set(availableData.map(item => item.model))].sort();
+            
+            let optionsHtml = '<option value="all">📱 แสดงทุกรุ่น</option>';
+            models.forEach(model => {
+                optionsHtml += `<option value="${model}">${model}</option>`;
+            });
+            
+            modelSelect.innerHTML = optionsHtml;
+            if (models.includes(currentSelected)) modelSelect.value = currentSelected;
+        }
+
+        function getCategory(modelName) {
+            const name = modelName.toLowerCase();
+            if (name.includes('iphone')) return 'iPhone';
+            if (name.includes('ipad')) return 'iPad';
+            return 'Android';
+        }
+
+        function renderStockList() {
+            const container = document.getElementById('stock-container');
+            const emptyState = document.getElementById('empty-state');
+            const branchFilter = document.getElementById('branch-select').value;
+            const categoryFilter = document.getElementById('category-select').value;
+            const modelFilter = document.getElementById('model-select').value;
+            const searchKeyword = document.getElementById('search-input').value.trim();
+            const countDisplay = document.getElementById('total-stock-count');
+            
+            container.innerHTML = '';
+            
+            let filteredData = rawStockData.map(item => {
+                let filteredBranches = item.branches || [];
+                if (branchFilter !== 'all') {
+                    filteredBranches = filteredBranches.filter(b => b.branchName === branchFilter);
+                }
+                
+                const branchTotal = filteredBranches.reduce((sum, b) => sum + b.quantity, 0);
+                
+                return {
+                    ...item,
+                    category: getCategory(item.model),
+                    branches: filteredBranches,
+                    filteredTotal: branchTotal
+                };
+            });
+            
+            // Remove models that have 0 branches after branch filter
+            filteredData = filteredData.filter(item => item.filteredTotal > 0);
+
+            if (categoryFilter !== 'all') {
+                filteredData = filteredData.filter(item => item.category === categoryFilter);
+            }
+            if (modelFilter !== 'all') {
+                filteredData = filteredData.filter(item => item.model === modelFilter);
+            }
+            
+            if (searchKeyword !== '') {
+                const searchItems = filteredData.map(item => {
+                    let imeis = [];
+                    item.branches.forEach(b => {
+                        if(b.items) b.items.forEach(i => imeis.push(i.imei || i));
+                    });
+                    return { ...item, imeis_text: imeis.join(' ') };
+                });
+                
+                const fuse = new Fuse(searchItems, {
+                    keys: ['model', 'imeis_text'],
+                    threshold: 0.3,
+                    ignoreLocation: true,
+                    includeScore: true
+                });
+                
+                const results = fuse.search(searchKeyword);
+                filteredData = results.map(result => {
+                     const { imeis_text, ...rest } = result.item;
+                     return rest;
+                });
+            }
+
+            let totalItems = 0;
+            filteredData.forEach(item => totalItems += item.filteredTotal);
+            
+            animateValue(countDisplay, parseInt(countDisplay.innerText) || 0, totalItems, 500);
+            document.getElementById('display-count').innerText = filteredData.length;
+
+            if (filteredData.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            filteredData.forEach(item => {
+                const count = item.filteredTotal;
+                let badgeClass = 'bg-stone-100 text-stone-600 border-stone-200';
+                let indicatorColor = 'bg-stone-500';
+                
+                if (count >= 10) {
+                    badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    indicatorColor = 'bg-emerald-500';
+                } else if (count >= 5) {
+                    badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                    indicatorColor = 'bg-amber-500';
+                } else if (count > 0) {
+                    badgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+                    indicatorColor = 'bg-rose-500';
+                }
+
+                const cardHtml = `
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full relative overflow-hidden group"
+                         onclick="showBranchesModal('${escapeHtml(item.model)}', ${count}, '${escapeHtml(JSON.stringify(item.branches))}')">
+                        
+                        <div class="absolute top-0 left-0 w-1 h-full ${indicatorColor}"></div>
+                        
+                        <div class="flex justify-between items-start mb-3 pl-2">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 mb-2">
+                                <ion-icon name="layers" class="mr-1"></ion-icon> มี ${item.branches.length} สาขา
+                            </span>
+                            <div class="flex items-center justify-center px-3 py-1 rounded-full border ${badgeClass} font-black text-sm shadow-sm group-hover:scale-110 transition-transform">
+                                ${count} 
+                            </div>
+                        </div>
+                        
+                        <div class="flex-1 pl-2">
+                            <h3 class="font-bold text-slate-800 text-lg leading-snug line-clamp-2" title="${item.model}">${item.model}</h3>
+                        </div>
+                        
+                        <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center pl-2">
+                            <p class="text-xs text-slate-400 font-medium flex items-center">
+                                <ion-icon name="storefront-outline" class="mr-1 text-sm"></ion-icon> แตะเพื่อดูคลังสาขา
+                            </p>
+                            <ion-icon name="chevron-forward-circle" class="text-slate-300 group-hover:text-blue-500 text-xl transition-colors"></ion-icon>
+                        </div>
+                    </div>
+                `;
+                
+                container.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+
+        function showBranchesModal(productName, totalCount, branchesJson) {
+            const branchesList = JSON.parse(branchesJson);
+            
+            let listHtml = '<div class="mt-4 space-y-3 text-left">';
+            
+            branchesList.forEach((branchObj, index) => {
+                let itemsHtml = '';
+                if(branchObj.items && branchObj.items.length > 0) {
+                    branchObj.items.forEach((itemObj, i) => {
+                        const imei = typeof itemObj === 'string' ? itemObj : (itemObj.imei || '');
+                        const origName = typeof itemObj === 'string' ? productName : (itemObj.originalName || productName);
+                        itemsHtml += `
+                            <div class="flex items-center justify-between p-3 mb-2 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow transition-all group">
+                                <div class="flex items-center gap-3 w-full border-r border-slate-100 pr-3 mr-3">
+                                    <div class="w-6 h-6 shrink-0 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold font-mono border border-slate-200">${i + 1}</div>
+                                    <span class="text-sm font-semibold text-slate-800 leading-tight">${origName}</span>
+                                </div>
+                                <button onclick="copyToClipboard('${imei}', this); event.stopPropagation();" class="text-slate-400 hover:text-blue-600 p-2 rounded-lg bg-slate-50 hover:bg-blue-50 transition-colors tooltip relative shrink-0" title="คัดลอก IMEI">
+                                    <ion-icon name="copy-outline" class="text-lg"></ion-icon>
+                                </button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    itemsHtml = '<p class="text-sm text-slate-400 text-center py-2">ไม่มีข้อมูล IMEI</p>';
+                }
+
+                listHtml += `
+                    <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                        <button class="w-full flex justify-between items-center p-4 bg-white hover:bg-slate-50 transition-colors focus:outline-none" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.chevron').classList.toggle('rotate-180');">
+                            <div class="flex items-center gap-3">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                    <ion-icon name="storefront" class="mr-1"></ion-icon> ${branchObj.branchName}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded shadow-sm border border-blue-100">${branchObj.quantity} เครื่อง</span>
+                                <ion-icon name="chevron-down" class="chevron text-slate-400 transition-transform duration-300"></ion-icon>
+                            </div>
+                        </button>
+                        <div class="hidden p-3 bg-slate-50 border-t border-slate-200 max-h-64 overflow-y-auto">
+                            ${itemsHtml}
+                        </div>
+                    </div>
+                `;
+            });
+            listHtml += '</div>';
+
+            Swal.fire({
+                html: `
+                    <div class="text-left">
+                        <div class="flex items-center gap-3 mb-4 border-b border-slate-100 pb-4">
+                            <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl shrink-0 shadow-sm border border-blue-200">
+                                <ion-icon name="layers"></ion-icon>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg text-slate-800 leading-tight">${productName}</h3>
+                                <p class="text-sm font-semibold text-slate-500 mt-1 flex items-center gap-2">
+                                    <span class="text-blue-600 bg-blue-50 px-2 py-0.5 rounded shadow-sm border border-blue-100">รวมทั้งหมด ${totalCount} เครื่อง</span>
+                                    <span class="text-slate-600 bg-slate-100 px-2 py-0.5 rounded shadow-sm border border-slate-200">จาก ${branchesList.length} สาขา</span>
+                                </p>
+                            </div>
+                        </div>
+                        <p class="text-sm font-bold text-slate-700 ml-1 mb-2">เลือกดูสินค้าตามสาขา:</p>
+                        ${listHtml}
+                    </div>
+                `,
+                showCloseButton: true,
+                showConfirmButton: false,
+                customClass: {
+                    container: 'font-sans',
+                    popup: 'rounded-2xl shadow-2xl border-0',
+                },
+                width: 600,
+                padding: '1.5rem',
+            });
+        }
+
+        // Helper string escaper
+        function escapeHtml(unsafe) {
+            return (unsafe||'').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function copyToClipboard(text, btnElement) {
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btnElement.querySelector('ion-icon');
+                const originalName = icon.getAttribute('name');
+                
+                // Change icon
+                icon.setAttribute('name', 'checkmark-outline');
+                btnElement.classList.replace('text-slate-400', 'text-green-600');
+                btnElement.classList.replace('hover:text-blue-600', 'hover:text-green-700');
+                btnElement.classList.replace('bg-slate-50', 'bg-green-50');
+                btnElement.classList.replace('hover:bg-blue-50', 'hover:bg-green-100');
+                
+                // Toast
+                Toastify({
+                    text: `คัดลอก ${text} แล้ว`,
+                    duration: 2000,
+                    gravity: "bottom",
+                    position: "center",
+                    style: { background: "#10b981", borderRadius: "10px", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }
+                }).showToast();
+
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    icon.setAttribute('name', originalName);
+                    btnElement.classList.replace('text-green-600', 'text-slate-400');
+                    btnElement.classList.replace('hover:text-green-700', 'hover:text-blue-600');
+                    btnElement.classList.replace('bg-green-50', 'bg-slate-50');
+                    btnElement.classList.replace('hover:bg-green-100', 'hover:bg-blue-50');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        // Setup Toastify dynamically if not loaded
+        if (typeof Toastify === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/toastify-js';
+            document.head.appendChild(script);
+            
+            const style = document.createElement('link');
+            style.rel = 'stylesheet';
+            style.href = 'https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css';
+            document.head.appendChild(style);
+        }
+
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+    </script>
+</body>
+</html>
