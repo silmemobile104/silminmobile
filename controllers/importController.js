@@ -178,6 +178,8 @@ exports.getImports = async (req, res) => {
 // @route   GET /api/imports/:id/export
 exports.exportImportToExcel = async (req, res) => {
     try {
+        const xlsxStyle = require('xlsx-js-style');
+
         const importRequest = await ImportRequest.findById(req.params.id)
             .populate('createdBy', 'name');
 
@@ -222,7 +224,7 @@ exports.exportImportToExcel = async (req, res) => {
         const allRows = [...headerRows, ...itemRows];
 
         // Create worksheet
-        const ws = xlsx.utils.aoa_to_sheet(allRows);
+        const ws = xlsxStyle.utils.aoa_to_sheet(allRows);
 
         // Set column widths
         ws['!cols'] = [
@@ -233,12 +235,49 @@ exports.exportImportToExcel = async (req, res) => {
             { wch: 30 }   // หมายเหตุ
         ];
 
+        // Apply "Angsana New" font to all cells
+        const defaultFont = { name: 'Angsana New', sz: 14 };
+        const boldFont = { name: 'Angsana New', sz: 14, bold: true };
+        const titleFont = { name: 'Angsana New', sz: 18, bold: true };
+
+        // Title row (row 0)
+        const titleRowIndex = 0;
+        // Info label rows (rows 2-8): column A is bold
+        const infoLabelRows = [2, 3, 4, 5, 6, 7, 8];
+        // Table header row (row 11)
+        const tableHeaderRowIndex = 11;
+
+        const range = xlsxStyle.utils.decode_range(ws['!ref']);
+        for (let R = range.s.r; R <= range.e.r; R++) {
+            for (let C = range.s.c; C <= range.e.c; C++) {
+                const cellRef = xlsxStyle.utils.encode_cell({ r: R, c: C });
+                if (!ws[cellRef]) continue;
+
+                let font = { ...defaultFont };
+                if (R === titleRowIndex) {
+                    font = { ...titleFont };
+                } else if (R === tableHeaderRowIndex) {
+                    font = { ...boldFont };
+                } else if (infoLabelRows.includes(R) && C === 0) {
+                    font = { ...boldFont };
+                } else if (R === 2 || R === 10) {
+                    // "ข้อมูลบิล" and "รายการสินค้า" section headers
+                    font = { ...boldFont, sz: 16 };
+                }
+
+                ws[cellRef].s = {
+                    ...(ws[cellRef].s || {}),
+                    font: font
+                };
+            }
+        }
+
         // Create workbook
-        const wb = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(wb, ws, 'Import Report');
+        const wb = xlsxStyle.utils.book_new();
+        xlsxStyle.utils.book_append_sheet(wb, ws, 'Import Report');
 
         // Generate buffer
-        const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        const buffer = xlsxStyle.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
         // Set filename
         const billName = details.billName || importRequest._id;
