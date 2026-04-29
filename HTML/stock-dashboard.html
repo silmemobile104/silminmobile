@@ -78,7 +78,7 @@
             <a href="/dashboard"
                 class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all">
                 <ion-icon name="arrow-back-outline" class="w-5 h-5 mr-3 text-slate-400"></ion-icon>
-                กลับหน้าหลัก
+                กลับหน้าหลัก   
             </a>
         </nav>
     </aside>
@@ -229,6 +229,50 @@
                     <p class="text-xs font-bold text-red-400 mb-1">ตรวจไม่สำเร็จ</p>
                     <div class="flex items-baseline">
                         <h4 id="sum-failed" class="text-xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+
+            <!-- Aging Stock Section -->
+            <div class="mb-8">
+                <div class="bg-red-50 border border-red-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-3xl shrink-0 shadow-inner">
+                            🚨
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-red-800">สินค้าค้างสต็อก (>30 วัน)</h3>
+                            <p class="text-sm font-medium text-red-600 mt-1">เครื่องที่นำเข้าครั้งแรกเกิน 30 วันและยังอยู่ในสต็อกปัจจุบัน</p>
+                        </div>
+                    </div>
+                    <div class="text-right flex items-center gap-4">
+                        <div class="text-center">
+                            <span class="text-sm font-bold text-red-500 uppercase tracking-wide">จำนวนรวม</span>
+                            <div class="text-4xl font-black text-red-700" id="aging-total-count">0</div>
+                        </div>
+                        <button onclick="toggleAgingTable()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-sm transition-colors text-sm flex items-center gap-2">
+                            ดูแยกตามสาขา <ion-icon name="chevron-down-outline" id="aging-toggle-icon" class="text-lg"></ion-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Aging Stock Table -->
+                <div id="aging-table-container" class="bg-white rounded-2xl shadow-sm border border-red-100 mt-4 overflow-hidden hidden transition-all">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-red-50/50 border-b border-red-100 text-xs font-bold text-red-800 uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-4">สาขา</th>
+                                    <th class="px-6 py-4 text-center">จำนวนเครื่องค้างสต็อก</th>
+                                    <th class="px-6 py-4 text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="aging-table-body" class="divide-y divide-red-50 text-sm">
+                                <tr><td colspan="3" class="px-6 py-8 text-center text-slate-400">กำลังโหลด...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -825,7 +869,146 @@
                 tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-8 text-center text-red-500">เกิดข้อผิดพลาดในการเชื่อมต่อ</td></tr>';
             }
         }
+
+        // ------------------------------------
+        // Aging Stock Logic
+        // ------------------------------------
+        let globalAgingData = [];
+
+        async function fetchAgingReport() {
+            try {
+                const response = await fetch('/api/daily-stocks/aging-report', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('aging-total-count').textContent = data.totalAging;
+                    globalAgingData = data.branches;
+                    renderAgingTable(data.branches);
+                } else {
+                    document.getElementById('aging-table-body').innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-red-500">เรียกข้อมูลล้มเหลว</td></tr>`;
+                }
+            } catch (error) {
+                console.error('Error fetching aging report:', error);
+                document.getElementById('aging-table-body').innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-red-500">เกิดข้อผิดพลาดในการเชื่อมต่อ</td></tr>`;
+            }
+        }
+
+        function renderAgingTable(branches) {
+            const tbody = document.getElementById('aging-table-body');
+            tbody.innerHTML = '';
+            
+            if (branches.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-slate-500">ไม่พบสินค้าค้างสต็อกเกิน 30 วัน 🎉</td></tr>`;
+                return;
+            }
+
+            branches.forEach(branch => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-red-50/30 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-bold text-slate-700">${branch.branchName}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="inline-flex items-center justify-center px-3 py-1 bg-red-100 text-red-700 font-bold rounded-full text-sm">
+                            ${branch.count} เครื่อง
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="viewAgingDetails('${branch.branchName}')" class="px-3 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                            ดูรายละเอียด
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleAgingTable() {
+            const container = document.getElementById('aging-table-container');
+            const icon = document.getElementById('aging-toggle-icon');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                icon.name = 'chevron-up-outline';
+            } else {
+                container.classList.add('hidden');
+                icon.name = 'chevron-down-outline';
+            }
+        }
+
+        function viewAgingDetails(branchName) {
+            const branchData = globalAgingData.find(b => b.branchName === branchName);
+            if (!branchData) return;
+
+            document.getElementById('aging-modal-branch').textContent = branchName;
+            const tbody = document.getElementById('aging-modal-body');
+            tbody.innerHTML = '';
+
+            branchData.items.forEach((item, index) => {
+                const dateObj = new Date(item.firstImportDate);
+                const dateStr = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+                
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-slate-500">${index + 1}</td>
+                    <td class="px-4 py-3 font-bold text-slate-800">${item.productCode}</td>
+                    <td class="px-4 py-3 text-slate-600">${item.productName}</td>
+                    <td class="px-4 py-3 text-slate-500">${dateStr}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md">${item.agingDays} วัน</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('agingDetailModal').classList.remove('hidden');
+        }
+
+        function closeAgingModal() {
+            document.getElementById('agingDetailModal').classList.add('hidden');
+        }
+
+        // Handle modal closing when clicking outside
+        document.getElementById('agingDetailModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAgingModal();
+            }
+        });
+
+        // Fetch aging report on page load
+        fetchAgingReport();
+
     </script>
+
+    <!-- Aging Detail Modal -->
+    <div id="agingDetailModal" class="fixed inset-0 bg-slate-900/40 z-[70] hidden backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-[scale_0.2s_ease-in-out]">
+            <div class="px-6 py-4 border-b border-red-100 flex justify-between items-center bg-red-50">
+                <h3 class="text-lg font-bold text-red-800 flex items-center gap-2">
+                    <ion-icon name="alert-circle" class="text-red-500"></ion-icon> รายละเอียดสินค้าค้างสต็อก: <span id="aging-modal-branch"></span>
+                </h3>
+                <button onclick="closeAgingModal()" class="text-red-400 hover:text-red-600 transition-colors p-1 rounded-lg hover:bg-red-100">
+                    <ion-icon name="close-outline" class="text-2xl"></ion-icon>
+                </button>
+            </div>
+            <div class="p-0 overflow-y-auto flex-1">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-xs text-slate-500 uppercase sticky top-0 z-10 shadow-sm border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-3">ที่</th>
+                            <th class="px-4 py-3">IMEI (productCode)</th>
+                            <th class="px-4 py-3">ชื่อสินค้า</th>
+                            <th class="px-4 py-3">วันที่นำเข้าครั้งแรก</th>
+                            <th class="px-4 py-3 text-center">จำนวนวันค้าง</th>
+                        </tr>
+                    </thead>
+                    <tbody id="aging-modal-body" class="divide-y divide-slate-100">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

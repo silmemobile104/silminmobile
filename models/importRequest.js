@@ -36,6 +36,7 @@ const ImportRequestSchema = new mongoose.Schema({
         supplier: String,
         items: [{                 // (*** เพิ่ม: รองรับหลายสินค้าใน 1 บิล ***)
             productName: String,
+            imei: String,
             quantity: Number,
             note: String
         }]

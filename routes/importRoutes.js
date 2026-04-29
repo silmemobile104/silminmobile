@@ -44,11 +44,17 @@ try {
 
 // --- 3. Routes (เส้นทาง API) ---
 
+// Product Catalog
+router.get('/catalog', verifyToken, importController.getProductCatalog);
+
 // สร้างรายการใหม่ + อัปโหลดไฟล์ (สูงสุด 5 ไฟล์)
 router.post('/', verifyToken, upload.array('files', 5), importController.createImport);
 
 // ดึงรายการแจ้งนำเข้า (สำคัญ: ต้องมี verifyToken เพื่อแก้ปัญหาโหลดข้อมูลไม่ได้)
 router.get('/', verifyToken, importController.getImports);
+
+// Export single import to Excel
+router.get('/:id/export', verifyToken, importController.exportImportToExcel);
 
 // อัปเดตรายการ (แก้ไข/เพิ่มไฟล์)
 router.put('/:id', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), upload.array('files', 5), importController.updateImport);

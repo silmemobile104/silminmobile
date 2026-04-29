@@ -1,5 +1,25 @@
 const ImportRequest = require('../models/importRequest');
 const { logActivity } = require('../utils/logger'); // Activity Log
+const ProductCatalog = require('../models/productCatalog');
+const xlsx = require('xlsx');
+
+const upsertProductCatalogNames = async (names = []) => {
+    const uniqueNames = [...new Set(
+        (names || [])
+            .map(n => (n || '').trim())
+            .filter(Boolean)
+    )];
+
+    if (uniqueNames.length === 0) return;
+
+    await Promise.all(uniqueNames.map(name =>
+        ProductCatalog.updateOne(
+            { name },
+            { $setOnInsert: { name } },
+            { upsert: true }
+        )
+    ));
+};
 
 // @desc    Create new import request (Phone or Accessory)
 exports.createImport = async (req, res) => {
@@ -18,6 +38,7 @@ exports.createImport = async (req, res) => {
                 if (parsedDetails.items && Array.isArray(parsedDetails.items)) {
                     parsedDetails.items = parsedDetails.items.map(item => ({
                         productName: item.productName || item.name || 'Unknown Item',
+                        imei: item.imei || item.IMEI || item.serial || '',
                         quantity: Number(item.quantity || item.qty || 1),
                         note: item.note || item.desc || ''
                     }));
@@ -43,6 +64,10 @@ exports.createImport = async (req, res) => {
             if (req.body.supplier) parsedDetails.supplier = req.body.supplier; // (*** Fix: Save Supplier ***)
         }
 
+        if (parsedDetails.items && Array.isArray(parsedDetails.items)) {
+            await upsertProductCatalogNames(parsedDetails.items.map(i => i.productName));
+        }
+
         const newImport = new ImportRequest({
             type,
             branch: req.user.branch || req.user.department,
@@ -58,6 +83,17 @@ exports.createImport = async (req, res) => {
         res.status(201).json(newImport);
     } catch (error) {
         console.error('Create Import Error:', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Get product catalog
+exports.getProductCatalog = async (req, res) => {
+    try {
+        const items = await ProductCatalog.find({}, { name: 1 }).sort({ name: 1 });
+        res.status(200).json({ success: true, data: items });
+    } catch (error) {
+        console.error('Get Product Catalog Error:', error);
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
@@ -135,6 +171,86 @@ exports.getImports = async (req, res) => {
     } catch (error) {
         console.error('Get Imports Error:', error);
         res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Export single import request to Excel
+// @route   GET /api/imports/:id/export
+exports.exportImportToExcel = async (req, res) => {
+    try {
+        const importRequest = await ImportRequest.findById(req.params.id)
+            .populate('createdBy', 'name');
+
+        if (!importRequest) {
+            return res.status(404).json({ message: 'Import request not found' });
+        }
+
+        const details = importRequest.details || {};
+        const items = Array.isArray(details.items) && details.items.length > 0
+            ? details.items
+            : [{
+                productName: details.productName || '',
+                imei: '',
+                quantity: details.quantity || 0,
+                note: ''
+            }];
+
+        // Prepare Excel data
+        const headerRows = [
+            ['รายงานการนำเข้าสินค้า'],
+            [''],
+            ['ข้อมูลบิล'],
+            ['ประเภท', importRequest.type || ''],
+            ['สาขา', importRequest.branch || ''],
+            ['วันที่แจ้ง', importRequest.createdAt ? new Date(importRequest.createdAt).toLocaleDateString('th-TH') : ''],
+            ['ผู้แจ้ง', importRequest.createdBy?.name || ''],
+            ['Supplier', details.supplier || ''],
+            ['รายละเอียด/หมายเหตุ', details.description || ''],
+            [''],
+            ['รายการสินค้า'],
+            ['ลำดับ', 'ชื่อสินค้า', 'IMEI', 'จำนวน', 'หมายเหตุ']
+        ];
+
+        const itemRows = items.map((item, index) => [
+            index + 1,
+            item.productName || '',
+            item.imei || '',
+            item.quantity || 0,
+            item.note || ''
+        ]);
+
+        const allRows = [...headerRows, ...itemRows];
+
+        // Create worksheet
+        const ws = xlsx.utils.aoa_to_sheet(allRows);
+
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 8 },   // ลำดับ
+            { wch: 30 },  // ชื่อสินค้า
+            { wch: 20 },  // IMEI
+            { wch: 10 },  // จำนวน
+            { wch: 30 }   // หมายเหตุ
+        ];
+
+        // Create workbook
+        const wb = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(wb, ws, 'Import Report');
+
+        // Generate buffer
+        const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+        // Set filename
+        const billName = details.billName || importRequest._id;
+        const fileName = `Import_Report_${billName}.xlsx`;
+
+        // Send response
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.status(200).send(buffer);
+    } catch (error) {
+        console.error('Export Import to Excel Error:', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
 
@@ -224,6 +340,7 @@ exports.updateImport = async (req, res) => {
                 if (parsedDetails.items && Array.isArray(parsedDetails.items)) {
                     parsedDetails.items = parsedDetails.items.map(item => ({
                         productName: item.productName || item.name || 'Unknown Item',
+                        imei: item.imei || item.IMEI || item.serial || '',
                         quantity: Number(item.quantity || item.qty || 1),
                         note: item.note || item.desc || ''
                     }));

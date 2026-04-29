@@ -50,4 +50,7 @@ router.get('/comparison', verifyToken, checkRole(['admin', 'manager', 'executive
 // 9. สรุปยอดสต็อกคงเหลือ (พนักงานทั่วไปเข้าถึงได้)
 router.get('/stock-balance', verifyToken, dailyStockController.getStockBalance);
 
+// 10. รายงาน Aging Stock
+router.get('/aging-report', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), dailyStockController.getAgingStockReport);
+
 module.exports = router;

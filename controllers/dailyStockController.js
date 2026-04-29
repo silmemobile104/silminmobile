@@ -587,3 +587,92 @@ exports.getStockBalance = async (req, res) => {
         res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสต็อกคงเหลือ' });
     }
 };
+
+// 10. รายงานสินค้าค้างสต็อก (> 30 วัน)
+exports.getAgingStockReport = async (req, res) => {
+    try {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+        const today = new Date();
+
+        // 1. ดึงรายการสินค้าทั้งหมดของ "วันนี้"
+        // 2. ดึง productCode ทั้งหมดของวันนี้มาเก็บเป็น Array
+        const todaysStocks = await DailyStock.find({
+            date: { $gte: startOfDay, $lte: endOfDay }
+        }).select('productCode').lean();
+
+        const todaysProductCodes = [...new Set(todaysStocks.map(s => s.productCode).filter(Boolean))];
+
+        if (todaysProductCodes.length === 0) {
+            return res.status(200).json({ totalAging: 0, branches: [] });
+        }
+
+        // 3. นำ Array ของ productCode ไป Query ด้วย Aggregation
+        const pipeline = [
+            { $match: { productCode: { $in: todaysProductCodes } } },
+            {
+                $group: {
+                    _id: "$productCode",
+                    firstImportDate: { $min: "$date" },
+                    productName: { $last: "$productName" },
+                    branch: { $last: "$branch" }
+                }
+            }
+        ];
+
+        const aggregatedStocks = await DailyStock.aggregate(pipeline);
+
+        // 4 & 5. คำนวณ agingDays และ กรอง >= 30 วัน
+        const agingItems = [];
+        aggregatedStocks.forEach(item => {
+            const firstDate = new Date(item.firstImportDate);
+            const diffTime = today - firstDate;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays >= 30) {
+                agingItems.push({
+                    productCode: item._id,
+                    productName: item.productName,
+                    branch: item.branch,
+                    firstImportDate: item.firstImportDate,
+                    agingDays: diffDays
+                });
+            }
+        });
+
+        // 6. นำรายการที่กรองแล้วมาจัดกลุ่มตามสาขา
+        const totalAging = agingItems.length;
+        const branchesMap = {};
+
+        agingItems.forEach(item => {
+            const b = item.branch || 'Unknown';
+            if (!branchesMap[b]) {
+                branchesMap[b] = {
+                    branchName: b,
+                    count: 0,
+                    items: []
+                };
+            }
+            branchesMap[b].count += 1;
+            branchesMap[b].items.push(item);
+        });
+
+        const branchesArray = Object.values(branchesMap).sort((a, b) => {
+            if (a.branchName < b.branchName) return -1;
+            if (a.branchName > b.branchName) return 1;
+            return 0;
+        });
+
+        // 7. ส่ง Response
+        res.status(200).json({
+            totalAging,
+            branches: branchesArray
+        });
+
+    } catch (error) {
+        console.error('Get Aging Stock Report Error:', error);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาดในการคำนวณ Aging Stock' });
+    }
+};

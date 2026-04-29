@@ -5960,6 +5960,9 @@
 
                         // Action Buttons Logic
                         let actionsHtml = `<div class="flex items-center justify-end gap-1">`;
+                        actionsHtml += `<button onclick="event.stopPropagation(); exportImportToExcel('${item._id}')" class="p-2 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-full transition-all" title="Export Excel">
+                                <ion-icon name="download-outline" class="text-lg"></ion-icon>
+                            </button>`;
                         if (canEditInfo) {
                             actionsHtml += `<button onclick="event.stopPropagation(); openEditPhoneModal('${item._id}')" class="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all" title="แก้ไขข้อมูล">
                                     <ion-icon name="create-outline" class="text-lg"></ion-icon>
@@ -6233,6 +6236,38 @@
                 }
             }
 
+            async function exportImportToExcel(id) {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    AppToast.error('กรุณาเข้าสู่ระบบก่อน');
+                    return;
+                }
+
+                try {
+                    const url = `${SERVER_URL}/imports/${id}/export`;
+                    const res = await fetch(url, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (!res.ok) throw new Error('Failed to export');
+
+                    const blob = await res.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = `Import_Report_${id}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(downloadUrl);
+
+                    AppToast.success('Export Excel สำเร็จ!');
+                } catch (err) {
+                    console.error('Export Excel Error:', err);
+                    AppToast.error('ไม่สามารถ Export Excel ได้: ' + err.message);
+                }
+            }
+
             function filterStockImports(status, doFetch = true) {
                 currentStockFilter = status;
 
@@ -6313,6 +6348,7 @@
             window.filterStockType = filterStockType;
             window.updateStockStatusFromModal = updateStockStatusFromModal;
             window.openImportDetailModal = openImportDetailModal;
+            window.exportImportToExcel = exportImportToExcel;
 
             // [New] Branch Filter Listener
             const stockBranchSelect = document.getElementById('stock-import-branch-filter');
@@ -8879,42 +8915,103 @@
         window.submitAccessoryImport = submitAccessoryImport;
 
         // (*** New: Phone Item Row Logic ***)
+        let phoneProductCatalogCache = [];
+
+        async function loadPhoneProductCatalog() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${SERVER_URL}/imports/catalog`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const json = await res.json();
+                const list = Array.isArray(json) ? json : (json.data || []);
+                phoneProductCatalogCache = list.map(x => x.name).filter(Boolean);
+
+                const datalist = document.getElementById('phone-product-catalog-datalist');
+                if (datalist) {
+                    datalist.innerHTML = phoneProductCatalogCache.map(name => `<option value="${name.replace(/\"/g, '&quot;')}"></option>`).join('');
+                }
+            } catch (e) {
+                console.error('Load ProductCatalog Error:', e);
+            }
+        }
+
+        function reindexPhoneItemRows() {
+            const tbody = document.getElementById('phone-items-tbody');
+            if (!tbody) return;
+            [...tbody.querySelectorAll('tr')].forEach((tr, idx) => {
+                const cell = tr.querySelector('[data-seq]');
+                if (cell) cell.textContent = String(idx + 1);
+            });
+        }
+
+        function ensurePhoneHasOneRow() {
+            const tbody = document.getElementById('phone-items-tbody');
+            if (!tbody) return;
+            if (tbody.querySelectorAll('tr').length === 0) window.addPhoneItemRow();
+        }
+
         window.addPhoneItemRow = function () {
-            const container = document.getElementById('phone-items-container');
             const emptyState = document.getElementById('phone-items-empty');
             if (emptyState) emptyState.classList.add('hidden');
 
+            const tbody = document.getElementById('phone-items-tbody');
+            if (!tbody) return;
+
             const rowId = `phone-row-${Date.now()}`;
-            const div = document.createElement('div');
-            div.className = "grid grid-cols-12 gap-3 p-3 bg-white rounded-xl border border-slate-100 shadow-sm animate-fade-in relative group items-end";
-            div.id = rowId;
-            div.innerHTML = `
-                <div class="col-span-4">
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1">รุ่น (Model)</label>
-                    <input type="text" class="phone-item-model form-input-theme w-full text-xs" placeholder="เช่น iPhone 15" required>
-                </div>
-                <div class="col-span-3">
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1">สี (Color)</label>
-                    <input type="text" class="phone-item-color form-input-theme w-full text-xs" placeholder="ระบุสี">
-                </div>
-                
-                <div class="col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1">ความจุ</label>
-                    <input type="text" class="phone-item-capacity form-input-theme w-full text-xs" placeholder="เช่น 128GB">
-                </div>
-            
-                <div class="col-span-3">
-                    <label class="block text-[10px] font-bold text-slate-400 mb-1">จำนวน</label>
-                    <div class="flex items-center gap-1">
-                         <input type="number" class="phone-item-qty form-input-theme w-full text-center font-bold text-blue-600 text-sm px-3 py-1" value="1" min="1" required>
-                         
-                         <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-slate-300 hover:text-red-500 transition-colors p-1 shrink-0">
-                            <ion-icon name="trash" class="text-lg"></ion-icon>
-                        </button>
-                    </div>
-                </div>
+            const tr = document.createElement('tr');
+            tr.id = rowId;
+            tr.className = "bg-white border-b border-slate-100";
+            tr.innerHTML = `
+                <td class="px-3 py-2 text-xs font-black text-slate-500" data-seq></td>
+                <td class="px-3 py-2">
+                    <input type="text" list="phone-product-catalog-datalist" class="phone-item-product form-input-theme w-full text-xs" placeholder="เลือกรุ่นหรือพิมพ์ชื่อรุ่น" required>
+                </td>
+                <td class="px-3 py-2">
+                    <input type="text" class="phone-item-imei form-input-theme w-full text-xs" placeholder="สแกน/พิมพ์ IMEI" inputmode="numeric" autocomplete="off" required>
+                </td>
+                <td class="px-3 py-2 text-right">
+                    <button type="button" class="text-slate-300 hover:text-red-500 transition-colors p-1" data-remove-row>
+                        <ion-icon name="trash" class="text-lg"></ion-icon>
+                    </button>
+                </td>
             `;
-            container.appendChild(div);
+
+            tbody.appendChild(tr);
+            reindexPhoneItemRows();
+
+            const removeBtn = tr.querySelector('[data-remove-row]');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', () => {
+                    tr.remove();
+                    reindexPhoneItemRows();
+                    const remaining = tbody.querySelectorAll('tr').length;
+                    if (remaining === 0) {
+                        const empty = document.getElementById('phone-items-empty');
+                        if (empty) empty.classList.remove('hidden');
+                    }
+                });
+            }
+
+            const imeiInput = tr.querySelector('.phone-item-imei');
+            if (imeiInput) {
+                imeiInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const currentImei = (imeiInput.value || '').trim();
+                        const productInput = tr.querySelector('.phone-item-product');
+                        const currentProduct = (productInput?.value || '').trim();
+                        if (currentImei && currentProduct) {
+                            window.addPhoneItemRow();
+                            const lastRow = tbody.querySelector('tr:last-child');
+                            lastRow?.querySelector('.phone-item-imei')?.focus();
+                        }
+                    }
+                });
+            }
+
+            tr.querySelector('.phone-item-product')?.focus();
         };
 
         // (*** Updated: Submit Phone Import ***)
@@ -8925,23 +9022,24 @@
             const imgInput = document.getElementById('phone-import-image');
 
             // Collect Manual Items
-            const itemRows = document.querySelectorAll('#phone-items-container > div');
+            const tbody = document.getElementById('phone-items-tbody');
             const manualItems = [];
-            itemRows.forEach(row => {
-                if (row.id === 'phone-items-empty') return;
-                const model = row.querySelector('.phone-item-model').value;
-                const color = row.querySelector('.phone-item-color').value;
-                const capacity = row.querySelector('.phone-item-capacity').value;
-                const qty = row.querySelector('.phone-item-qty').value;
+            const itemRows = tbody ? [...tbody.querySelectorAll('tr')] : [];
+            for (const row of itemRows) {
+                const productName = (row.querySelector('.phone-item-product')?.value || '').trim();
+                const imei = (row.querySelector('.phone-item-imei')?.value || '').trim();
 
-                if (model && parseInt(qty) > 0) {
-                    manualItems.push({
-                        productName: `${model} ${capacity} ${color}`.trim(), // Combine for unified name
-                        model, color, capacity,
-                        quantity: parseInt(qty)
-                    });
+                if (!productName && !imei) continue;
+                if (!productName || !imei) {
+                    return AppToast.success('กรุณากรอกชื่อรุ่นและ IMEI ให้ครบทุกแถว', 'warning');
                 }
-            });
+
+                manualItems.push({
+                    productName,
+                    imei,
+                    quantity: 1
+                });
+            }
 
             if (!supplier) return AppToast.success('กรุณาระบุ Supplier', 'warning');
 
@@ -8993,15 +9091,10 @@
                 if (res.ok) {
                     AppToast.success('บันทึกการแจ้งนำเข้าสำเร็จ!');
                     closeModal('phoneImportModal');
-                    // Reset Manual Items
-                    const container = document.getElementById('phone-items-container');
-                    if (container) {
-                        container.innerHTML = `
-                            <div id="phone-items-empty" class="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                                <p class="text-slate-400 font-bold text-xs">ยังไม่มีรายการที่ระบุเอง</p>
-                                <p class="text-slate-300 text-[10px]">ใช้วิธีนี้หากไม่มีไฟล์ Excel</p>
-                            </div>`;
-                    }
+                    const tbody = document.getElementById('phone-items-tbody');
+                    if (tbody) tbody.innerHTML = '';
+                    const empty = document.getElementById('phone-items-empty');
+                    if (empty) empty.classList.remove('hidden');
 
                     fetchImportRequests();
                 } else {
@@ -9072,17 +9165,15 @@
             }
             if (imgPlaceholder) imgPlaceholder.classList.remove('hidden');
 
-            // Reset Manual Items
-            const container = document.getElementById('phone-items-container');
-            if (container) {
-                container.innerHTML = `
-                    <div id="phone-items-empty" class="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                        <p class="text-slate-400 font-bold text-xs">ยังไม่มีรายการที่ระบุเอง</p>
-                        <p class="text-slate-300 text-[10px]">ใช้วิธีนี้หากไม่มีไฟล์ Excel</p>
-                    </div>`;
-            }
+            const tbody = document.getElementById('phone-items-tbody');
+            if (tbody) tbody.innerHTML = '';
+            const empty = document.getElementById('phone-items-empty');
+            if (empty) empty.classList.remove('hidden');
+
+            loadPhoneProductCatalog();
 
             openModal('phoneImportModal');
+            ensurePhoneHasOneRow();
         }
 
         function previewImage(input, previewId, placeholderId) {
@@ -10636,13 +10727,27 @@
                         </div>
 
                         <div id="phone-items-container" class="space-y-3 pb-2">
-                            <!-- Helper Text Empty State -->
+                            <datalist id="phone-product-catalog-datalist"></datalist>
+
                             <div id="phone-items-empty"
                                 class="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
                                 <p class="text-slate-400 font-bold text-xs">ยังไม่มีรายการที่ระบุเอง</p>
                                 <p class="text-slate-300 text-[10px]">ใช้วิธีนี้หากไม่มีไฟล์ Excel</p>
                             </div>
-                            <!-- Rows will be added here -->
+
+                            <div class="overflow-x-auto bg-white rounded-xl border border-slate-100 shadow-sm">
+                                <table class="min-w-full">
+                                    <thead class="bg-slate-50 border-b border-slate-100">
+                                        <tr>
+                                            <th class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left w-12">#</th>
+                                            <th class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left">ชื่อรุ่น</th>
+                                            <th class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left">IMEI</th>
+                                            <th class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-right w-14">ลบ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="phone-items-tbody"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
