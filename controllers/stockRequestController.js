@@ -143,12 +143,66 @@ exports.updateStockRequest = async (req, res) => {
             if (title) request.title = title;
             if (note !== undefined) request.note = note;
             if (items && Array.isArray(items)) {
-                request.items = items.map(item => ({
-                    productName: item.name || item.productName,
-                    quantity: Number(item.quantity) || 1,
-                    isTech: item.isTech === true
-                }));
+                request.items = items.map(item => {
+                    const existingItem = request.items.find(i => i.productName === (item.name || item.productName));
+                    return {
+                        productName: item.name || item.productName,
+                        quantity: Number(item.quantity) || 1,
+                        isTech: item.isTech === true,
+                        fulfilledQuantity: item.fulfilledQuantity !== undefined ? Number(item.fulfilledQuantity) : (existingItem ? existingItem.fulfilledQuantity : 0)
+                    };
+                });
             }
+        } else if (isTech) {
+            if (items && Array.isArray(items)) {
+                request.items = request.items.map(existingItem => {
+                    const reqItem = items.find(i => i.productName === existingItem.productName);
+                    if (reqItem && reqItem.fulfilledQuantity !== undefined) {
+                        existingItem.fulfilledQuantity = Number(reqItem.fulfilledQuantity);
+                    }
+                    return existingItem;
+                });
+            }
+        }
+
+        // Check for partial fulfillment when shipping and handle Backorders
+        if (['ready_to_ship', 'shipped'].includes(request.status)) {
+            let backorderItems = [];
+            let hasBackorder = false;
+
+            request.items.forEach(item => {
+                const fulfilled = item.fulfilledQuantity || 0;
+                if (fulfilled < item.quantity) {
+                    const remainingQty = item.quantity - fulfilled;
+                    backorderItems.push({
+                        productName: item.productName,
+                        quantity: remainingQty,
+                        fulfilledQuantity: 0,
+                        isTech: item.isTech
+                    });
+                    item.quantity = fulfilled; // Update original bill to reflect only what was sent
+                    hasBackorder = true;
+                }
+            });
+
+            request.isPartiallyFulfilled = false; // The original bill is now technically fully fulfilled for its new modified quantity
+
+            if (hasBackorder && backorderItems.length > 0) {
+                const newRequest = new StockRequest({
+                    companyId: request.companyId,
+                    branch: request.branch,
+                    title: request.title,
+                    parentRequestId: request._id,
+                    createdBy: request.createdBy,
+                    items: backorderItems,
+                    note: `สร้างอัตโนมัติจากรายการที่ค้างส่งของบิล [${request.title}]${request.note ? '\nหมายเหตุเดิม: ' + request.note : ''}`,
+                    status: 'pending',
+                    fulfillmentMethod: request.fulfillmentMethod
+                });
+                await newRequest.save();
+            }
+        } else {
+            request.isPartiallyFulfilled = false;
         }
 
         await request.save();

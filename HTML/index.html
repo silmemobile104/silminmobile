@@ -3074,7 +3074,7 @@
                                 class="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white border-2 border-slate-100 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition-all hover:border-slate-300">
                                 <ion-icon name="construct-outline"
                                     class="text-2xl text-slate-400 group-hover:text-indigo-500 transition-colors"></ion-icon>
-                                <span class="text-xs font-black text-slate-600">เบิกจากสต็อกมวลสาร</span>
+                                <span class="text-xs font-black text-slate-600">เบิกสินค้าจากส่วนกลาง</span>
                             </div>
                         </label>
                     </div>
@@ -3116,7 +3116,6 @@
                                 </option>
                                 <option value="sent_to_tech" class="method-stock hidden">🛠️ ส่งงานให้ฝ่ายเทคนิค
                                 </option>
-                                <option value="shipped">🚀 ส่งสินค้าออกจากส่วนกลางแล้ว</option>
                                 <option value="received">✅ สินค้าถึงสาขาแล้ว</option>
                                 <option value="canceled">❌ ยกเลิก</option>
                             </select>
@@ -4574,19 +4573,19 @@
                     const status = d.isCanceled ? 'ยกเลิก' : (d.isSuccess ? 'สำเร็จ' : 'รอดำเนินการ');
 
                     return {
-                        'วันที่มัดจำ':          formatDateTH(d.depositDate),
-                        'ชื่อลูกค้า':           d.customerName || '-',
-                        'เบอร์โทร':            d.phoneNumber || '-',
-                        'ยอดมัดจำ (บาท)':      depAmt,
-                        'วันนัดรับ':            formatDateTH(d.pickupDueDate),
-                        'เลขที่บิล':            d.billNo || '-',
-                        'IMEI':                d.imei || '-',
-                        'สินค้า':               d.product || '-',
-                        'ราคาเต็ม (บาท)':      price || '-',
-                        'ยอดค้างชำระ (บาท)':   price > 0 ? balance : '-',
-                        'สถานะ':               status,
-                        'ผู้ทำรายการ':          d.signName || '-',
-                        'สาขา':                d.branch || '-',
+                        'วันที่มัดจำ': formatDateTH(d.depositDate),
+                        'ชื่อลูกค้า': d.customerName || '-',
+                        'เบอร์โทร': d.phoneNumber || '-',
+                        'ยอดมัดจำ (บาท)': depAmt,
+                        'วันนัดรับ': formatDateTH(d.pickupDueDate),
+                        'เลขที่บิล': d.billNo || '-',
+                        'IMEI': d.imei || '-',
+                        'สินค้า': d.product || '-',
+                        'ราคาเต็ม (บาท)': price || '-',
+                        'ยอดค้างชำระ (บาท)': price > 0 ? balance : '-',
+                        'สถานะ': status,
+                        'ผู้ทำรายการ': d.signName || '-',
+                        'สาขา': d.branch || '-',
                     };
                 });
 
@@ -7442,7 +7441,8 @@
                     const isManager = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
                     const isPurchasing = userDept.includes('purchasing') || userDept.includes('purchase') || userDept.includes('จัดซื้อ') || userDept.includes('stock') || userDept.includes('store') || userDept.includes('คลัง');
                     const isSales = userDept.includes('sales') || userDept.includes('ขาย');
-                    const canUpdateStatus = isManager || isPurchasing || isSales;
+                    // Ensure it only shows as text and cannot be edited in this menu
+                    const canUpdateStatus = false;
 
                     const statusConfig = {
                         'pending': { class: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', text: 'รอตรวจสอบ', icon: 'time-outline' },
@@ -7454,32 +7454,57 @@
                     };
                     const config = statusConfig[req.status] || statusConfig['pending'];
 
+                    let missingAmount = 0;
+                    if (req.isPartiallyFulfilled && req.items) {
+                        req.items.forEach(i => {
+                            if (i.fulfilledQuantity !== undefined && i.fulfilledQuantity < i.quantity) {
+                                missingAmount += (i.quantity - i.fulfilledQuantity);
+                            } else if (i.fulfilledQuantity === undefined) {
+                                missingAmount += i.quantity;
+                            }
+                        });
+                    }
+
                     let statusHTML = '';
                     if (canUpdateStatus) {
                         statusHTML = `
-                            <select onchange="updateStockRequestStatus('${req._id}', this.value)" 
-                                class="text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-2xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none bg-white
-                                ${req.status === 'pending' ? 'text-amber-700' : ''}
-                                ${req.status === 'ordering' ? 'text-blue-700' : ''}
-                                ${req.status === 'sent_to_tech' ? 'text-violet-700' : ''}
-                                ${req.status === 'shipped' ? 'text-indigo-700' : ''}
-                                ${req.status === 'received' ? 'text-emerald-700' : ''}
-                                ${req.status === 'canceled' ? 'text-rose-700' : ''}
-                            ">
-                                <option value="pending" ${req.status === 'pending' ? 'selected' : ''}>รอตรวจสอบ</option>
-                                <option value="ordering" ${req.status === 'ordering' ? 'selected' : ''}>สั่งสินค้าแล้ว</option>
-                                <option value="sent_to_tech" ${req.status === 'sent_to_tech' ? 'selected' : ''}>เตรียมของ</option>
-                                <option value="shipped" ${req.status === 'shipped' ? 'selected' : ''}>จัดส่งแล้ว</option>
-                                <option value="received" ${req.status === 'received' ? 'selected' : ''}>ได้รับแล้ว</option>
-                                <option value="canceled" ${req.status === 'canceled' ? 'selected' : ''}>ยกเลิก</option>
-                            </select>
+                            <div class="flex flex-col gap-2 items-start">
+                                <select onchange="updateStockRequestStatus('${req._id}', this.value)" 
+                                    class="text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-2xl border border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none bg-white
+                                    ${req.status === 'pending' ? 'text-amber-700' : ''}
+                                    ${req.status === 'ordering' ? 'text-blue-700' : ''}
+                                    ${req.status === 'sent_to_tech' ? 'text-violet-700' : ''}
+                                    ${req.status === 'shipped' ? 'text-indigo-700' : ''}
+                                    ${req.status === 'received' ? 'text-emerald-700' : ''}
+                                    ${req.status === 'canceled' ? 'text-rose-700' : ''}
+                                ">
+                                    <option value="pending" ${req.status === 'pending' ? 'selected' : ''}>รอตรวจสอบ</option>
+                                    <option value="ordering" ${req.status === 'ordering' ? 'selected' : ''}>สั่งสินค้าแล้ว</option>
+                                    <option value="sent_to_tech" ${req.status === 'sent_to_tech' ? 'selected' : ''}>เตรียมของ</option>
+                                    <option value="shipped" ${req.status === 'shipped' ? 'selected' : ''}>จัดส่งแล้ว</option>
+                                    <option value="received" ${req.status === 'received' ? 'selected' : ''}>ได้รับแล้ว</option>
+                                    <option value="canceled" ${req.status === 'canceled' ? 'selected' : ''}>ยกเลิก</option>
+                                </select>
+                                ${req.isPartiallyFulfilled ? `
+                                <span class="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-600 rounded text-[10px] font-black shadow-sm tracking-wider">
+                                    ⚠️ ส่งไม่ครบ ${missingAmount > 0 ? `(ขาด ${missingAmount} ชิ้น)` : ''}
+                                </span>
+                                ` : ''}
+                            </div>
                         `;
                     } else {
                         statusHTML = `
-                            <span class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm ${config.class} transform group-hover:scale-105 transition-transform">
-                                <ion-icon name="${config.icon}" class="text-sm"></ion-icon>
-                                ${config.text}
-                            </span>
+                            <div class="flex flex-col gap-2 items-start">
+                                <span class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm ${config.class} transform group-hover:scale-105 transition-transform">
+                                    <ion-icon name="${config.icon}" class="text-sm"></ion-icon>
+                                    ${config.text}
+                                </span>
+                                ${req.isPartiallyFulfilled ? `
+                                <span class="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-600 rounded text-[10px] font-black shadow-sm tracking-wider">
+                                    ⚠️ ส่งไม่ครบ ${missingAmount > 0 ? `(ขาด ${missingAmount} ชิ้น)` : ''}
+                                </span>
+                                ` : ''}
+                            </div>
                         `;
                     }
 
@@ -7504,11 +7529,12 @@
                            </div>
                         </td>
                         <td class="px-8 py-6 align-top min-w-[300px]">
-                            <div class="mb-3">
+                            <div class="mb-3 flex flex-wrap items-center gap-2">
                                 <span class="text-sm font-black text-indigo-700 flex items-center gap-2">
                                     <ion-icon name="clipboard-outline" class="text-indigo-400 text-lg"></ion-icon>
                                     ${req.title || 'รายการเบิกทั่วไป'}
                                 </span>
+                                ${req.parentRequestId ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase tracking-widest border border-blue-100 shadow-sm"><ion-icon name="pricetag"></ion-icon>บิลค้างส่ง (แยกมาจากบิลก่อนหน้า)</span>` : ''}
                             </div>
                             <div class="bg-slate-50/50 rounded-2xl p-4 border border-slate-100 group-hover:bg-white transition-colors">
                                 ${itemsText}
@@ -7850,15 +7876,32 @@
                 if (row) row.remove();
             };
 
+            window.toggleAllTechCheckboxes = function () {
+                const checkboxes = document.querySelectorAll('.item-is-tech-checkbox');
+                if (checkboxes.length === 0) return;
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                checkboxes.forEach(cb => {
+                    cb.checked = !allChecked;
+                });
+            };
+
             window.openManageRequestModal = function (req) {
                 currentManagingRequestId = req._id;
                 document.getElementById('manage-request-status').value = req.status;
 
                 // Set Fulfillment Method Radio
                 const methodInputs = document.querySelectorAll('input[name="fulfillment-method"]');
+                let hasSelection = false;
                 methodInputs.forEach(input => {
                     input.checked = (input.value === req.fulfillmentMethod);
+                    if (input.checked) hasSelection = true;
                 });
+
+                // Default to 'purchase' (สั่งสินค้าใหม่) if no selection
+                if (!hasSelection) {
+                    const defaultInput = document.querySelector('input[name="fulfillment-method"][value="purchase"]');
+                    if (defaultInput) defaultInput.checked = true;
+                }
                 toggleFulfillmentUI();
 
                 const itemsContainer = document.getElementById('manage-request-items-list');
@@ -7871,8 +7914,11 @@
                                     <ion-icon name="list-outline" class="text-sm"></ion-icon>
                                     สรุปรายการสินค้า
                                 </div>
-                                <div class="fulfillment-tech-checkbox-container hidden">
-                                    <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-lg ring-1 ring-indigo-100">ส่งให้เทคนิค</span>
+                                <div class="fulfillment-tech-checkbox-container hidden flex items-center gap-2">
+                                    <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest">ส่งให้เทคนิค:</span>
+                                    <button type="button" onclick="toggleAllTechCheckboxes()" class="text-[9px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-lg ring-1 ring-indigo-200 hover:bg-indigo-100 transition-colors active:scale-95 shadow-sm">
+                                        เลือกทั้งหมด / ล้าง
+                                    </button>
                                 </div>
                             </div>
                             <div class="bg-white/50 rounded-3xl border border-slate-200/60 overflow-hidden shadow-sm">
@@ -7889,8 +7935,15 @@
                                             </div>
                                         </div>
                                         <div class="flex flex-col items-end">
-                                            <span class="font-black text-indigo-600 text-base">${item.quantity}</span>
-                                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Qty</span>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-bold text-slate-500">ขอ: <span class="text-indigo-600">${item.quantity}</span></span>
+                                                ${['shipped', 'received'].includes(req.status) ? `
+                                                    <span class="text-xs font-bold text-slate-500 border-l border-slate-300 pl-2">
+                                                        ส่งจริง: <span class="${item.fulfilledQuantity < item.quantity ? 'text-red-500' : 'text-emerald-500'}">${item.fulfilledQuantity || 0}</span>
+                                                    </span>
+                                                ` : ''}
+                                            </div>
+                                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Qty</span>
                                         </div>
                                     </div>
                                 `).join('')}
@@ -7930,6 +7983,22 @@
                 const status = document.getElementById('manage-request-status').value;
                 const expectedArrival = document.getElementById('manage-request-arrival').value;
                 const fulfillmentMethod = document.querySelector('input[name="fulfillment-method"]:checked')?.value || null;
+
+                if (!fulfillmentMethod) {
+                    return Swal.fire({
+                        title: 'กรุณาเลือกรูปแบบการจัดการ',
+                        text: 'ต้องเลือกว่าจะ "สั่งสินค้าใหม่" หรือ "เบิกสินค้าจากส่วนกลาง" ก่อนบันทึก',
+                        icon: 'warning',
+                        confirmButtonText: 'ตกลง',
+                        customClass: {
+                            popup: '!rounded-3xl !shadow-2xl !border border-slate-100 !p-6',
+                            title: '!text-xl !font-bold !text-slate-800 !font-display',
+                            htmlContainer: '!text-sm !font-medium !text-slate-500 !mt-2',
+                            confirmButton: '!bg-amber-500 hover:!bg-amber-600 !text-white !font-bold !rounded-xl !px-8 !py-3 !transition-all'
+                        },
+                        buttonsStyling: false
+                    });
+                }
 
                 // Collect tracking numbers
                 const trackingInputs = document.querySelectorAll('.tracking-number-input');
@@ -8089,13 +8158,25 @@
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">รายการสินค้าที่ต้องส่ง</span>
                     </div>
                     <div class="space-y-2">
-                        ${(req.items || []).filter(i => i.isTech).map(i => `
-                            <div class="flex justify-between items-center bg-slate-50/50 px-3 py-2 rounded-xl">
-                                <span class="font-bold text-slate-700 text-sm">${i.productName}</span>
-                                <span class="font-black text-violet-600 px-2 py-0.5 bg-white rounded-lg text-[10px] shadow-sm flex items-center gap-1">
-                                    <ion-icon name="cube-outline"></ion-icon>
-                                    ${i.quantity}
-                                </span>
+                        ${(req.items || []).filter(i => i.isTech).map((i, idx) => `
+                            <div class="flex flex-col gap-2 bg-slate-50/50 px-3 py-2 rounded-xl border border-slate-100">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-slate-700 text-sm">${i.productName}</span>
+                                    <span class="font-black text-violet-600 px-2 py-0.5 bg-white rounded-lg text-[10px] shadow-sm flex items-center gap-1">
+                                        <ion-icon name="cube-outline"></ion-icon>
+                                        ขอเบิก: ${i.quantity}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100/60 shadow-sm">
+                                    <span class="text-xs font-bold text-slate-500 flex items-center gap-1">
+                                        <ion-icon name="checkmark-circle-outline" class="text-emerald-500"></ion-icon>
+                                        จำนวนที่ส่งจริง:
+                                    </span>
+                                    <div class="relative w-24">
+                                        <input type="number" min="0" max="${i.quantity}" class="tech-fulfilled-input w-full pl-3 pr-8 py-1.5 text-right rounded-lg border border-slate-200 text-sm font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none transition-all" value="${i.quantity}" data-product="${i.productName}" data-requested="${i.quantity}">
+                                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">ชิ้น</span>
+                                    </div>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -8158,31 +8239,93 @@
                     return;
                 }
 
-                try {
-                    const expectedArrival = document.getElementById('tech-ship-arrival')?.value;
-                    const res = await fetch(`${SERVER_URL}/stock-requests/${currentTechRequestId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify({
-                            status: 'shipped',
-                            trackingNumbers: trackingNumbers,
-                            expectedArrival: expectedArrival // Mapping to expectedArrivalDate on backend
-                        })
+                // Gather fulfilled quantities
+                const fulfilledInputs = document.querySelectorAll('.tech-fulfilled-input');
+                let totalRequested = 0;
+                let totalFulfilled = 0;
+                const items = [];
+
+                fulfilledInputs.forEach(input => {
+                    const reqQty = parseInt(input.getAttribute('data-requested') || 0);
+                    const fulQty = parseInt(input.value || 0);
+                    totalRequested += reqQty;
+                    totalFulfilled += fulQty;
+
+                    items.push({
+                        productName: input.getAttribute('data-product'),
+                        fulfilledQuantity: fulQty
                     });
-                    if (res.ok) {
-                        AppToast.success('บันทึกการจัดส่งสำเร็จ!');
-                        closeModal('techShipModal');
-                        fetchTechStockRequests();
-                    } else {
-                        const err = await res.json();
-                        AppToast.error(err.message || 'เกิดข้อผิดพลาดในการบันทึก');
+                });
+
+                const proceedSubmit = async (hasBackorder) => {
+                    try {
+                        const expectedArrival = document.getElementById('tech-ship-arrival')?.value;
+                        const res = await fetch(`${SERVER_URL}/stock-requests/${currentTechRequestId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            },
+                            body: JSON.stringify({
+                                status: 'shipped',
+                                trackingNumbers: trackingNumbers,
+                                expectedArrival: expectedArrival, // Mapping to expectedArrivalDate on backend
+                                items: items
+                            })
+                        });
+                        if (res.ok) {
+                            if (hasBackorder) {
+                                await Swal.fire({
+                                    title: 'แยกบิลอัตโนมัติสำเร็จ!',
+                                    text: `เตรียมสินค้าเรียบร้อย! ระบบได้สร้างคำขอเบิกใบใหม่สำหรับสินค้าที่ขาดจำนวน ${totalRequested - totalFulfilled} ชิ้นแล้ว`,
+                                    icon: 'success',
+                                    confirmButtonText: 'ตกลง',
+                                    customClass: {
+                                        popup: '!rounded-3xl !shadow-2xl !border border-slate-100 !p-6',
+                                        title: '!text-xl !font-bold !text-slate-800 !font-display',
+                                        htmlContainer: '!text-sm !font-medium !text-slate-500 !mt-2',
+                                        confirmButton: '!bg-emerald-500 hover:!bg-emerald-600 !text-white !font-bold !rounded-xl !px-8 !py-3 !transition-all'
+                                    },
+                                    buttonsStyling: false
+                                });
+                            } else {
+                                AppToast.success('บันทึกการจัดส่งสำเร็จ!');
+                            }
+                            closeModal('techShipModal');
+                            fetchTechStockRequests();
+                        } else {
+                            const err = await res.json();
+                            AppToast.error(err.message || 'เกิดข้อผิดพลาดในการบันทึก');
+                        }
+                    } catch (err) {
+                        console.error('Update Ship Status Error:', err);
+                        AppToast.error('Error: ' + err.message);
                     }
-                } catch (err) {
-                    console.error('Update Ship Status Error:', err);
-                    AppToast.error('Error: ' + err.message);
+                };
+
+                if (totalFulfilled < totalRequested) {
+                    const confirmRes = await Swal.fire({
+                        title: 'จำนวนสินค้าไม่ครบ!',
+                        text: `จำนวนสินค้าไม่ครบตามที่ขอเบิก (ขาด ${totalRequested - totalFulfilled} ชิ้น) คุณต้องการยืนยันการเตรียมสินค้าเพียงเท่านี้ใช่หรือไม่?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'ใช่, ยืนยันจัดส่ง',
+                        cancelButtonText: 'ยกเลิก',
+                        customClass: {
+                            popup: '!rounded-3xl !shadow-2xl !border border-slate-100 !p-6',
+                            title: '!text-xl !font-bold !text-slate-800 !font-display',
+                            htmlContainer: '!text-sm !font-medium !text-slate-500 !mt-2',
+                            confirmButton: '!bg-amber-500 hover:!bg-amber-600 !text-white !font-bold !rounded-xl !px-8 !py-3 !transition-all',
+                            cancelButton: '!bg-slate-100 hover:!bg-slate-200 !text-slate-600 !font-bold !rounded-xl !px-8 !py-3 !transition-all'
+                        },
+                        buttonsStyling: false
+                    });
+
+                    if (confirmRes.isConfirmed) {
+                        proceedSubmit(true);
+                    }
+                } else {
+                    proceedSubmit(false);
                 }
             };
 
@@ -10739,10 +10882,18 @@
                                 <table class="min-w-full">
                                     <thead class="bg-slate-50 border-b border-slate-100">
                                         <tr>
-                                            <th class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left w-12">#</th>
-                                            <th class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left">ชื่อรุ่น</th>
-                                            <th class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left">IMEI</th>
-                                            <th class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-right w-14">ลบ</th>
+                                            <th
+                                                class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left w-12">
+                                                #</th>
+                                            <th
+                                                class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left">
+                                                ชื่อรุ่น</th>
+                                            <th
+                                                class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left">
+                                                IMEI</th>
+                                            <th
+                                                class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-right w-14">
+                                                ลบ</th>
                                         </tr>
                                     </thead>
                                     <tbody id="phone-items-tbody"></tbody>
