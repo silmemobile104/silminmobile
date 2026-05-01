@@ -8594,11 +8594,12 @@
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">รายการสินค้า</p>
                         ${details.items.map(i => `
                             <div class="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100 text-xs">
-                                <div class="flex flex-col">
+                                <div class="flex flex-col gap-0.5">
                                     <span class="font-bold text-slate-700">${i.productName}</span>
+                                    ${i.imei ? `<span class="text-[10px] font-medium text-slate-500 flex items-center gap-1"><ion-icon name="barcode-outline" class="text-slate-400"></ion-icon>${i.imei}</span>` : ''}
                                     ${i.color || i.capacity ? `<span class="text-[10px] text-slate-400">${i.color || ''} ${i.capacity || ''}</span>` : ''}
                                 </div>
-                                <span class="font-black text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md">x${i.quantity}</span>
+                                <span class="font-black text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md self-start">x${i.quantity}</span>
                             </div>
                         `).join('')}
                     </div>`;
@@ -9095,7 +9096,7 @@
             if (tbody.querySelectorAll('tr').length === 0) window.addPhoneItemRow();
         }
 
-        window.addPhoneItemRow = function () {
+        window.addPhoneItemRow = function (initialProductName = '') {
             const emptyState = document.getElementById('phone-items-empty');
             if (emptyState) emptyState.classList.add('hidden');
 
@@ -9107,15 +9108,28 @@
             tr.id = rowId;
             tr.className = "bg-white border-b border-slate-100";
             tr.innerHTML = `
-                <td class="px-3 py-2 text-xs font-black text-slate-500" data-seq></td>
-                <td class="px-3 py-2">
-                    <input type="text" list="phone-product-catalog-datalist" class="phone-item-product form-input-theme w-full text-xs" placeholder="เลือกรุ่นหรือพิมพ์ชื่อรุ่น" required>
+                <td class="px-3 py-3 text-xs font-black text-slate-500 text-center align-top pt-5" data-seq></td>
+                <td class="px-3 py-3">
+                    <div class="flex flex-col gap-2">
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <ion-icon name="phone-portrait-outline" class="text-slate-400 group-focus-within:text-indigo-500 transition-colors"></ion-icon>
+                            </div>
+                            <input type="text" class="phone-item-product form-input-theme w-full text-xs !py-2.5 !pl-9 !pr-9" placeholder="เลือกรุ่น/พิมพ์ชื่อ" value="${initialProductName}" required autocomplete="off">
+                            <div class="product-dropdown-toggle absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer">
+                                <ion-icon name="chevron-forward-outline" class="product-dropdown-icon text-slate-400 hover:text-indigo-500 transition-colors"></ion-icon>
+                            </div>
+                        </div>
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <ion-icon name="barcode-outline" class="text-slate-400 group-focus-within:text-indigo-500 transition-colors"></ion-icon>
+                            </div>
+                            <input type="text" class="phone-item-imei form-input-theme w-full text-xs !py-2.5 !pl-9 !pr-3" placeholder="สแกน/พิมพ์ IMEI" autocomplete="off" required>
+                        </div>
+                    </div>
                 </td>
-                <td class="px-3 py-2">
-                    <input type="text" class="phone-item-imei form-input-theme w-full text-xs" placeholder="สแกน/พิมพ์ IMEI" autocomplete="off" required>
-                </td>
-                <td class="px-3 py-2 text-right">
-                    <button type="button" class="text-slate-300 hover:text-red-500 transition-colors p-1" data-remove-row>
+                <td class="px-3 py-3 text-center align-middle">
+                    <button type="button" class="text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all p-2 rounded-xl" data-remove-row>
                         <ion-icon name="trash" class="text-lg"></ion-icon>
                     </button>
                 </td>
@@ -9125,14 +9139,107 @@
             reindexPhoneItemRows();
 
             const removeBtn = tr.querySelector('[data-remove-row]');
+            
+            // Generate a unique ID for the global dropdown
+            const dropdownId = 'dropdown-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+            const dropdown = document.createElement('div');
+            dropdown.id = dropdownId;
+            dropdown.className = 'product-custom-dropdown fixed bg-white border border-slate-200 rounded-xl shadow-2xl z-[99999] max-h-56 overflow-y-auto hidden';
+            document.body.appendChild(dropdown);
+
             if (removeBtn) {
                 removeBtn.addEventListener('click', () => {
+                    dropdown.remove(); // Cleanup DOM
                     tr.remove();
                     reindexPhoneItemRows();
                     const remaining = tbody.querySelectorAll('tr').length;
                     if (remaining === 0) {
                         const empty = document.getElementById('phone-items-empty');
                         if (empty) empty.classList.remove('hidden');
+                    }
+                });
+            }
+
+            // (*** Custom Dropdown & Icon Logic ***)
+            const productInput = tr.querySelector('.phone-item-product');
+            const chevronIcon = tr.querySelector('.product-dropdown-icon');
+            const toggleBtn = tr.querySelector('.product-dropdown-toggle');
+            
+            const positionDropdown = () => {
+                const rect = productInput.getBoundingClientRect();
+                dropdown.style.width = rect.width + 'px';
+                dropdown.style.left = rect.left + 'px';
+                
+                const spaceBelow = window.innerHeight - rect.bottom;
+                if (spaceBelow < 250 && rect.top > 250) {
+                    dropdown.style.top = 'auto';
+                    dropdown.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                } else {
+                    dropdown.style.top = (rect.bottom + 4) + 'px';
+                    dropdown.style.bottom = 'auto';
+                }
+            };
+
+            const renderDropdown = () => {
+                if (phoneProductCatalogCache && phoneProductCatalogCache.length > 0) {
+                    dropdown.innerHTML = phoneProductCatalogCache.map(name =>
+                        `<div class="dropdown-item px-3 py-2 text-xs hover:bg-indigo-50 cursor-pointer text-slate-700 transition-colors border-b border-slate-50 last:border-0">${name.replace(/</g, '&lt;')}</div>`
+                    ).join('');
+
+                    dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+                        item.addEventListener('mousedown', (e) => {
+                            e.preventDefault(); // prevent blur
+                            productInput.value = e.target.textContent.trim();
+                            dropdown.classList.add('hidden');
+                            chevronIcon.setAttribute('name', 'chevron-forward-outline');
+                            tr.querySelector('.phone-item-imei')?.focus();
+                        });
+                    });
+                } else {
+                    dropdown.innerHTML = `<div class="px-3 py-2 text-xs text-slate-400">ไม่มีข้อมูลรุ่นสินค้า</div>`;
+                }
+            };
+
+            productInput.addEventListener('focus', () => {
+                renderDropdown(); // Render dynamically on focus
+                positionDropdown();
+                dropdown.classList.remove('hidden');
+                chevronIcon.setAttribute('name', 'chevron-down-outline');
+            });
+            
+            // Hide dropdown when scrolling anywhere in the modal
+            const hideDropdownOnScroll = () => {
+                if (!dropdown.classList.contains('hidden')) {
+                    dropdown.classList.add('hidden');
+                    chevronIcon.setAttribute('name', 'chevron-forward-outline');
+                    productInput.blur();
+                }
+            };
+            const tableScrollContainer = tr.closest('.overflow-y-auto');
+            if (tableScrollContainer) tableScrollContainer.addEventListener('scroll', hideDropdownOnScroll);
+            const modalScrollContainer = document.querySelector('#phoneImportModal .overflow-y-auto.custom-scrollbar');
+            if (modalScrollContainer) modalScrollContainer.addEventListener('scroll', hideDropdownOnScroll);
+
+            productInput.addEventListener('blur', () => {
+                // Use a short timeout so mousedown on dropdown-item fires first
+                setTimeout(() => {
+                    dropdown.classList.add('hidden');
+                    chevronIcon.setAttribute('name', 'chevron-forward-outline');
+                }, 150);
+            });
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // Prevent default focus loss behavior
+                    
+                    document.querySelectorAll('.product-custom-dropdown').forEach(d => {
+                        if(d.id !== dropdownId) d.classList.add('hidden');
+                    });
+
+                    if (dropdown.classList.contains('hidden')) {
+                        productInput.focus();
+                    } else {
+                        productInput.blur();
                     }
                 });
             }
@@ -9146,15 +9253,17 @@
                         const productInput = tr.querySelector('.phone-item-product');
                         const currentProduct = (productInput?.value || '').trim();
                         if (currentImei && currentProduct) {
-                            window.addPhoneItemRow();
-                            const lastRow = tbody.querySelector('tr:last-child');
-                            lastRow?.querySelector('.phone-item-imei')?.focus();
+                            window.addPhoneItemRow(currentProduct);
                         }
                     }
                 });
             }
 
-            tr.querySelector('.phone-item-product')?.focus();
+            if (initialProductName) {
+                tr.querySelector('.phone-item-imei')?.focus();
+            } else {
+                tr.querySelector('.phone-item-product')?.focus();
+            }
         };
 
         // (*** Updated: Submit Phone Import ***)
@@ -9167,15 +9276,40 @@
             // Collect Manual Items
             const tbody = document.getElementById('phone-items-tbody');
             const manualItems = [];
+            const seenImeis = new Set();
             const itemRows = tbody ? [...tbody.querySelectorAll('tr')] : [];
-            for (const row of itemRows) {
+
+            for (let i = 0; i < itemRows.length; i++) {
+                const row = itemRows[i];
+                const seq = row.querySelector('[data-seq]')?.textContent || (i + 1);
                 const productName = (row.querySelector('.phone-item-product')?.value || '').trim();
                 const imei = (row.querySelector('.phone-item-imei')?.value || '').trim();
 
                 if (!productName && !imei) continue;
                 if (!productName || !imei) {
-                    return AppToast.success('กรุณากรอกชื่อรุ่นและ IMEI ให้ครบทุกแถว', 'warning');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ข้อมูลไม่ครบถ้วน',
+                        html: `กรุณากรอก <b>ชื่อรุ่น</b> และ <b>IMEI</b> ให้ครบถ้วน<br/>ในรายการลำดับที่ <b class="text-red-500">${seq}</b>`,
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#f59e0b'
+                    });
+                    return;
                 }
+
+                if (seenImeis.has(imei)) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'พบ IMEI ซ้ำซ้อน',
+                        html: `พบ IMEI ซ้ำในรายการ: <b>${imei}</b><br/>
+                               สินค้า: <span class="text-indigo-600 font-bold">${productName}</span><br/>
+                               ลำดับที่: <b>${seq}</b>`,
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#eab308' // yellow-500
+                    });
+                    return;
+                }
+                seenImeis.add(imei);
 
                 manualItems.push({
                     productName,
@@ -9287,6 +9421,59 @@
 
             openModal('accImportModal');
         }
+
+        // (*** Supplier Dropdown Logic ***)
+        document.addEventListener('DOMContentLoaded', () => {
+            const supplierInput = document.getElementById('phone-import-supplier');
+            const supplierDropdown = document.getElementById('supplier-custom-dropdown');
+            const supplierToggle = document.querySelector('.supplier-dropdown-toggle');
+            const supplierIcon = document.getElementById('supplier-dropdown-icon');
+
+            const supplierList = [...new Set([
+                "ซินเน็ค", "โรสสโตร์", "ดีดีไอทีคอม", "VST", "เอเดพท์", "พีเอ็นไฮเทค",
+                "พี่ตี้", "บิ๊กเซลล์", "คอมเซเว่น", "พี่ตี้ฮาก๊าก", "จ๊ะ ชลธิชา",
+                "วีเอสที", "ดีดีโฟน", "มหานคร", "นัดโต๊ะ", "นภดล", "เสถียรพงษ์",
+                "ตะวัน 2006 จำกัด", "Ck", "จรัญญาภรณ์"
+            ])];
+
+            if (supplierInput && supplierDropdown) {
+                supplierDropdown.innerHTML = supplierList.map(name =>
+                    `<div class="supplier-item px-4 py-2.5 text-sm font-bold hover:bg-blue-50 cursor-pointer text-slate-700 transition-colors border-b border-slate-50 last:border-0">${name}</div>`
+                ).join('');
+
+                supplierDropdown.querySelectorAll('.supplier-item').forEach(item => {
+                    item.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        supplierInput.value = e.target.textContent.trim();
+                        supplierDropdown.classList.add('hidden');
+                        if (supplierIcon) supplierIcon.setAttribute('name', 'chevron-forward-outline');
+                    });
+                });
+
+                supplierInput.addEventListener('focus', () => {
+                    supplierDropdown.classList.remove('hidden');
+                    if (supplierIcon) supplierIcon.setAttribute('name', 'chevron-down-outline');
+                });
+
+                supplierInput.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        supplierDropdown.classList.add('hidden');
+                        if (supplierIcon) supplierIcon.setAttribute('name', 'chevron-forward-outline');
+                    }, 150);
+                });
+
+                if (supplierToggle) {
+                    supplierToggle.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        if (supplierDropdown.classList.contains('hidden')) {
+                            supplierInput.focus();
+                        } else {
+                            supplierInput.blur();
+                        }
+                    });
+                }
+            }
+        });
 
         // (*** New: Open Phone Import Modal ***)
         function openPhoneImportModal() {
@@ -10784,7 +10971,7 @@
     <!-- Modal: Phone Import (New Design) -->
     <div id="phoneImportModal" class="modal fixed inset-0 z-[60] items-center justify-center p-4 hidden">
         <div
-            class="modal-content relative w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in-up">
+            class="modal-content relative w-full max-w-xl max-h-[90vh] flex flex-col bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in-up">
             <!-- Header -->
             <div
                 class="shrink-0 bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5 flex justify-between items-center text-white shadow-lg relative overflow-hidden">
@@ -10807,7 +10994,7 @@
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
 
                     <!-- Supplier -->
-                    <div class="group">
+                    <div class="group relative z-50">
                         <label
                             class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2 ml-1">ร้านค้า /
                             Supplier</label>
@@ -10815,13 +11002,34 @@
                             <ion-icon name="business-outline"
                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors text-lg"></ion-icon>
                             <input type="text" id="phone-import-supplier"
-                                class="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700"
-                                placeholder="ระบุชื่อร้านค้า..." required>
+                                class="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold text-slate-700"
+                                placeholder="ระบุชื่อร้านค้า..." autocomplete="off" required>
+
+                            <div
+                                class="supplier-dropdown-toggle absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer">
+                                <ion-icon name="chevron-forward-outline" id="supplier-dropdown-icon"
+                                    class="text-slate-400 hover:text-blue-500 transition-colors text-lg"></ion-icon>
+                            </div>
+
+                            <!-- Custom Dropdown -->
+                            <div id="supplier-custom-dropdown"
+                                class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[100] max-h-56 overflow-y-auto hidden">
+                            </div>
                         </div>
                     </div>
 
-                    <!-- File Upload (Excel) -->
+                    <!-- File Upload (Excel) Toggle -->
                     <div>
+                        <button type="button"
+                            onclick="document.getElementById('excel-upload-zone').classList.toggle('hidden')"
+                            class="flex items-center justify-center gap-2 w-full py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold rounded-xl transition-colors border border-indigo-100 border-dashed">
+                            <ion-icon name="document-text-outline" class="text-xl"></ion-icon>
+                            เพิ่มรายการจากไฟล์ Excel
+                        </button>
+                    </div>
+
+                    <!-- File Upload (Excel) Zone -->
+                    <div id="excel-upload-zone" class="hidden transition-all duration-300">
                         <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2 ml-1">ไฟล์
                             Excel รายการสินค้า</label>
                         <div class="relative group">
@@ -10878,7 +11086,8 @@
                                 <p class="text-slate-300 text-[10px]">ใช้วิธีนี้หากไม่มีไฟล์ Excel</p>
                             </div>
 
-                            <div class="overflow-x-auto bg-white rounded-xl border border-slate-100 shadow-sm">
+                            <div
+                                class="overflow-y-auto overflow-x-hidden bg-white rounded-xl border border-slate-100 shadow-sm h-[30vh]">
                                 <table class="min-w-full">
                                     <thead class="bg-slate-50 border-b border-slate-100">
                                         <tr>
@@ -10887,12 +11096,9 @@
                                                 #</th>
                                             <th
                                                 class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left">
-                                                ชื่อรุ่น</th>
+                                                รายละเอียดสินค้า</th>
                                             <th
-                                                class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-left">
-                                                IMEI</th>
-                                            <th
-                                                class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-right w-14">
+                                                class="px-3 py-2 text-[10px] font-black text-slate-500 uppercase tracking-wider text-center w-14">
                                                 ลบ</th>
                                         </tr>
                                     </thead>
@@ -10902,8 +11108,18 @@
                         </div>
                     </div>
 
-                    <!-- Image Upload -->
+                    <!-- Image Upload Toggle -->
                     <div>
+                        <button type="button"
+                            onclick="document.getElementById('image-upload-zone').classList.toggle('hidden')"
+                            class="flex items-center justify-center gap-2 w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-xl transition-colors border border-blue-100 border-dashed">
+                            <ion-icon name="image-outline" class="text-xl"></ion-icon>
+                            เพิ่มรูปภาพประกอบ (ถ้ามี)
+                        </button>
+                    </div>
+
+                    <!-- Image Upload Zone -->
+                    <div id="image-upload-zone" class="hidden transition-all duration-300">
                         <label
                             class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2 ml-1">รูปภาพประกอบ
                             (ถ้ามี)</label>

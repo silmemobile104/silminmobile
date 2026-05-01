@@ -36,6 +36,17 @@ exports.createImport = async (req, res) => {
 
                 // (*** Robustness Fix: Ensure items are structured correctly ***)
                 if (parsedDetails.items && Array.isArray(parsedDetails.items)) {
+                    const seenImeis = new Set();
+                    for (const item of parsedDetails.items) {
+                        const imei = String(item.imei || item.IMEI || item.serial || '').trim();
+                        if (imei) {
+                            if (seenImeis.has(imei)) {
+                                return res.status(400).json({ message: `พบ IMEI ซ้ำในรายการ: ${imei}` });
+                            }
+                            seenImeis.add(imei);
+                        }
+                    }
+
                     parsedDetails.items = parsedDetails.items.map(item => ({
                         productName: item.productName || item.name || 'Unknown Item',
                         imei: item.imei || item.IMEI || item.serial || '',
@@ -377,6 +388,17 @@ exports.updateImport = async (req, res) => {
                 parsedDetails = JSON.parse(details);
                 // Ensure items are structured correctly if present
                 if (parsedDetails.items && Array.isArray(parsedDetails.items)) {
+                    const seenImeis = new Set();
+                    for (const item of parsedDetails.items) {
+                        const imei = String(item.imei || item.IMEI || item.serial || '').trim();
+                        if (imei) {
+                            if (seenImeis.has(imei)) {
+                                return res.status(400).json({ message: `พบ IMEI ซ้ำในรายการ: ${imei}` });
+                            }
+                            seenImeis.add(imei);
+                        }
+                    }
+
                     parsedDetails.items = parsedDetails.items.map(item => ({
                         productName: item.productName || item.name || 'Unknown Item',
                         imei: item.imei || item.IMEI || item.serial || '',
