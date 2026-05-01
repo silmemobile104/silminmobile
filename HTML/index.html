@@ -2660,6 +2660,12 @@
                     <div id="detail-items-list" class="space-y-3">
                         <!-- Items injected here -->
                     </div>
+                    <div id="detail-items-summary" class="mt-6 hidden">
+                        <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                            <ion-icon name="analytics-outline" class="text-emerald-600 text-lg"></ion-icon> สรุปรายการซ้ำ (ตามชื่อสินค้า)
+                        </h4>
+                        <div id="detail-items-summary-list" class="space-y-2"></div>
+                    </div>
                 </div>
 
                 <!-- Footer Actions -->
@@ -5893,6 +5899,45 @@
                 const emptyState = document.getElementById('stock-empty-state');
                 const loading = document.getElementById('stock-loading');
 
+                const getItemNameCounts = (details) => {
+                    const d = details || {};
+                    const items = Array.isArray(d.items) && d.items.length > 0
+                        ? d.items
+                        : [{ productName: d.productName || '', name: d.productName || '' }];
+
+                    const countsMap = new Map();
+                    items.forEach((it) => {
+                        const name = (it?.productName || it?.name || '').trim();
+                        if (!name) return;
+                        countsMap.set(name, (countsMap.get(name) || 0) + 1);
+                    });
+
+                    return Array.from(countsMap.entries())
+                        .map(([name, count]) => ({ name, count }))
+                        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+                };
+
+                const renderSummaryBadges = (details, max = 3) => {
+                    const grouped = getItemNameCounts(details);
+                    if (!grouped || grouped.length === 0) return '';
+
+                    const shown = grouped.slice(0, max);
+                    const remaining = grouped.length - shown.length;
+
+                    const badges = shown.map(g => `
+                        <span class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black">
+                            <span class="max-w-[220px] truncate">${g.name}</span>
+                            <span class="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black">${g.count}</span>
+                        </span>
+                    `).join('');
+
+                    const more = remaining > 0
+                        ? `<span class="inline-flex items-center px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-black">+${remaining} อื่นๆ</span>`
+                        : '';
+
+                    return `<div class="mt-2 flex flex-wrap gap-1.5">${badges}${more}</div>`;
+                };
+
                 // Permissions logic
                 const isStaff = currentUser?.role === 'staff';
                 const userDept = (currentUser?.department || '').toLowerCase();
@@ -5924,6 +5969,7 @@
                         const createdBy = item.createdBy ? item.createdBy.name : '-';
                         const supplier = item.details?.supplier || '-';
                         const desc = item.details?.description || '-';
+                        const summaryHtml = renderSummaryBadges(item.details, 2);
 
                         // Permissions logic for this item
                         const isOwner = currentUser?.branch === item.branch;
@@ -6008,6 +6054,7 @@
                                     </div>
                                 ` : ''}
                                 ${desc && desc !== '-' ? `<div class="mt-1 text-[10px] text-slate-400 font-medium">${desc}</div>` : ''}
+                                ${summaryHtml}
                             </td>
                             <td class="px-6 py-4 text-sm">${fileLink}</td>
                             <td class="px-6 py-4 text-center">
@@ -6028,6 +6075,7 @@
                         const itemsCount = item.details?.items?.length || 1;
                         let title = item.details?.billName || item.details?.productName || `${itemsCount} รายการ`;
                         if (itemsCount > 1 && !item.details?.billName) title = `บิลรวม (${itemsCount} รายการ)`;
+                        const summaryHtml = renderSummaryBadges(item.details, 2);
 
                         // Image
                         let imgUrl = 'image/placeholder.jpg'; // Path placeholder
@@ -6064,6 +6112,7 @@
                             </div>
                             <div class="p-5 flex-1 flex flex-col">
                                 <h4 class="font-bold text-slate-800 text-lg mb-1 line-clamp-1">เลขที่บิล : ${title}</h4>
+                                ${summaryHtml}
                                 <p class="text-sm text-slate-500 mb-4 flex items-center gap-1">
                                     <ion-icon name="person-circle-outline"></ion-icon> ${item.createdBy?.name || '-'}
                                 </p>
@@ -6415,7 +6464,7 @@
 
                 const d = item.details || {};
                 const supplier = d.supplier || '-';
-                const billName = d.billName || '-'; // (*** New: Bill Name ***)
+                const billName = d.billName || '-';
                 const branch = item.branch || '-';
                 const createdBy = item.createdBy ? item.createdBy.name : '-';
                 const date = new Date(item.createdAt).toLocaleDateString('th-TH');
@@ -6442,51 +6491,64 @@
 
                 // Items List
                 const listContainer = document.getElementById('detail-items-list');
-                listContainer.innerHTML = '';
+                const summaryContainer = document.getElementById('detail-items-summary');
+                const summaryList = document.getElementById('detail-items-summary-list');
+                if (listContainer) listContainer.innerHTML = '';
+                if (summaryList) summaryList.innerHTML = '';
+                if (summaryContainer) summaryContainer.classList.add('hidden');
 
-                if (d.items && d.items.length > 0) {
-                    d.items.forEach((subItem, index) => {
-                        // Fix: Support both productName/quantity and legacy name/qty
-                        const pName = subItem.productName || subItem.name || 'สินค้า';
-                        const pQty = subItem.quantity || subItem.qty || 0;
-                        const pNote = subItem.note || '';
+                const items = Array.isArray(d.items) && d.items.length > 0
+                    ? d.items
+                    : [{ productName: d.productName || '', name: d.productName || '', quantity: d.quantity || 1, note: '' }];
 
-                        const div = document.createElement('div');
-                        div.className = "flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100";
-                        div.innerHTML = `
-                             <div class="flex items-center gap-3">
-                                 <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shrink-0">${index + 1}</span>
-                                 <div>
-                                     <div class="flex items-center gap-2 flex-wrap">
-                                         <span class="font-bold text-slate-700 block">${pName}</span>
-                                         ${subItem.imei ? `<span class="text-[10px] bg-white text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-mono flex items-center gap-1 shrink-0"><ion-icon name="barcode-outline"></ion-icon>${subItem.imei}</span>` : ''}
-                                     </div>
-                                     ${pNote ? `<span class="text-xs text-slate-400 font-normal block mt-0.5">${pNote}</span>` : ''}
+                items.forEach((subItem, index) => {
+                    const pName = subItem.productName || subItem.name || 'สินค้า';
+                    const pQty = subItem.quantity || subItem.qty || 0;
+                    const pNote = subItem.note || '';
+
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100";
+                    div.innerHTML = `
+                         <div class="flex items-center gap-3">
+                             <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shrink-0">${index + 1}</span>
+                             <div>
+                                 <div class="flex items-center gap-2 flex-wrap">
+                                     <span class="font-bold text-slate-700 block">${pName}</span>
+                                     ${subItem.imei ? `<span class="text-[10px] bg-white text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-mono flex items-center gap-1 shrink-0"><ion-icon name="barcode-outline"></ion-icon>${subItem.imei}</span>` : ''}
                                  </div>
+                                 ${pNote ? `<span class="text-xs text-slate-400 font-normal block mt-0.5">${pNote}</span>` : ''}
                              </div>
-                             <span class="font-bold text-slate-900 bg-white px-2 py-1 rounded border border-slate-100 shadow-sm shrink-0">x${pQty}</span>
-                         `;
-                        listContainer.appendChild(div);
-                    });
-                } else {
-                    // Single Item Fallback
-                    const pName = d.productName || 'สินค้า';
-                    const pQty = d.quantity || 1;
-
-                    listContainer.innerHTML = `
-                         <div class="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                             <div class="flex items-center gap-3">
-                                 <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold shrink-0">1</span>
-                                 <div>
-                                     <div class="flex items-center gap-2 flex-wrap">
-                                         <span class="font-bold text-slate-700 block">${pName}</span>
-                                         ${d.imei ? `<span class="text-[10px] bg-white text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-mono flex items-center gap-1 shrink-0"><ion-icon name="barcode-outline"></ion-icon>${d.imei}</span>` : ''}
-                                     </div>
-                                 </div>
-                             </div>
-                             <span class="font-bold text-slate-900 bg-white px-2 py-1 rounded border border-slate-100 shadow-sm shrink-0">x${pQty}</span>
                          </div>
+                         <span class="font-bold text-slate-900 bg-white px-2 py-1 rounded border border-slate-100 shadow-sm shrink-0">x${pQty}</span>
                      `;
+                    if (listContainer) listContainer.appendChild(div);
+                });
+
+                // Summary (group by product name)
+                if (summaryContainer && summaryList) {
+                    const countsMap = new Map();
+                    items.forEach((it) => {
+                        const name = (it?.productName || it?.name || '').trim();
+                        if (!name) return;
+                        countsMap.set(name, (countsMap.get(name) || 0) + 1);
+                    });
+
+                    const grouped = Array.from(countsMap.entries())
+                        .map(([name, count]) => ({ name, count }))
+                        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+                    if (grouped.length > 0) {
+                        grouped.forEach(g => {
+                            const row = document.createElement('div');
+                            row.className = 'flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-100';
+                            row.innerHTML = `
+                                <div class="text-sm font-bold text-slate-700 line-clamp-1">${g.name}</div>
+                                <span class="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-xs font-black">${g.count} รายการ</span>
+                            `;
+                            summaryList.appendChild(row);
+                        });
+                        summaryContainer.classList.remove('hidden');
+                    }
                 }
 
                 openModal('stockDetailModal');
@@ -8578,6 +8640,45 @@
             if (!list) return;
             list.innerHTML = '';
 
+            const getItemNameCounts = (details) => {
+                const d = details || {};
+                const items = Array.isArray(d.items) && d.items.length > 0
+                    ? d.items
+                    : [{ productName: d.productName || '', name: d.productName || '' }];
+
+                const countsMap = new Map();
+                items.forEach((it) => {
+                    const name = (it?.productName || it?.name || '').trim();
+                    if (!name) return;
+                    countsMap.set(name, (countsMap.get(name) || 0) + 1);
+                });
+
+                return Array.from(countsMap.entries())
+                    .map(([name, count]) => ({ name, count }))
+                    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+            };
+
+            const renderSummaryBadges = (details, max = 2) => {
+                const grouped = getItemNameCounts(details);
+                if (!grouped || grouped.length === 0) return '';
+
+                const shown = grouped.slice(0, max);
+                const remaining = grouped.length - shown.length;
+
+                const badges = shown.map(g => `
+                    <span class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black">
+                        <span class="max-w-[220px] truncate">${g.name}</span>
+                        <span class="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black">${g.count}</span>
+                    </span>
+                `).join('');
+
+                const more = remaining > 0
+                    ? `<span class="inline-flex items-center px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-black">+${remaining} อื่นๆ</span>`
+                    : '';
+
+                return `<div class="mt-2 flex flex-wrap gap-1.5">${badges}${more}</div>`;
+            };
+
             if (data.length === 0) {
                 list.innerHTML = `<div class="col-span-full py-20 text-center">
                     <div class="flex flex-col items-center justify-center">
@@ -8597,6 +8698,8 @@
                 const desc = details.description || '-';
                 const branch = item.branch || '-';
                 const createdBy = item.createdBy ? item.createdBy.name : '-';
+
+                const summaryHtml = renderSummaryBadges(details, 2);
 
                 // (*** New: Render Manual Items ***)
                 let itemsHTML = '';
@@ -8676,6 +8779,7 @@
                             <div class="p-3 bg-slate-50/50 rounded-2xl border border-slate-100/50">
                                 <p class="text-xs text-slate-500 font-medium leading-relaxed">${desc !== '-' ? desc : '<span class="text-slate-400 italic">ไม่มีรายละเอียดเพิ่มเติม</span>'}</p>
                                 ${itemsHTML}
+                                ${summaryHtml}
                             </div>
 
                             <div class="flex flex-wrap gap-2">
@@ -8711,6 +8815,45 @@
             if (!list) return;
             list.innerHTML = '';
 
+            const getItemNameCounts = (details) => {
+                const d = details || {};
+                const items = Array.isArray(d.items) && d.items.length > 0
+                    ? d.items
+                    : [{ productName: d.productName || '', name: d.productName || '' }];
+
+                const countsMap = new Map();
+                items.forEach((it) => {
+                    const name = (it?.productName || it?.name || '').trim();
+                    if (!name) return;
+                    countsMap.set(name, (countsMap.get(name) || 0) + 1);
+                });
+
+                return Array.from(countsMap.entries())
+                    .map(([name, count]) => ({ name, count }))
+                    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+            };
+
+            const renderSummaryBadges = (details, max = 2) => {
+                const grouped = getItemNameCounts(details);
+                if (!grouped || grouped.length === 0) return '';
+
+                const shown = grouped.slice(0, max);
+                const remaining = grouped.length - shown.length;
+
+                const badges = shown.map(g => `
+                    <span class="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black">
+                        <span class="max-w-[220px] truncate">${g.name}</span>
+                        <span class="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black">${g.count}</span>
+                    </span>
+                `).join('');
+
+                const more = remaining > 0
+                    ? `<span class="inline-flex items-center px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-black">+${remaining} อื่นๆ</span>`
+                    : '';
+
+                return `<div class="mt-2 flex flex-wrap gap-1.5">${badges}${more}</div>`;
+            };
+
             if (data.length === 0) {
                 list.innerHTML = `<div class="col-span-full py-20 text-center">
                     <div class="flex flex-col items-center justify-center">
@@ -8725,6 +8868,7 @@
 
             data.forEach(item => {
                 const details = item.details || {};
+                const summaryHtml = renderSummaryBadges(details, 2);
                 let imgUrl = null;
                 if (item.files && item.files.length > 0) {
                     const rawPath = item.files[0];
@@ -8821,6 +8965,7 @@
                             </div>
                             
                             ${itemsListHTML}
+                            ${summaryHtml}
 
                             <div class="flex justify-between items-end mt-3 pt-2 border-t border-slate-50">
                                 <div class="flex flex-col">
@@ -9444,7 +9589,7 @@
                 "ซินเน็ค", "โรสสโตร์", "ดีดีไอทีคอม", "VST", "เอเดพท์", "พีเอ็นไฮเทค",
                 "พี่ตี้", "บิ๊กเซลล์", "คอมเซเว่น", "พี่ตี้ฮาก๊าก", "จ๊ะ ชลธิชา",
                 "วีเอสที", "ดีดีโฟน", "มหานคร", "นัดโต๊ะ", "นภดล", "เสถียรพงษ์",
-                "ตะวัน 2006 จำกัด", "Ck", "จรัญญาภรณ์"
+                "ตะวัน 2006 จำกัด", "Ck", "จรัญญาภรณ์", "XS"
             ])];
 
             if (supplierInput && supplierDropdown) {
