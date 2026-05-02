@@ -3457,7 +3457,9 @@
                 // Expanded keywords for technical staff
                 const isTech = ['เทคนิค', 'technical', 'tech', 'ช่าง'].some(keyword => userDept.toLowerCase().includes(keyword));
 
-                if (isTech || ['admin', 'executive', 'manager'].includes(currentUser.role)) {
+                const isStock = ['stock', 'store', 'สต๊อก'].some(keyword => userDept.toLowerCase().includes(keyword));
+
+                if (isTech || isStock || ['admin', 'executive', 'manager'].includes(currentUser.role)) {
                     stockRequestTechNav.style.display = 'flex';
                     stockRequestTechNav.classList.remove('hidden');
                 } else {
