@@ -319,9 +319,10 @@
         const userDept = currentUserData.department ? currentUserData.department.toLowerCase() : '';
         const isSales = userDept.includes('ขาย') || userDept.includes('sales');
         const isTech = userDept.includes('เทคนิค') || userDept.includes('tech');
+        const isMarketing = userDept.includes('การตลาด') || userDept.includes('marketing');
         
-        if (!isSales && !isTech && !['admin', 'executive', 'manager'].includes(currentUserData.role)) {
-            alert('สิทธิ์การเข้าถึงถูกปฏิเสธ: เฉพาะพนักงานฝ่ายขายและฝ่ายเทคนิคเท่านั้น');
+        if (!isSales && !isTech && !isMarketing && !['admin', 'executive', 'manager'].includes(currentUserData.role)) {
+            alert('สิทธิ์การเข้าถึงถูกปฏิเสธ: เฉพาะพนักงานฝ่ายขาย, ฝ่ายเทคนิค และการตลาดเท่านั้น');
             window.location.href = '/dashboard';
         }
 
@@ -355,9 +356,12 @@
                     const currentUser = JSON.parse(userString);
                     const dept = (currentUser.department || '').toLowerCase();
                     const isTech = dept.includes('เทคนิค') || dept.includes('tech');
+                    const isMarketing = dept.includes('การตลาด') || dept.includes('marketing');
                     
                     if (isTech) {
                         userBranch = 'สำนักงานใหญ่';
+                    } else if (isMarketing) {
+                        userBranch = 'การตลาด';
                     } else {
                         userBranch = currentUser.branch || currentUser.department || 'สำนักงานใหญ่';
                     }

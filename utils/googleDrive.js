@@ -103,7 +103,7 @@ const uploadBufferToDrive = async (buffer, mimeType, fileName, maxRetries = 3) =
                 requestBody: { role: 'reader', type: 'anyone' }
             });
 
-            return `https://drive.google.com/uc?export=view&id=${file.data.id}`;
+            return `https://drive.google.com/thumbnail?id=${file.data.id}&sz=w1000`;
         } catch (error) {
             console.error(`Upload buffer to Drive error (attempt ${attempt + 1}):`, error.message || error);
             

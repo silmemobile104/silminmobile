@@ -86,9 +86,12 @@ exports.getMyBranchStock = async (req, res) => {
         let branch = req.user.branch;
         const userDept = (req.user.department || '').toLowerCase();
         const isTech = userDept.includes('เทคนิค') || userDept.includes('tech');
+        const isMarketing = userDept.includes('การตลาด') || userDept.includes('marketing');
 
         if (isTech) {
             branch = 'สำนักงานใหญ่';
+        } else if (isMarketing) {
+            branch = 'การตลาด';
         }
 
         if (!branch) {
@@ -121,9 +124,12 @@ exports.scanStock = async (req, res) => {
         let branch = req.user.branch;
         const userDept = (req.user.department || '').toLowerCase();
         const isTech = userDept.includes('เทคนิค') || userDept.includes('tech');
+        const isMarketing = userDept.includes('การตลาด') || userDept.includes('marketing');
 
         if (isTech) {
             branch = 'สำนักงานใหญ่';
+        } else if (isMarketing) {
+            branch = 'การตลาด';
         }
 
         if (!productCode) {
