@@ -56,6 +56,9 @@ router.get('/', verifyToken, importController.getImports);
 // Export single import to Excel
 router.get('/:id/export', verifyToken, importController.exportImportToExcel);
 
+// ดึงรายการเดี่ยว
+router.get('/:id', verifyToken, importController.getImportById);
+
 // อัปเดตรายการ (แก้ไข/เพิ่มไฟล์)
 router.put('/:id', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), upload.array('files', 5), importController.updateImport);
 

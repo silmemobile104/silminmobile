@@ -3336,9 +3336,10 @@
             const depositNav = document.getElementById('nav-Storefront_deposit');
             if (depositNav) {
                 const isSalesTeam = userDept.includes('ขาย') || userDept.includes('Sales') || userDept.includes('บัญชี สนง.') || userDept.includes('Account');
+                const isPurchasing = userDept.includes('จัดซื้อ') || userDept.includes('Purchase') || userDept.includes('purchase');
 
-                // แสดงเมนูนี้ถ้าเป็น: ทีมขาย, Admin, Executive, Manager, หรือ HR
-                if (isSalesTeam || ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role)) {
+                // แสดงเมนูนี้ถ้าเป็น: ทีมขาย, ฝ่ายจัดซื้อ, Admin, Executive, Manager, หรือ HR
+                if (isSalesTeam || isPurchasing || ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role)) {
                     depositNav.style.display = 'flex';
                 } else {
                     depositNav.style.display = 'none';
@@ -5889,6 +5890,7 @@
             let currentStockBranch = 'all'; // [New] Branch Filter
             let targetImportId = null;
             let targetImportStatus = null;
+            let allStockImportsData = [];
 
             // Pagination Vars
             let currentStockPage = 1;
@@ -6239,6 +6241,7 @@
                     const responseData = await res.json();
                     // Since we requested limit=9999, 'data' should be all items (or fallback to array)
                     const allItems = Array.isArray(responseData) ? responseData : (responseData.data || []);
+                    allStockImportsData = allItems;
 
                     // 1. Calculate Counts
                     const counts = {
@@ -6868,21 +6871,29 @@
             };
 
             async function findImportItemForEdit(id) {
-                if (Array.isArray(allImportsData) && allImportsData.length > 0) {
+                // 1. Search in stock imports cache first
+                if (typeof allStockImportsData !== 'undefined' && Array.isArray(allStockImportsData) && allStockImportsData.length > 0) {
+                    const cached = allStockImportsData.find(i => i._id === id);
+                    if (cached) return cached;
+                }
+                // 2. Search in branch imports cache
+                if (typeof allImportsData !== 'undefined' && Array.isArray(allImportsData) && allImportsData.length > 0) {
                     const cached = allImportsData.find(i => i._id === id);
                     if (cached) return cached;
                 }
 
-                const token = localStorage.getItem('token');
-                const branch = document.getElementById('import-branch-filter')?.value || '';
-
-                const url = `${SERVER_URL}/imports?type=${currentImportType}&branch=${branch}&status=all&limit=500`;
-                const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-                if (!res.ok) return null;
-
-                const data = await res.json();
-                const allImports = Array.isArray(data) ? data : (data.data || []);
-                return allImports.find(i => i._id === id) || null;
+                // 3. Fallback to direct API fetch
+                try {
+                    const token = localStorage.getItem('token');
+                    const url = `${SERVER_URL}/imports/${id}`;
+                    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                    if (res.ok) {
+                        return await res.json();
+                    }
+                } catch (err) {
+                    console.error('Fetch import by ID error:', err);
+                }
+                return null;
             }
 
             window.openEditPhoneModal = async function (id) {
@@ -6895,6 +6906,28 @@
                     document.getElementById('phone-import-id').value = id;
                     document.getElementById('phone-import-supplier').value = item.details?.supplier || '';
                     document.getElementById('phone-import-description').value = item.details?.description || '';
+
+                    // Populate manual items
+                    const tbody = document.getElementById('phone-items-tbody');
+                    if (tbody) {
+                        tbody.innerHTML = '';
+                        const emptyState = document.getElementById('phone-items-empty');
+                        if (emptyState) {
+                            if (item.details?.items && item.details.items.length > 0) {
+                                emptyState.classList.add('hidden');
+                            } else {
+                                emptyState.classList.remove('hidden');
+                            }
+                        }
+
+                        if (item.details?.items && item.details.items.length > 0) {
+                            item.details.items.forEach(it => {
+                                window.addPhoneItemRow(it.productName || '', it.imei || '');
+                            });
+                        } else {
+                            ensurePhoneHasOneRow();
+                        }
+                    }
 
                     // Reset inputs & previews
                     document.getElementById('phone-import-file').value = '';
@@ -9255,14 +9288,14 @@
             if (tbody.querySelectorAll('tr').length === 0) window.addPhoneItemRow();
         }
 
-        window.addPhoneItemRow = function (initialProductName = '') {
+        window.addPhoneItemRow = function (initialProductName = '', initialImei = '') {
             const emptyState = document.getElementById('phone-items-empty');
             if (emptyState) emptyState.classList.add('hidden');
 
             const tbody = document.getElementById('phone-items-tbody');
             if (!tbody) return;
 
-            const rowId = `phone-row-${Date.now()}`;
+            const rowId = `phone-row-${Date.now() + Math.random()}`;
             const tr = document.createElement('tr');
             tr.id = rowId;
             tr.className = "bg-white border-b border-slate-100";
@@ -9283,7 +9316,7 @@
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <ion-icon name="barcode-outline" class="text-slate-400 group-focus-within:text-indigo-500 transition-colors"></ion-icon>
                             </div>
-                            <input type="text" class="phone-item-imei form-input-theme w-full text-xs !py-2.5 !pl-9 !pr-3" placeholder="สแกน/พิมพ์ IMEI" autocomplete="off" required>
+                            <input type="text" class="phone-item-imei form-input-theme w-full text-xs !py-2.5 !pl-9 !pr-3" placeholder="สแกน/พิมพ์ IMEI" value="${initialImei}" autocomplete="off" required>
                         </div>
                     </div>
                 </td>
@@ -9479,12 +9512,14 @@
 
             if (!supplier) return AppToast.success('กรุณาระบุ Supplier', 'warning');
 
-            // Validate: Must have Input File OR Image OR Manual Items
+            const editId = document.getElementById('phone-import-id').value;
+
+            // Validate: Must have Input File OR Image OR Manual Items (bypass if editing existing request)
             const hasFile = fileInput.files.length > 0;
             const hasImage = imgInput.files.length > 0;
             const hasManual = manualItems.length > 0;
 
-            if (!hasFile && !hasImage && !hasManual) {
+            if (!editId && !hasFile && !hasImage && !hasManual) {
                 return AppToast.success('กรุณาแนบไฟล์ Excel, รูปภาพ หรือระบุรายการสินค้าอย่างน้อย 1 อย่าง', 'warning');
             }
 
@@ -9518,21 +9553,29 @@
                 submitBtn.innerHTML = `<ion-icon name="sync-outline" class="animate-spin text-lg"></ion-icon> กำลังบันทึก...`;
                 submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
 
-                const res = await fetch(`${SERVER_URL}/imports`, {
-                    method: 'POST',
+                // Determine URL and Method based on editId
+                const url = editId ? `${SERVER_URL}/imports/${editId}` : `${SERVER_URL}/imports`;
+                const method = editId ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method: method,
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                     body: formData
                 });
 
                 if (res.ok) {
-                    AppToast.success('บันทึกการแจ้งนำเข้าสำเร็จ!');
+                    AppToast.success(editId ? 'อัปเดตการแจ้งนำเข้าสำเร็จ!' : 'บันทึกการแจ้งนำเข้าสำเร็จ!');
                     closeModal('phoneImportModal');
+                    
+                    // Reset fields
+                    document.getElementById('phone-import-id').value = '';
                     const tbody = document.getElementById('phone-items-tbody');
                     if (tbody) tbody.innerHTML = '';
                     const empty = document.getElementById('phone-items-empty');
                     if (empty) empty.classList.remove('hidden');
 
                     fetchImportRequests();
+                    if (typeof fetchStockImports === 'function') fetchStockImports();
                 } else {
                     const err = await res.json();
                     AppToast.error('Error: ' + (err.message || 'Upload failed'));
@@ -9638,6 +9681,12 @@
         function openPhoneImportModal() {
             const form = document.getElementById('phone-import-form');
             if (form) form.reset();
+
+            const editIdInput = document.getElementById('phone-import-id');
+            if (editIdInput) editIdInput.value = '';
+
+            const existingFiles = document.getElementById('phone-existing-files');
+            if (existingFiles) existingFiles.remove();
 
             const display = document.getElementById('file-name-display');
             if (display) {

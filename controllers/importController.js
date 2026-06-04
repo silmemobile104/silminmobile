@@ -378,8 +378,14 @@ exports.updateImport = async (req, res) => {
 
         const { type, details, supplier, description } = req.body;
 
-        // 1. Keep existing files unchanged on update
-        console.log(`DEBUG: Updating import ${req.params.id}. Keeping existing files unchanged. Existing: ${importRequest.files ? importRequest.files.length : 0}`);
+        // 1. Append newly uploaded files if any
+        if (req.files && req.files.length > 0) {
+            const newFiles = req.files.map(file => file.path);
+            importRequest.files = [...(importRequest.files || []), ...newFiles];
+            console.log(`DEBUG: Appended ${newFiles.length} new files to import request ${req.params.id}. Total files: ${importRequest.files.length}`);
+        } else {
+            console.log(`DEBUG: Updating import ${req.params.id}. Keeping existing files unchanged. Existing: ${importRequest.files ? importRequest.files.length : 0}`);
+        }
 
         // 2. Handle Details
         let parsedDetails = {};
@@ -440,3 +446,27 @@ exports.updateImport = async (req, res) => {
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
+
+// @desc    Get single import request by ID
+// @route   GET /api/imports/:id
+exports.getImportById = async (req, res) => {
+    try {
+        const importRequest = await ImportRequest.findById(req.params.id)
+            .populate('createdBy', 'name');
+
+        if (!importRequest) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        // Verify company ownership
+        if (importRequest.companyId !== req.user.companyId) {
+            return res.status(403).json({ message: 'คุณไม่มีสิทธิ์เข้าถึงรายการนี้' });
+        }
+
+        res.status(200).json(importRequest);
+    } catch (error) {
+        console.error('Get Import By ID Error:', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};
+
