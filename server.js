@@ -20,9 +20,6 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 
-// =======================================================
-// (*** จุดที่ต้องแก้: ใช้ process.cwd() แทน __dirname ***)
-// =======================================================
 // Vercel ต้องการ process.cwd() เพื่อหาโฟลเดอร์ Root ของโปรเจกต์
 const htmlPath = path.join(process.cwd(), 'HTML');
 
@@ -42,6 +39,7 @@ app.use('/api/claims', require('./routes/claimRoutes'));
 app.use('/api/device-claims', require('./routes/deviceClaimRoutes'));
 app.use('/api/logs', require('./routes/logRoutes'));
 app.use('/api/daily-stocks', require('./routes/dailyStockRoutes'));
+app.use('/api/inventory-audit', require('./routes/inventoryAuditRoutes'));
 
 // Serve Uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));

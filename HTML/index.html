@@ -416,6 +416,12 @@
                             class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
                         <span class="font-medium">เช็คสต็อกประจำวัน</span>
                     </a>
+                    <a href="/branch-audit.html" id="nav-branch-audit"
+                        class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group hidden">
+                        <ion-icon name="scan-outline"
+                            class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
+                        <span class="font-medium">ตรวจเช็คสต็อกสาขา (Audit)</span>
+                    </a>
                     <a href="#" onclick="updateNavActiveState('admin')" id="nav-admin"
                         class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group">
                         <ion-icon name="people-outline"
@@ -3584,6 +3590,17 @@
                 } else {
                     navBranchDailyCheck.classList.add('hidden');
                     navBranchDailyCheck.style.display = 'none';
+                }
+            }
+
+            const navBranchAudit = document.getElementById('nav-branch-audit');
+            if (navBranchAudit) {
+                if (['admin', 'executive', 'manager', 'hr'].includes(currentUser.role)) {
+                    navBranchAudit.classList.remove('hidden');
+                    navBranchAudit.style.display = 'flex';
+                } else {
+                    navBranchAudit.classList.add('hidden');
+                    navBranchAudit.style.display = 'none';
                 }
             }
 

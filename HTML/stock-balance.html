@@ -73,6 +73,11 @@
                 <ion-icon name="cube-outline" class="w-5 h-5 mr-3"></ion-icon>
                 สต็อกเครื่องคงเหลือ
             </a>
+            <a href="/branch-audit.html" id="nav-branch-audit"
+                class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all font-medium hidden">
+                <ion-icon name="scan-outline" class="w-5 h-5 mr-3 text-slate-400"></ion-icon>
+                ตรวจเช็คสต็อกสาขา (Audit)
+            </a>
             
             <a href="/dashboard"
                 class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all">
@@ -205,8 +210,23 @@
     <script>
         // Authentication check
         const token = localStorage.getItem('token');
-        if (!token) {
+        const userString = localStorage.getItem('user');
+        if (!token || !userString) {
             window.location.href = '/login.html';
+        }
+
+        const currentUser = JSON.parse(userString);
+
+        // Show/hide Audit menu based on role
+        const navBranchAudit = document.getElementById('nav-branch-audit');
+        if (navBranchAudit) {
+            if (['admin', 'executive', 'manager', 'hr'].includes(currentUser.role)) {
+                navBranchAudit.classList.remove('hidden');
+                navBranchAudit.style.display = 'flex';
+            } else {
+                navBranchAudit.classList.add('hidden');
+                navBranchAudit.style.display = 'none';
+            }
         }
 
         let rawStockData = [];

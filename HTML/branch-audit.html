@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตรวจเช็คสินค้าภายในสาขา (Branch Inventory Audit) - SILMIN MOBILE</title>
+    <link rel="icon" type="image/png" href="/image/icon_silme.png">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS & Frameworks -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', '"Noto Sans Thai"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col md:flex-row relative">
+
+    <!-- Mobile Header -->
+    <div class="md:hidden bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-40 flex justify-between items-center w-full shadow-sm">
+        <button onclick="toggleSidebar()" class="text-slate-600 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+            <ion-icon name="menu-outline" class="text-2xl"></ion-icon>
+        </button>
+        <span class="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+            SILMIN MOBILE
+        </span>
+        <div class="w-8"></div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="w-64 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col shadow-xl md:shadow-sm h-screen fixed md:sticky top-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+        <div class="h-20 flex items-center px-6 border-b border-slate-100 flex-shrink-0 justify-between">
+            <div class="flex items-center">
+                <img src="/image/icon_silme.png" alt="Icon" class="w-8 h-8 mr-3 rounded-lg shadow-sm" />
+                <h1 class="text-lg font-bold text-slate-800 tracking-tight">SILMIN</h1>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-slate-600">
+                <ion-icon name="close" class="text-2xl"></ion-icon>
+            </button>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">ตรวจเช็คสต็อกสาขา</div>
+            <a href="/branch-audit.html"
+                class="flex items-center px-4 py-3 bg-yellow-50 text-yellow-700 rounded-xl transition-all font-medium border border-yellow-100">
+                <ion-icon name="scan-outline" class="w-5 h-5 mr-3 text-yellow-500"></ion-icon>
+                ตรวจเช็คสต็อกสาขา (Audit)
+            </a>
+            <a href="/dashboard"
+                class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all">
+                <ion-icon name="arrow-back-outline" class="w-5 h-5 mr-3 text-slate-400"></ion-icon>
+                กลับหน้าหลัก
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto h-screen">
+        <div class="p-4 md:p-8 max-w-5xl mx-auto">
+            
+            <!-- Header Section -->
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">ตรวจเช็คสินค้าภายในสาขา (Branch Audit)</h2>
+                    <p class="text-slate-500 mt-1">อัปโหลดรายการสินค้าจาก Excel และสแกนบาร์โค้ดนับสต็อกจริง</p>
+                </div>
+                <div class="text-sm font-medium bg-slate-100 text-slate-600 px-4 py-2 rounded-lg" id="user-display">
+                    พนักงาน: กำลังโหลด...
+                </div>
+            </div>
+
+            <!-- STEP 1: Upload File Area -->
+            <div id="upload-panel" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mb-8">
+                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <ion-icon name="cloud-upload-outline" class="text-xl text-yellow-500"></ion-icon>
+                    เริ่มเซสชันการตรวจสอบสต็อกสินค้า
+                </h3>
+                <form id="upload-form" class="space-y-4" onsubmit="handleUpload(event)">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- เลือกสาขา -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">เลือกสาขาที่ตรวจสอบ *</label>
+                            <select id="branch-select" required class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:border-yellow-400 focus:outline-none transition-colors">
+                                <option value="" disabled selected>-- กรุณาเลือกสาขา --</option>
+                                <option value="ยะลา">ยะลา</option>
+                                <option value="นราธิวาส">นราธิวาส</option>
+                                <option value="หาดใหญ่">หาดใหญ่</option>
+                                <option value="บิ๊กซี (หาดใหญ่)">บิ๊กซี (หาดใหญ่)</option>
+                                <option value="ปัตตานี">ปัตตานี</option>
+                                <option value="โคลีเซี่ยม">โคลีเซี่ยม</option>
+                                <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                                <option value="ปากแมว">ปากแมว</option>
+                                <option value="ภูเก็ต">ภูเก็ต</option>
+                                <option value="นคร">นคร</option>
+                                <option value="กระบี่">กระบี่</option>
+                                <option value="เหนือคลอง">เหนือคลอง</option>
+                                <option value="กะทู้">กะทู้</option>
+                                <option value="ตรัง">ตรัง</option>
+                                <option value="คุรุ">คุรุ</option>
+                                <option value="ชุมพร">ชุมพร</option>
+                                <option value="สตูล">สตูล</option>
+                                <option value="พัทลุง">พัทลุง</option>
+                                <option value="สงขลา">สงขลา</option>
+                                <option value="เบตง">เบตง</option>
+                                <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
+                                <option value="การตลาด">การตลาด</option>
+                            </select>
+                        </div>
+                        <!-- เลือกไฟล์ Excel -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">อัปโหลดไฟล์สินค้า Excel/CSV *</label>
+                            <input type="file" id="audit-file" accept=".xlsx, .csv" required class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:border-yellow-400 focus:outline-none transition-colors">
+                        </div>
+                    </div>
+                    <button type="submit" id="btn-upload" class="mt-4 px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2">
+                        <ion-icon name="play-outline"></ion-icon>
+                        <span>เริ่มต้นตรวจสอบ</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- STEP 3: Audit History Area -->
+            <div id="history-panel" class="space-y-8 mt-8">
+                <!-- Branch Audit Summary Stats -->
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <ion-icon name="business-outline" class="text-xl text-yellow-500"></ion-icon>
+                    สรุปผลการเช็คสต็อกแยกตามสาขา (Branch Summary)
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6" id="branch-summary-cards">
+                    <!-- Cards will be injected here dynamically -->
+                </div>
+
+                <!-- History Table Card -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            <ion-icon name="time-outline" class="text-lg text-yellow-500"></ion-icon>
+                            ประวัติผลการตรวจสอบสต็อกทั้งหมด
+                        </h3>
+                    </div>
+                    <div class="overflow-auto max-h-[400px]">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200 sticky top-0 z-10">
+                                    <th class="px-6 py-4 bg-slate-50">สาขา</th>
+                                    <th class="px-6 py-4 bg-slate-50">วันที่ตรวจสอบ</th>
+                                    <th class="px-6 py-4 bg-slate-50">ผู้ตรวจสอบ</th>
+                                    <th class="px-6 py-4 bg-slate-50 text-center">สินค้าทั้งหมด</th>
+                                    <th class="px-6 py-4 bg-slate-50 text-center">ตรง</th>
+                                    <th class="px-6 py-4 bg-slate-50 text-center font-bold text-red-500">ขาด</th>
+                                    <th class="px-6 py-4 bg-slate-50 text-center font-bold text-amber-500">เกิน</th>
+                                    <th class="px-6 py-4 bg-slate-50 text-center font-bold text-orange-500">นอกไฟล์</th>
+                                    <th class="px-6 py-4 bg-slate-50 text-center">การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body" class="divide-y divide-slate-100 text-sm">
+                                <tr>
+                                    <td colspan="9" class="px-6 py-8 text-center text-slate-400 font-medium">กำลังโหลดประวัติการเช็คสต็อก...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Scanning & Verification Area (Hidden initially) -->
+            <div id="scanning-panel" class="hidden">
+                <!-- Stats Summary -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">รายการทั้งหมด</span>
+                        <span class="text-3xl font-extrabold text-slate-800 mt-2" id="stat-total-items">0</span>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">จำนวนสแกนแล้ว</span>
+                        <span class="text-3xl font-extrabold text-blue-600 mt-2" id="stat-total-scanned">0</span>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">ตรงกับระบบ</span>
+                        <span class="text-3xl font-extrabold text-emerald-600 mt-2" id="stat-matched">0</span>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">สต็อกขาด</span>
+                        <span class="text-3xl font-extrabold text-red-500 mt-2" id="stat-missing">0</span>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">สินค้าส่วนเกิน (Extra)</span>
+                        <span class="text-3xl font-extrabold text-amber-500 mt-2" id="stat-extra">0</span>
+                    </div>
+                </div>
+
+                <!-- Barcode Scanning Input -->
+                <div class="bg-slate-900 text-white p-6 rounded-3xl shadow-lg mb-8 relative overflow-hidden">
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 opacity-10 text-9xl pointer-events-none">
+                        <ion-icon name="barcode-outline"></ion-icon>
+                    </div>
+                    <div class="relative z-10 space-y-2">
+                        <label class="block text-sm font-bold text-yellow-400">ช่องสแกนบาร์โค้ด / IMEI (ระบบจะเน้นช่องนี้อัตโนมัติ)</label>
+                        <div class="flex gap-4">
+                            <input type="text" id="barcode-input" placeholder="ยิงสแกนเนอร์บาร์โค้ด หรือพิมพ์ IMEI แล้วกดปุ่ม Enter..."
+                                class="flex-1 px-5 py-4 text-lg bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 focus:bg-white focus:text-slate-900 focus:border-yellow-400 focus:outline-none transition-all font-medium"
+                                autocomplete="off">
+                            <button onclick="processBarcode()" class="px-8 py-4 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-extrabold rounded-2xl shadow-md transition-colors flex items-center gap-2">
+                                <ion-icon name="checkmark-circle-outline" class="text-xl"></ion-icon>
+                                <span>ตกลง</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Split Items Tables Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                    <!-- Left: Remaining Items Table (w-2/3 equivalent on lg screen) -->
+                    <div class="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                        <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                                <ion-icon name="list-outline" class="text-lg text-yellow-500"></ion-icon>
+                                <span>รายการที่ต้องตรวจสอบต่อ (Remaining)</span>
+                                <span id="remaining-count-badge" class="text-xs font-bold px-2.5 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">0</span>
+                            </h3>
+                            <span class="text-xs font-semibold px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full" id="audit-branch-tag">สาขา: ยะลา</span>
+                        </div>
+                        <div class="overflow-auto max-h-[450px]">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200 sticky top-0 z-10">
+                                        <th class="px-6 py-4 bg-slate-50">รหัสสินค้า (IMEI/Barcode)</th>
+                                        <th class="px-6 py-4 bg-slate-50">ชื่อสินค้า</th>
+                                        <th class="px-6 py-4 bg-slate-50 text-center">ระบบ</th>
+                                        <th class="px-6 py-4 bg-slate-50 text-center">สแกนจริง</th>
+                                        <th class="px-6 py-4 bg-slate-50 text-center">สถานะ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="remaining-items-table-body" class="divide-y divide-slate-100 text-sm">
+                                    <!-- Unchecked items go here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right: Completed Items Table (w-1/3 equivalent on lg screen) -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                        <div class="px-6 py-5 border-b border-slate-100 bg-emerald-50/30">
+                            <h3 class="font-bold text-emerald-800 flex items-center gap-2">
+                                <ion-icon name="checkmark-done-outline" class="text-lg text-emerald-500"></ion-icon>
+                                <span>ตรวจสอบเสร็จแล้ว (Checked)</span>
+                                <span id="completed-count-badge" class="text-xs font-bold px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">0</span>
+                            </h3>
+                        </div>
+                        <div class="overflow-auto max-h-[450px]">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200 sticky top-0 z-10">
+                                        <th class="px-4 py-4 bg-slate-50">รหัสสินค้า</th>
+                                        <th class="px-4 py-4 bg-slate-50">ชื่อสินค้า</th>
+                                        <th class="px-4 py-4 bg-slate-50 text-center">สแกนจริง</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="completed-items-table-body" class="divide-y divide-slate-100 text-sm">
+                                    <!-- Fully checked items go here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Extra Items Table -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-amber-50/50">
+                        <h3 class="font-bold text-amber-800 flex items-center gap-2">
+                            <ion-icon name="alert-circle-outline" class="text-lg text-amber-500"></ion-icon>
+                            สินค้าส่วนเกิน / สินค้าไม่ตรงไฟล์ระบบ (Extra Items)
+                        </h3>
+                    </div>
+                    <div class="overflow-auto max-h-[250px]">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200 sticky top-0 z-10">
+                                    <th class="px-6 py-4 bg-slate-50">รหัสสินค้า (IMEI/Barcode)</th>
+                                    <th class="px-6 py-4 bg-slate-50 text-center">สแกนได้จริง</th>
+                                </tr>
+                            </thead>
+                            <tbody id="extra-items-table-body" class="divide-y divide-slate-100 text-sm">
+                                <tr>
+                                    <td colspan="2" class="px-6 py-8 text-center text-slate-400 font-medium">ยังไม่มีสินค้าส่วนเกินในการตรวจสอบนี้</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Form Submit Area -->
+                <div class="flex justify-end gap-4 mb-16">
+                    <button onclick="confirmCancelAudit()" class="px-6 py-3 border border-slate-300 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-colors">
+                        ยกเลิกตรวจสอบ
+                    </button>
+                    <button onclick="submitAuditResult()" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition-colors flex items-center gap-2">
+                        <ion-icon name="save-outline" class="text-lg"></ion-icon>
+                        <span>ยืนยันการตรวจสอบสต็อก</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Custom Scripts -->
+    <script src="/js/api.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        const userString = localStorage.getItem('user');
+
+        if (!token || !userString) {
+            window.location.href = '/';
+        }
+
+        const currentUser = JSON.parse(userString);
+        
+        // Block unauthorized roles
+        if (!['admin', 'executive', 'manager', 'hr'].includes(currentUser.role)) {
+            alert('สิทธิ์การเข้าถึงถูกปฏิเสธ: เฉพาะตำแหน่ง ผู้จัดการ HR และผู้บริหาร เท่านั้น');
+            window.location.href = '/dashboard';
+        }
+        
+        document.getElementById('user-display').textContent = `พนักงาน: ${currentUser.name || currentUser.username}`;
+
+        // โครงสร้างตัวแปรเก็บการตรวจสอบสต็อกปัจจุบัน
+        let activeAuditId = null;
+        let auditBranch = '';
+        let auditItems = [];
+        let extraItems = [];
+        let auditHistoryData = []; // เก็บประวัติการตรวจสอบ
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAuditHistory();
+        });
+
+        // กำหนดโฟกัสช่องบาร์โค้ดตลอดเวลา
+        const barcodeInput = document.getElementById('barcode-input');
+        
+        // ฟังก์ชันช่วยสลับเปิด/ปิด Sidebar บนมือถือ
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        // โฟกัสช่องสแกนอัตโนมัติ
+        function keepFocusOnScanner() {
+            if (activeAuditId && barcodeInput) {
+                barcodeInput.focus();
+            }
+        }
+        
+        document.addEventListener('click', () => {
+            if (activeAuditId) keepFocusOnScanner();
+        });
+
+        // ดัก Event การกดยืนยันบาร์โค้ด
+        if (barcodeInput) {
+            barcodeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    processBarcode();
+                }
+            });
+        }
+
+        // ฟังก์ชันเล่นเสียง Beep ด้วย Web Audio API
+        function playErrorSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.value = 150; // เสียงบัสสำหรับ Error
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.5);
+            } catch (e) {
+                console.error('AudioContext error:', e);
+            }
+        }
+
+        function playSuccessSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 800; // เสียงสูงสั้นๆ
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {
+                console.error('AudioContext error:', e);
+            }
+        }
+
+        // จัดการการส่งอัปโหลดไฟล์และสาขา
+        async function handleUpload(e) {
+            e.preventDefault();
+
+            const branchSelect = document.getElementById('branch-select');
+            const fileInput = document.getElementById('audit-file');
+            
+            if (!branchSelect.value) {
+                Swal.fire({ icon: 'warning', title: 'กรุณาเลือกสาขา', text: 'กรุณาเลือกสาขาที่ต้องการตรวจเช็คสต็อก' });
+                return;
+            }
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'กรุณาอัปโหลดไฟล์', text: 'กรุณาเลือกไฟล์เอกสารสินค้า Excel/CSV' });
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('branch', branchSelect.value);
+            formData.append('file', fileInput.files[0]);
+
+            // เปลี่ยนปุ่มเป็น Loading
+            const btnUpload = document.getElementById('btn-upload');
+            btnUpload.disabled = true;
+            btnUpload.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span> กำลังนำเข้าข้อมูล...`;
+
+            try {
+                const response = await fetchAPI('/api/inventory-audit/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    activeAuditId = data.audit._id;
+                    auditBranch = data.audit.branch;
+                    auditItems = data.audit.items;
+                    extraItems = [];
+
+                    document.getElementById('audit-branch-tag').textContent = `สาขา: ${auditBranch}`;
+                    
+                    // ปรับแสดงหน้าจอ
+                    document.getElementById('upload-panel').classList.add('hidden');
+                    document.getElementById('history-panel').classList.add('hidden'); // ซ่อนประวัติด้วย
+                    document.getElementById('scanning-panel').classList.remove('hidden');
+
+                    renderTables();
+                    updateStats();
+                    
+                    setTimeout(() => {
+                        keepFocusOnScanner();
+                    }, 200);
+
+                    Toastify({ text: "เริ่มต้นการเช็คสต็อกสาขาเรียบร้อย", backgroundColor: "#10b981" }).showToast();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'การนำเข้าไฟล์ผิดพลาด', text: data.message || 'กรุณาลองใหม่อีกครั้ง' });
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ', text: 'ไม่สามารถอัปโหลดไฟล์ได้' });
+            } finally {
+                btnUpload.disabled = false;
+                btnUpload.innerHTML = `<ion-icon name="play-outline"></ion-icon> <span>เริ่มต้นตรวจสอบ</span>`;
+            }
+        }
+
+        // ประมวลผลการยิงบาร์โค้ด
+        function processBarcode() {
+            const code = barcodeInput.value.trim();
+            if (!code) return;
+
+            // ล้าง Input ทันทีเพื่อความลื่นไหลในการสแกน
+            barcodeInput.value = '';
+
+            // ค้นหารหัสสินค้าในรายการหลัก
+            const item = auditItems.find(i => i.productCode === code);
+
+            if (item) {
+                // เคสที่ 1: เจอสินค้าในเอกสารนำเข้า
+                item.scannedQty += 1;
+                
+                // คำนวณสถานะส่วนต่างสินค้าชั่วคราว
+                if (item.scannedQty === item.expectedQty) {
+                    item.status = 'matched';
+                } else if (item.scannedQty < item.expectedQty) {
+                    item.status = 'missing';
+                } else {
+                    item.status = 'excess';
+                }
+
+                playSuccessSound();
+                Toastify({ text: `สแกนสำเร็จ: ${item.productName} (${item.scannedQty}/${item.expectedQty})`, backgroundColor: "#3b82f6", duration: 1500 }).showToast();
+            } else {
+                // เคสที่ 2: ไม่เจอในไฟล์ระบบ (สินค้าส่วนเกิน)
+                const extraItem = extraItems.find(i => i.productCode === code);
+                if (extraItem) {
+                    extraItem.scannedQty += 1;
+                } else {
+                    extraItems.push({
+                        productCode: code,
+                        scannedQty: 1
+                    });
+                }
+
+                playErrorSound();
+                Toastify({ text: `คำเตือน! สินค้าส่วนเกิน (ไม่อยู่ในระบบ): ${code}`, backgroundColor: "#f59e0b", duration: 2500 }).showToast();
+            }
+
+            renderTables();
+            updateStats();
+            keepFocusOnScanner();
+        }
+
+        // คำนวณสรุปสถิติด้านบน
+        function updateStats() {
+            document.getElementById('stat-total-items').textContent = auditItems.length;
+            
+            const totalScanned = auditItems.reduce((sum, i) => sum + i.scannedQty, 0) + extraItems.reduce((sum, i) => sum + i.scannedQty, 0);
+            document.getElementById('stat-total-scanned').textContent = totalScanned;
+
+            const matched = auditItems.filter(i => i.scannedQty === i.expectedQty).length;
+            document.getElementById('stat-matched').textContent = matched;
+
+            const missing = auditItems.filter(i => i.scannedQty < i.expectedQty).length;
+            document.getElementById('stat-missing').textContent = missing;
+
+            const extraCount = extraItems.reduce((sum, i) => sum + i.scannedQty, 0);
+            document.getElementById('stat-extra').textContent = extraCount;
+        }
+
+        // วาดตารางข้อมูลแยกตารางตรวจสอบและตารางสแกนเสร็จสิ้น
+        function renderTables() {
+            // 1. ตารางรายการสินค้าที่ต้องสแกนต่อ (Remaining Items)
+            const remainingBody = document.getElementById('remaining-items-table-body');
+            remainingBody.innerHTML = '';
+            
+            const remaining = auditItems.filter(item => item.scannedQty < item.expectedQty);
+
+            // อัปเดตจำนวนรายการใน Badge
+            const remainingCountBadge = document.getElementById('remaining-count-badge');
+            if (remainingCountBadge) {
+                remainingCountBadge.textContent = remaining.length;
+            }
+
+            if (remaining.length === 0) {
+                remainingBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-emerald-600 font-bold bg-emerald-50/30">
+                            🎉 ยอดเยี่ยม! ตรวจสอบครบตามเอกสารนำเข้าเรียบร้อยแล้ว
+                        </td>
+                    </tr>
+                `;
+            } else {
+                remaining.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-mono font-bold text-slate-700">${item.productCode}</td>
+                        <td class="px-6 py-4">${item.productName}</td>
+                        <td class="px-6 py-4 text-center font-bold text-slate-500">${item.expectedQty}</td>
+                        <td class="px-6 py-4 text-center font-extrabold text-blue-600">${item.scannedQty}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex px-2 py-1 text-xs font-bold bg-rose-100 text-rose-800 rounded-full">ขาดอีก ${item.expectedQty - item.scannedQty} ชิ้น</span>
+                        </td>
+                    `;
+                    remainingBody.appendChild(tr);
+                });
+            }
+
+            // 2. ตารางรายการสินค้าที่ตรวจสอบเสร็จแล้ว (Completed Items)
+            const completedBody = document.getElementById('completed-items-table-body');
+            completedBody.innerHTML = '';
+
+            const completed = auditItems.filter(item => item.scannedQty >= item.expectedQty);
+
+            // อัปเดตจำนวนรายการใน Badge
+            const completedCountBadge = document.getElementById('completed-count-badge');
+            if (completedCountBadge) {
+                completedCountBadge.textContent = completed.length;
+            }
+
+            if (completed.length === 0) {
+                completedBody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="px-4 py-8 text-center text-slate-400 font-medium">ยังไม่มีสินค้าที่ตรวจสอบเสร็จ</td>
+                    </tr>
+                `;
+            } else {
+                completed.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = item.scannedQty > item.expectedQty ? 'bg-amber-50/50 hover:bg-amber-100/50 font-medium' : 'bg-emerald-50/30 hover:bg-emerald-50/50 font-medium';
+                    tr.innerHTML = `
+                        <td class="px-4 py-4 font-mono text-xs font-bold text-slate-700">${item.productCode}</td>
+                        <td class="px-4 py-4 text-xs max-w-[120px] truncate" title="${item.productName}">${item.productName}</td>
+                        <td class="px-4 py-4 text-center font-bold text-xs ${item.scannedQty > item.expectedQty ? 'text-amber-600' : 'text-emerald-600'}">${item.scannedQty} / ${item.expectedQty}</td>
+                    `;
+                    completedBody.appendChild(tr);
+                });
+            }
+
+            // 3. ตารางสินค้าส่วนเกิน (Extra Items)
+            const extraTableBody = document.getElementById('extra-items-table-body');
+            extraTableBody.innerHTML = '';
+
+            if (extraItems.length === 0) {
+                extraTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="2" class="px-6 py-8 text-center text-slate-400 font-medium">ยังไม่มีสินค้าส่วนเกินในการตรวจสอบนี้</td>
+                    </tr>
+                `;
+            } else {
+                extraItems.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'bg-red-50/30 hover:bg-red-50/50 transition-colors font-medium';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-mono font-bold text-amber-800">${item.productCode}</td>
+                        <td class="px-6 py-4 text-center font-extrabold text-amber-700">${item.scannedQty}</td>
+                    `;
+                    extraTableBody.appendChild(tr);
+                });
+            }
+        }
+
+        // ยกเลิกเซสชัน
+        function confirmCancelAudit() {
+            Swal.fire({
+                title: 'ยืนยันการยกเลิกตรวจสอบ?',
+                text: "ข้อมูลผลการสแกนปัจจุบันทั้งหมดจะสูญหายและไม่บันทึกเข้าระบบ",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'ยืนยันยกเลิก',
+                cancelButtonText: 'ย้อนกลับ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    location.reload();
+                }
+            });
+        }
+
+        // ส่งบันทึกผลตรวจสอบสต็อกไปยังหลังบ้าน
+        async function submitAuditResult() {
+            const totalMissing = auditItems.filter(i => i.scannedQty < i.expectedQty).length;
+            const totalExcess = auditItems.filter(i => i.scannedQty > i.expectedQty).length;
+            const totalExtra = extraItems.length;
+
+            let confirmText = `การตรวจเช็คสต็อกตรงกับระบบสมบูรณ์`;
+            if (totalMissing > 0 || totalExcess > 0 || totalExtra > 0) {
+                confirmText = `พบรายการสินค้าที่มีส่วนต่าง: สต็อกขาด ${totalMissing} รายการ, เกิน ${totalExcess} รายการ, สินค้าเกินนอกระบบ (Extra) ${totalExtra} รายการ`;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันปิดผลการเช็คสต็อก?',
+                text: confirmText,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'บันทึกสำเร็จ',
+                cancelButtonText: 'ตรวจเช็คต่อ'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'กำลังบันทึกผล...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    try {
+                        const response = await fetchAPI('/api/inventory-audit/save', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                id: activeAuditId,
+                                items: auditItems.map(i => ({ productCode: i.productCode, scannedQty: i.scannedQty })),
+                                extraItems: extraItems
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            await Swal.fire({
+                                icon: 'success',
+                                title: 'บันทึกสำเร็จ!',
+                                text: 'ได้จัดส่งผลลัพธ์การตรวจสอบสต็อกสาขาเรียบร้อยแล้ว',
+                                confirmButtonText: 'ตกลง'
+                            });
+                            location.reload(); // รีเซ็ตเพื่อขึ้นรายการใหม่
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'บันทึกล้มเหลว', text: data.message || 'เกิดข้อผิดพลาดในการบันทึก' });
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดการสื่อสาร', text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์เพื่อบันทึกผลลัพธ์ได้' });
+                    }
+                }
+            });
+        }
+
+        // =======================================================
+        // ประวัติการตรวจสอบสต็อกย้อนหลัง (Audit History Logic)
+        // =======================================================
+
+        async function loadAuditHistory() {
+            try {
+                const response = await fetchAPI('/api/inventory-audit/history');
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    auditHistoryData = data.history;
+                    renderHistoryTable();
+                    renderBranchSummary();
+                } else {
+                    console.error('Failed to load history:', data.message);
+                }
+            } catch (err) {
+                console.error('Error fetching history:', err);
+            }
+        }
+
+        function renderHistoryTable() {
+            const tableBody = document.getElementById('history-table-body');
+            tableBody.innerHTML = '';
+
+            const completedAudits = auditHistoryData.filter(a => a.status === 'completed');
+
+            if (completedAudits.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-6 py-8 text-center text-slate-400 font-medium">ยังไม่มีประวัติการเช็คสต็อกสินค้าในระบบ</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            completedAudits.forEach((audit) => {
+                const date = new Date(audit.auditDate || audit.updatedAt);
+                const dateStr = date.toLocaleDateString('th-TH') + ' ' + date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                
+                const totalItems = audit.items.length;
+                const matched = audit.items.filter(i => i.scannedQty === i.expectedQty).length;
+                const missing = audit.items.filter(i => i.scannedQty < i.expectedQty).length;
+                const excess = audit.items.filter(i => i.scannedQty > i.expectedQty).length;
+                const extra = audit.extraItems ? audit.extraItems.reduce((sum, i) => sum + i.scannedQty, 0) : 0;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-bold text-slate-800">${audit.branch}</td>
+                    <td class="px-6 py-4 text-slate-500">${dateStr} น.</td>
+                    <td class="px-6 py-4 text-slate-600">${audit.auditedBy ? (audit.auditedBy.name || audit.auditedBy.username) : 'ไม่ระบุ'}</td>
+                    <td class="px-6 py-4 text-center font-bold text-slate-700">${totalItems}</td>
+                    <td class="px-6 py-4 text-center font-bold text-emerald-600">${matched}</td>
+                    <td class="px-6 py-4 text-center font-bold ${missing > 0 ? 'text-rose-500' : 'text-slate-400'}">${missing}</td>
+                    <td class="px-6 py-4 text-center font-bold ${excess > 0 ? 'text-amber-500' : 'text-slate-400'}">${excess}</td>
+                    <td class="px-6 py-4 text-center font-bold ${extra > 0 ? 'text-orange-500' : 'text-slate-400'}">${extra}</td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="showAuditDetails('${audit._id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors flex items-center justify-center gap-1 mx-auto">
+                            <ion-icon name="eye-outline"></ion-icon>
+                            <span>รายละเอียด</span>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function renderBranchSummary() {
+            const container = document.getElementById('branch-summary-cards');
+            container.innerHTML = '';
+
+            const completedAudits = auditHistoryData.filter(a => a.status === 'completed');
+
+            const summaryMap = {};
+            completedAudits.forEach(audit => {
+                const b = audit.branch;
+                if (!summaryMap[b]) {
+                    summaryMap[b] = {
+                        branchName: b,
+                        count: 0,
+                        lastAuditDate: audit.auditDate || audit.updatedAt,
+                        lastAuditResult: {
+                            matched: audit.items.filter(i => i.scannedQty === i.expectedQty).length,
+                            missing: audit.items.filter(i => i.scannedQty < i.expectedQty).length,
+                            excess: audit.items.filter(i => i.scannedQty > i.expectedQty).length
+                        }
+                    };
+                }
+                summaryMap[b].count += 1;
+            });
+
+            const summaryList = Object.values(summaryMap);
+
+            if (summaryList.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-slate-100 text-slate-500 p-6 rounded-2xl text-center font-medium">
+                        ยังไม่มีข้อมูลการสรุปผลรายสาขา
+                    </div>
+                `;
+                return;
+            }
+
+            summaryList.forEach(summary => {
+                const lastDate = new Date(summary.lastAuditDate);
+                const lastDateStr = lastDate.toLocaleDateString('th-TH');
+
+                const card = document.createElement('div');
+                card.className = 'bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col relative overflow-hidden group hover:shadow-md transition-shadow';
+                card.innerHTML = `
+                    <div class="absolute -right-4 -bottom-4 text-slate-100/50 text-6xl group-hover:scale-110 transition-transform">
+                        <ion-icon name="storefront-outline"></ion-icon>
+                    </div>
+                    <div class="relative z-10 flex flex-col h-full justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">ชื่อสาขา</span>
+                            <h4 class="text-xl font-extrabold text-slate-800 mt-1">${summary.branchName}</h4>
+                        </div>
+                        <div class="mt-6 space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-slate-500">จำนวนการเช็คสะสม:</span>
+                                <span class="font-bold text-slate-800">${summary.count} ครั้ง</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-slate-500">เช็คล่าสุดเมื่อ:</span>
+                                <span class="font-bold text-slate-800">${lastDateStr}</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between gap-1 text-[11px] font-bold text-center">
+                            <span class="flex-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg">ตรง: ${summary.lastAuditResult.matched}</span>
+                            <span class="flex-1 bg-rose-50 text-rose-700 px-2 py-1 rounded-lg">ขาด: ${summary.lastAuditResult.missing}</span>
+                            <span class="flex-1 bg-amber-50 text-amber-700 px-2 py-1 rounded-lg">เกิน: ${summary.lastAuditResult.excess}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function showAuditDetails(auditId) {
+            const audit = auditHistoryData.find(a => a._id === auditId);
+            if (!audit) return;
+
+            document.getElementById('modal-title').textContent = `รายละเอียดการเช็คสต็อก: ${audit.branch}`;
+            
+            const date = new Date(audit.auditDate || audit.updatedAt);
+            const dateStr = date.toLocaleDateString('th-TH') + ' ' + date.toLocaleTimeString('th-TH') + ' น.';
+            document.getElementById('modal-subtitle').textContent = `เมื่อ ${dateStr} | ผู้ตรวจสอบ: ${audit.auditedBy ? (audit.auditedBy.name || audit.auditedBy.username) : 'ไม่ระบุ'}`;
+
+            const totalItems = audit.items.length;
+            const matched = audit.items.filter(i => i.scannedQty === i.expectedQty).length;
+            const missing = audit.items.filter(i => i.scannedQty < i.expectedQty).length;
+            const excess = audit.items.filter(i => i.scannedQty > i.expectedQty).length;
+            const extra = audit.extraItems ? audit.extraItems.reduce((sum, i) => sum + i.scannedQty, 0) : 0;
+
+            const modalStats = document.getElementById('modal-stats');
+            modalStats.innerHTML = `
+                <div class="bg-slate-50 p-4 rounded-xl text-center">
+                    <div class="text-slate-400 text-xs font-bold uppercase">ทั้งหมด</div>
+                    <div class="text-xl font-bold text-slate-800 mt-1">${totalItems}</div>
+                </div>
+                <div class="bg-emerald-50 p-4 rounded-xl text-center">
+                    <div class="text-emerald-500 text-xs font-bold uppercase">ตรงกัน</div>
+                    <div class="text-xl font-bold text-emerald-600 mt-1">${matched}</div>
+                </div>
+                <div class="bg-rose-50 p-4 rounded-xl text-center">
+                    <div class="text-rose-500 text-xs font-bold uppercase">สินค้าขาด</div>
+                    <div class="text-xl font-bold text-rose-600 mt-1">${missing}</div>
+                </div>
+                <div class="bg-amber-50 p-4 rounded-xl text-center">
+                    <div class="text-amber-500 text-xs font-bold uppercase">สินค้าเกิน</div>
+                    <div class="text-xl font-bold text-amber-600 mt-1">${excess}</div>
+                </div>
+            `;
+
+            const modalItemsBody = document.getElementById('modal-items-body');
+            modalItemsBody.innerHTML = '';
+            audit.items.forEach(item => {
+                const tr = document.createElement('tr');
+                if (item.scannedQty === item.expectedQty) {
+                    tr.className = 'bg-emerald-50/20';
+                } else if (item.scannedQty > item.expectedQty) {
+                    tr.className = 'bg-amber-50/20';
+                } else {
+                    tr.className = 'bg-rose-50/10';
+                }
+                
+                let statusBadge = '';
+                if (item.scannedQty === item.expectedQty) {
+                    statusBadge = `<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-xs font-bold">ตรงจำนวน</span>`;
+                } else if (item.scannedQty < item.expectedQty) {
+                    statusBadge = `<span class="text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full text-xs font-bold">ขาดอีก ${item.expectedQty - item.scannedQty}</span>`;
+                } else {
+                    statusBadge = `<span class="text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full text-xs font-bold">เกินมา ${item.scannedQty - item.expectedQty}</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-mono font-bold text-slate-700">${item.productCode}</td>
+                    <td class="px-4 py-3">${item.productName}</td>
+                    <td class="px-4 py-3 text-center font-bold">${item.expectedQty}</td>
+                    <td class="px-4 py-3 text-center font-extrabold text-slate-800">${item.scannedQty}</td>
+                    <td class="px-4 py-3 text-center">${statusBadge}</td>
+                `;
+                modalItemsBody.appendChild(tr);
+            });
+
+            const modalExtraSection = document.getElementById('modal-extra-section');
+            const modalExtraBody = document.getElementById('modal-extra-items-body');
+            modalExtraBody.innerHTML = '';
+
+            if (audit.extraItems && audit.extraItems.length > 0) {
+                modalExtraSection.classList.remove('hidden');
+                audit.extraItems.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'bg-amber-50/10';
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-mono font-bold text-amber-800">${item.productCode}</td>
+                        <td class="px-4 py-3 text-center font-extrabold text-amber-700">${item.scannedQty}</td>
+                    `;
+                    modalExtraBody.appendChild(tr);
+                });
+            } else {
+                modalExtraSection.classList.add('hidden');
+            }
+
+            const modal = document.getElementById('detail-modal');
+            modal.classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            const modal = document.getElementById('detail-modal');
+            modal.classList.add('hidden');
+        }
+    </script>
+
+    <!-- Detail Modal -->
+    <div id="detail-modal" class="fixed inset-0 bg-slate-900/50 z-50 hidden backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-xl border border-slate-200 max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg" id="modal-title">รายละเอียดผลการตรวจสอบ</h3>
+                    <p class="text-slate-500 text-xs mt-0.5" id="modal-subtitle">ข้อมูลการตรวจสอบสต็อก</p>
+                </div>
+                <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                    <ion-icon name="close-outline" class="text-2xl"></ion-icon>
+                </button>
+            </div>
+            <!-- Modal Content (Scrollable) -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <!-- Summary Stats -->
+                <div class="grid grid-cols-4 gap-4" id="modal-stats">
+                    <!-- Stats injected here -->
+                </div>
+
+                <div class="border border-slate-200 rounded-2xl overflow-auto max-h-[350px]">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 text-slate-500 text-xs font-bold uppercase border-b border-slate-200 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-4 py-3 bg-slate-50">รหัสสินค้า</th>
+                                <th class="px-4 py-3 bg-slate-50">ชื่อสินค้า</th>
+                                <th class="px-4 py-3 bg-slate-50 text-center">ระบบ</th>
+                                <th class="px-4 py-3 bg-slate-50 text-center">สแกนจริง</th>
+                                <th class="px-4 py-3 bg-slate-50 text-center">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-items-body" class="divide-y divide-slate-100">
+                            <!-- Rows injected here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Extra Items Table -->
+                <div id="modal-extra-section" class="space-y-2 hidden">
+                    <h4 class="font-bold text-amber-800 text-sm flex items-center gap-1">
+                        <ion-icon name="alert-circle-outline" class="text-lg"></ion-icon>
+                        สินค้าส่วนเกินนอกไฟล์ระบบ (Extra Items)
+                    </h4>
+                    <div class="border border-slate-200 rounded-2xl overflow-auto max-h-[250px]">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-xs font-bold uppercase border-b border-slate-200 sticky top-0 z-10">
+                                <tr>
+                                    <th class="px-4 py-3 bg-slate-50">รหัสสินค้า</th>
+                                    <th class="px-4 py-3 bg-slate-50 text-center">สแกนได้จริง</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-extra-items-body" class="divide-y divide-slate-100">
+                                <!-- Extra rows injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                <button onclick="closeDetailModal()" class="px-5 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-colors">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
