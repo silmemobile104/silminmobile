@@ -659,6 +659,8 @@
                                     <option value="พัทลุง">พัทลุง</option>
                                     <option value="สงขลา">สงขลา</option>
                                     <option value="เบตง">เบตง</option>
+                                    <option value="พังงา">พังงา</option>
+                                    <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
                                 </select>
                             </div>
                             <div id="filter-status-container">
@@ -789,6 +791,8 @@
                                     <option value="พัทลุง">พัทลุง</option>
                                     <option value="สงขลา">สงขลา</option>
                                     <option value="เบตง">เบตง</option>
+                                    <option value="พังงา">พังงา</option>
+                                    <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
                                 </select>
                             </div>
                             <button onclick="fetchPurchasingOrders()"
@@ -1012,6 +1016,8 @@
                                         <option value="พัทลุง">พัทลุง</option>
                                         <option value="สงขลา">สงขลา</option>
                                         <option value="เบตง">เบตง</option>
+                                        <option value="พังงา">พังงา</option>
+                                        <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
                                     </select>
                                     <div
                                         class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
@@ -1260,6 +1266,8 @@
                                     <option value="พัทลุง">พัทลุง</option>
                                     <option value="สงขลา">สงขลา</option>
                                     <option value="เบตง">เบตง</option>
+                                    <option value="พังงา">พังงา</option>
+                                    <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
                                 </select>
                                 <ion-icon name="chevron-down-outline"
                                     class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs"></ion-icon>
@@ -1353,6 +1361,8 @@
                                     <option value="พัทลุง">พัทลุง</option>
                                     <option value="สงขลา">สงขลา</option>
                                     <option value="เบตง">เบตง</option>
+                                    <option value="พังงา">พังงา</option>
+                                    <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
                                 </select>
                                 <ion-icon name="chevron-down"
                                     class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs"></ion-icon>
@@ -2489,6 +2499,8 @@
                                         <option value="พัทลุง">พัทลุง</option>
                                         <option value="สงขลา">สงขลา</option>
                                         <option value="เบตง">เบตง</option>
+                                        <option value="พังงา">พังงา</option>
+                                        <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
                                     </select>
                                     <div
                                         class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
@@ -5424,7 +5436,7 @@
         };
 
         const populateBranchSelects = () => {
-            const branches = ['ยะลา', 'นราธิวาส', 'ปัตตานี', 'หาดใหญ่', 'บิ๊กซี (หาดใหญ่)', 'โคลีเซี่ยม', 'สุราษฎร์ธานี', 'ปากแมว', 'ภูเก็ต', 'นคร', 'กระบี่', 'เหนือคลอง', 'กะทู้', 'ตรัง', 'คุรุ', 'ชุมพร', 'สตูล', 'พัทลุง', 'สงขลา', 'เบตง'];
+            const branches = ['ยะลา', 'นราธิวาส', 'ปัตตานี', 'หาดใหญ่', 'บิ๊กซี (หาดใหญ่)', 'โคลีเซี่ยม', 'สุราษฎร์ธานี', 'ปากแมว', 'ภูเก็ต', 'นคร', 'กระบี่', 'เหนือคลอง', 'กะทู้', 'ตรัง', 'คุรุ', 'ชุมพร', 'สตูล', 'พัทลุง', 'สงขลา', 'เบตง','พังงา', 'ฝ่ายเทคนิค สนง.', 'สำนักงานใหญ่'];
             const selects = ['deposit-filter-branch', 'purchasing-filter-branch', 'manage-request-branch-filter', 'stock-request-branch-filter', 'import-branch-filter', 'stock-import-branch-filter'];
 
             selects.forEach(id => {
