@@ -72,7 +72,8 @@ exports.saveDeposit = async (req, res) => {
             id, depositDate, customerName, phoneNumber, depositAmount, pickupDueDate,
             billNo, imei, product, price, isSuccess, isCanceled,
             // รับค่าใหม่
-            orderStatus, orderNote, expectedArrivalDate
+            orderStatus, orderNote, expectedArrivalDate,
+            operationStep
         } = req.body;
 
         if (id) {
@@ -86,17 +87,19 @@ exports.saveDeposit = async (req, res) => {
             deposit.phoneNumber = phoneNumber;
             deposit.depositAmount = depositAmount;
             deposit.pickupDueDate = pickupDueDate;
+            deposit.operationStep = operationStep;
             deposit.billNo = billNo;
             deposit.imei = imei;
             deposit.product = product;
             deposit.price = price;
             deposit.isCanceled = !!isCanceled;
             deposit.isSuccess = deposit.isCanceled ? false : !!isSuccess;
+            deposit.operationStep = deposit.isSuccess ? 'สำเร็จ' : (deposit.isCanceled ? 'ยกเลิก' : operationStep);
 
             // อัปเดตข้อมูลจัดซื้อ (ถ้าส่งมา)
             if (orderStatus) deposit.orderStatus = orderStatus;
             if (orderNote !== undefined) deposit.orderNote = orderNote;
-            if (expectedArrivalDate !== undefined) deposit.expectedArrivalDate = expectedArrivalDate;
+            if (expectedArrivalDate !== undefined) deposit.expectedArrivalDate = expectedArrivalDate || null;
 
             if (deposit.isSuccess && !deposit.signName) deposit.signName = req.user.name;
 
@@ -105,18 +108,20 @@ exports.saveDeposit = async (req, res) => {
             return res.status(200).json(deposit);
         } else {
             // --- สร้างใหม่ ---
+            const isSuccessVal = (!!isCanceled) ? false : !!isSuccess;
             const newDeposit = new Deposit({
                 companyId: req.user.companyId,
                 branch: req.user.branch || req.user.department,
                 depositDate, customerName, phoneNumber, depositAmount, pickupDueDate,
+                operationStep: isSuccessVal ? 'สำเร็จ' : (!!isCanceled ? 'ยกเลิก' : operationStep),
                 billNo, imei, product, price,
                 isCanceled: !!isCanceled,
-                isSuccess: (!!isCanceled) ? false : !!isSuccess,
+                isSuccess: isSuccessVal,
                 signName: '',
                 // ค่าเริ่มต้น
                 orderStatus: 'pending',
                 orderNote: '',
-                expectedArrivalDate: null
+                expectedArrivalDate: expectedArrivalDate || null
             });
             await newDeposit.save();
             await logActivity(req, 'CREATE', 'Deposit', `บันทึกมัดจำใหม่: ${newDeposit.customerName} (${newDeposit.product})`, { id: newDeposit._id, product: newDeposit.product, customerName: newDeposit.customerName, depositAmount: newDeposit.depositAmount });

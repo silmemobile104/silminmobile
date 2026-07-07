@@ -12,6 +12,11 @@ const DepositSchema = new Schema({
     phoneNumber: { type: String, required: true },
     depositAmount: { type: Number, required: true },
     pickupDueDate: { type: Date },
+    operationStep: {
+        type: String,
+        enum: ['รอโอนย้ายจากสาขาอื่น', 'รอฝ่ายจัดซื้อสั่งสินค้า', 'รอจัดส่งจากSupplier', 'รอลูกค้ามารับเครื่อง', 'สำเร็จ', 'ยกเลิก'],
+        default: 'รอลูกค้ามารับเครื่อง'
+    },
 
     // --- ฝั่งขวา: รับเครื่องแล้ว ---
     billNo: { type: String, default: '' },
