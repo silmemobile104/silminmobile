@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เช็คสต็อกอุปกรณ์เสริมประจำสาขา (Accessory Branch Task) - SILMIN MOBILE</title>
+    <link rel="icon" type="image/png" href="/image/icon_silme.png">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS & Frameworks -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', '"Noto Sans Thai"', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col md:flex-row relative">
+
+    <!-- Mobile Header -->
+    <div class="md:hidden bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-40 flex justify-between items-center w-full shadow-sm">
+        <button onclick="toggleSidebar()" class="text-slate-600 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+            <ion-icon name="menu-outline" class="text-2xl"></ion-icon>
+        </button>
+        <span class="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+            SILMIN MOBILE
+        </span>
+        <div class="w-8"></div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="w-64 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col shadow-xl md:shadow-sm h-screen fixed md:sticky top-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+        <div class="h-20 flex items-center px-6 border-b border-slate-100 flex-shrink-0 justify-between">
+            <div class="flex items-center">
+                <img src="/image/icon_silme.png" alt="Icon" class="w-8 h-8 mr-3 rounded-lg shadow-sm" />
+                <h1 class="text-lg font-bold text-slate-800 tracking-tight">SILMIN</h1>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-slate-600">
+                <ion-icon name="close" class="text-2xl"></ion-icon>
+            </button>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">ตรวจนับอุปกรณ์เสริม</div>
+            <a href="/branch-daily-check.html"
+                class="flex items-center px-4 py-3 rounded-xl transition-all font-medium border border-yellow-100">
+                <ion-icon name="barcode-outline" class="w-5 h-5 mr-3"></ion-icon>
+                เช็คสต็อกประจำวัน
+            </a>
+            <a href="/accessory-branch.html"
+                class="flex items-center px-4 py-3 bg-yellow-50 text-yellow-700 rounded-xl transition-all font-medium border border-yellow-100">
+                <ion-icon name="scan-outline" class="w-5 h-5 mr-3 text-yellow-500"></ion-icon>
+                ตรวจนับอุปกรณ์เสริม
+            </a>
+            <a href="/dashboard"
+                class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all">
+                <ion-icon name="arrow-back-outline" class="w-5 h-5 mr-3 text-slate-400"></ion-icon>
+                กลับหน้าหลัก
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto h-screen">
+        <div class="p-4 md:p-8 max-w-4xl mx-auto">
+            
+            <!-- Header Section -->
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+                <div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h2 class="text-2xl font-bold text-slate-800">ตรวจเช็คสต็อกอุปกรณ์เสริมประจำสาขา</h2>
+                        <span id="autosave-status" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 hidden transition-all duration-300"></span>
+                    </div>
+                    <p class="text-slate-500 mt-1" id="branch-info-text">สาขา: กำลังโหลด...</p>
+                </div>
+                <div class="text-sm font-medium bg-slate-100 text-slate-600 px-4 py-2 rounded-lg" id="user-display">
+                    พนักงาน: กำลังโหลด...
+                </div>
+            </div>
+
+            <!-- Empty / Warning Alert -->
+            <div id="no-task-alert" class="hidden bg-amber-50 border border-amber-200 text-amber-800 p-8 rounded-3xl text-center shadow-sm">
+                <div class="text-5xl text-amber-500 mb-4">
+                    <ion-icon name="alert-circle-outline"></ion-icon>
+                </div>
+                <h3 class="text-xl font-bold mb-2">ยังไม่มีการเปิดรอบเช็คสต็อกสำหรับวันนี้</h3>
+                <p class="text-sm text-amber-700">ฝ่ายคลังสต็อกส่วนกลางยังไม่ได้เปิดรอบตรวจสอบสินค้าอุปกรณ์เสริมสำหรับวันนี้ กรุณาติดต่อทีมแอดมินหรือรอการแจ้งเตือน</p>
+            </div>
+
+            <!-- Active Check Task Form -->
+            <div id="active-task-container" class="hidden space-y-6">
+                <!-- Info Status Bar -->
+                <div class="bg-white p-5 border border-slate-200 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                            <ion-icon name="calendar-outline"></ion-icon>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 font-bold uppercase">รอบประจำวันที่</span>
+                            <h4 class="font-bold text-slate-800" id="task-date-text">-</h4>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="task-status-badge" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold">
+                            <!-- Injected dynamically -->
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Checked Alert Banner if Completed -->
+                <div id="completed-alert-banner" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center gap-3">
+                    <ion-icon name="checkmark-done-circle" class="text-2xl text-emerald-600"></ion-icon>
+                    <span class="text-sm font-semibold">คุณได้ทำการส่งข้อมูลและตรวจเช็คสต็อกของวันนี้เรียบร้อยแล้ว ไม่สามารถส่งข้อมูลเพิ่มเติมได้อีก</span>
+                </div>
+
+                <!-- Submitted Alert Banner -->
+                <div id="submitted-alert-banner" class="hidden bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-2xl flex items-center gap-3">
+                    <ion-icon name="time-outline" class="text-2xl text-blue-600"></ion-icon>
+                    <span class="text-sm font-semibold">ส่งผลนับสต็อกอุปกรณ์เสริมแล้ว รอฝ่ายสต็อกส่วนกลางตรวจสอบความถูกต้อง</span>
+                </div>
+
+                <!-- Recheck Warning Banner if Rejected -->
+                <div id="recheck-alert-banner" class="hidden bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-2xl flex items-center gap-3 animate-pulse">
+                    <ion-icon name="alert-circle" class="text-2xl text-rose-600"></ion-icon>
+                    <span class="text-sm font-bold">ฝ่ายสต็อกแจ้งส่งกลับเพื่อตรวจสอบเพิ่มเติม: กรุณาตรวจนับสินค้าใหม่อีกครั้งเพื่อความถูกต้องและกดยืนยันส่งผล</span>
+                </div>
+
+                <!-- Items Table Card -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            <ion-icon name="list-outline" class="text-lg text-yellow-500"></ion-icon>
+                            รายการสินค้าอุปกรณ์เสริมที่ต้องตรวจนับ
+                        </h3>
+                    </div>
+                    <div class="overflow-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-xs font-bold uppercase border-b border-slate-200">
+                                    <th class="px-6 py-4">รหัสสินค้า</th>
+                                    <th class="px-6 py-4">ชื่อสินค้า</th>
+                                    <th class="px-6 py-4 text-center" style="width: 140px;">จำนวนที่นับได้จริง *</th>
+                                    <th class="px-6 py-4" style="width: 200px;">หมายเหตุ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="items-table-body" class="divide-y divide-slate-100 text-sm">
+                                <!-- Table rows injected dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Submit Button Block -->
+                <div id="submit-block" class="flex justify-end gap-4">
+                    <button onclick="submitCounts()" id="btn-submit" class="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md transition-colors flex items-center gap-2">
+                        <ion-icon name="checkmark-circle-outline" class="text-xl"></ion-icon>
+                        <span>ยืนยันและส่งผลการนับสต็อก</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Custom Scripts -->
+    <script src="/js/api.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        const userString = localStorage.getItem('user');
+
+        if (!token || !userString) {
+            window.location.href = '/';
+        }
+
+        const currentUser = JSON.parse(userString);
+        document.getElementById('user-display').textContent = `พนักงาน: ${currentUser.name || currentUser.username}`;
+        document.getElementById('branch-info-text').textContent = `สาขา: ${currentUser.branch || 'ไม่สังกัดสาขา'}`;
+
+        let currentTask = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBranchTask();
+        });
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        async function loadBranchTask() {
+            try {
+                const response = await fetchAPI('/api/accessory-checks/branch-task');
+                const resData = await response.json();
+
+                if (response.ok && resData.success) {
+                    currentTask = resData.data;
+                    displayTask();
+                } else if (response.status === 404) {
+                    document.getElementById('no-task-alert').classList.remove('hidden');
+                    document.getElementById('active-task-container').classList.add('hidden');
+                } else {
+                    Swal.fire({ icon: 'error', title: 'ดึงข้อมูลไม่สำเร็จ', text: resData.message || 'Error' });
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดการเชื่อมต่อ', text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้' });
+            }
+        }
+
+        function displayTask() {
+            document.getElementById('no-task-alert').classList.add('hidden');
+            document.getElementById('active-task-container').classList.remove('hidden');
+
+            document.getElementById('task-date-text').textContent = new Date(currentTask.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            const badge = document.getElementById('task-status-badge');
+            const alertBanner = document.getElementById('completed-alert-banner');
+            const submittedBanner = document.getElementById('submitted-alert-banner');
+            const recheckBanner = document.getElementById('recheck-alert-banner');
+            const submitBlock = document.getElementById('submit-block');
+
+            if (currentTask.status === 'completed') {
+                badge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800';
+                badge.innerHTML = `<span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full"></span>นับสต็อกเสร็จสิ้นแล้ว`;
+                alertBanner.classList.remove('hidden');
+                submittedBanner.classList.add('hidden');
+                recheckBanner.classList.add('hidden');
+                submitBlock.classList.add('hidden');
+            } else if (currentTask.status === 'submitted') {
+                badge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 animate-pulse';
+                badge.innerHTML = `<span class="w-1.5 h-1.5 mr-1.5 bg-blue-500 rounded-full"></span>รอฝ่ายสต็อกตรวจสอบ`;
+                alertBanner.classList.add('hidden');
+                submittedBanner.classList.remove('hidden');
+                recheckBanner.classList.add('hidden');
+                submitBlock.classList.add('hidden');
+            } else if (currentTask.status === 'recheck') {
+                badge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 animate-pulse';
+                badge.innerHTML = `<span class="w-1.5 h-1.5 mr-1.5 bg-rose-500 rounded-full"></span>ให้ตรวจสอบใหม่`;
+                alertBanner.classList.add('hidden');
+                submittedBanner.classList.add('hidden');
+                recheckBanner.classList.remove('hidden');
+                submitBlock.classList.remove('hidden');
+            } else {
+                badge.className = 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800';
+                badge.innerHTML = `<span class="w-1.5 h-1.5 mr-1.5 bg-yellow-500 rounded-full"></span>รอดำเนินการ`;
+                alertBanner.classList.add('hidden');
+                submittedBanner.classList.add('hidden');
+                recheckBanner.classList.add('hidden');
+                submitBlock.classList.remove('hidden');
+            }
+
+            // Render table items
+            const tbody = document.getElementById('items-table-body');
+            tbody.innerHTML = '';
+
+            currentTask.items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-slate-50/50 transition-colors';
+
+                const isDisabled = (currentTask.status === 'completed' || currentTask.status === 'submitted') ? 'disabled' : '';
+                const inputVal = item.countedQty;
+                const remarkVal = item.remark || '';
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-mono font-bold text-slate-700">${item.productCode}</td>
+                    <td class="px-6 py-4 font-medium text-slate-800">${item.productName}</td>
+                    <td class="px-6 py-4 text-center">
+                        <input type="number" data-code="${item.productCode}" min="0" value="${inputVal}" placeholder="จำนวน" ${isDisabled}
+                            class="w-full max-w-[120px] px-3 py-2 border border-slate-200 rounded-xl focus:border-yellow-400 focus:outline-none text-center font-bold text-slate-900 transition-all">
+                    </td>
+                    <td class="px-6 py-4">
+                        <input type="text" data-remark-code="${item.productCode}" value="${remarkVal}" placeholder="หมายเหตุเพิ่มเติม" ${isDisabled}
+                            class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-yellow-400 focus:outline-none text-slate-700 transition-all">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Delegate change event for autosave (both number and text inputs)
+            tbody.addEventListener('change', (e) => {
+                if (e.target.tagName === 'INPUT') {
+                    triggerAutosave();
+                }
+            });
+        }
+
+        async function submitCounts() {
+            if (!currentTask) return;
+
+            const inputs = document.querySelectorAll('input[type="number"][data-code]');
+            const updatedItems = [];
+            let allFilled = true;
+
+            inputs.forEach(input => {
+                const code = input.getAttribute('data-code');
+                const val = input.value.trim();
+                const remarkInput = document.querySelector(`input[data-remark-code="${code}"]`);
+                const remarkVal = remarkInput ? remarkInput.value.trim() : '';
+
+                if (val === '') {
+                    allFilled = false;
+                    input.classList.add('border-rose-400', 'bg-rose-50/50');
+                } else {
+                    input.classList.remove('border-rose-400', 'bg-rose-50/50');
+                    updatedItems.push({
+                        productCode: code,
+                        countedQty: parseInt(val) || 0,
+                        remark: remarkVal
+                    });
+                }
+            });
+
+            if (!allFilled) {
+                Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบถ้วน', text: 'กรุณากรอกจำนวนสินค้าให้ครบทุกช่องก่อนยืนยัน' });
+                return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันการนับสต็อก?',
+                text: "ข้อมูลผลการตรวจนับจริงนี้จะถูกส่งไปที่สต็อกส่วนกลาง และไม่สามารถแก้ไขได้อีกหลังจากส่ง",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'ยืนยันการส่งผล',
+                cancelButtonText: 'ยกเลิก'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'กำลังจัดส่งข้อมูล...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    try {
+                        const response = await fetchAPI('/api/accessory-checks/submit', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                id: currentTask._id,
+                                items: updatedItems
+                            })
+                        });
+                        const resData = await response.json();
+
+                        if (response.ok && resData.success) {
+                            await Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ!', text: 'ส่งข้อมูลการตรวจนับเรียบร้อยแล้ว' });
+                            loadBranchTask();
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'บันทึกล้มเหลว', text: resData.message || 'Error' });
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดการเชื่อมต่อ', text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้' });
+                    }
+                }
+            });
+        }
+
+        async function triggerAutosave() {
+            if (!currentTask || ['submitted', 'completed'].includes(currentTask.status)) return;
+
+            const statusIndicator = document.getElementById('autosave-status');
+            if (statusIndicator) {
+                statusIndicator.classList.remove('hidden');
+                statusIndicator.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600';
+                statusIndicator.innerHTML = `<span class="inline-block w-2.5 h-2.5 mr-1 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span> กำลังบันทึกร่าง...`;
+            }
+
+            const inputs = document.querySelectorAll('input[type="number"][data-code]');
+            const updatedItems = [];
+
+            inputs.forEach(input => {
+                const code = input.getAttribute('data-code');
+                const val = input.value.trim();
+                const remarkInput = document.querySelector(`input[data-remark-code="${code}"]`);
+                const remarkVal = remarkInput ? remarkInput.value.trim() : '';
+
+                if (val !== '') {
+                    updatedItems.push({
+                        productCode: code,
+                        countedQty: parseInt(val) || 0,
+                        remark: remarkVal
+                    });
+                }
+            });
+
+            try {
+                const response = await fetchAPI('/api/accessory-checks/draft', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        id: currentTask._id,
+                        items: updatedItems
+                    })
+                });
+                const resData = await response.json();
+
+                if (response.ok && resData.success) {
+                    // Update local state items so submit counts will use the correct data
+                    currentTask.items.forEach(dbItem => {
+                        const upItem = updatedItems.find(i => i.productCode === dbItem.productCode);
+                        if (upItem) {
+                            dbItem.countedQty = upItem.countedQty;
+                            dbItem.remark = upItem.remark;
+                        }
+                    });
+
+                    if (statusIndicator) {
+                        const now = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        statusIndicator.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600';
+                        statusIndicator.innerHTML = `🟢 บันทึกร่างอัตโนมัติแล้ว (${now})`;
+                    }
+                } else {
+                    if (statusIndicator) {
+                        statusIndicator.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600';
+                        statusIndicator.innerHTML = `🔴 บันทึกร่างล้มเหลว`;
+                    }
+                }
+            } catch (err) {
+                console.error('Autosave error:', err);
+                if (statusIndicator) {
+                    statusIndicator.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600';
+                    statusIndicator.innerHTML = `🔴 ข้อผิดพลาดการเชื่อมต่อ`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

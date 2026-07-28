@@ -398,17 +398,17 @@
                             class="w-5 h-5 mr-3 text-slate-400 group-hover:text-blue-500 transition-colors"></ion-icon>
                         <span class="font-medium">แจ้งเคลมเครื่อง (Google Sheets)</span>
                     </a>
-                    <a href="/stock-management.html" id="nav-stock-management"
-                        class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group hidden">
-                        <ion-icon name="cloud-upload-outline"
-                            class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
-                        <span class="font-medium">นำเข้าสต็อกรายวัน</span>
-                    </a>
                     <a href="/stock-dashboard.html" id="nav-stock-dashboard"
                         class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group hidden">
                         <ion-icon name="stats-chart-outline"
                             class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
                         <span class="font-medium">แดชบอร์ดสต็อกสินค้า</span>
+                    </a>
+                    <a href="/stock-management.html" id="nav-stock-management"
+                        class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group hidden">
+                        <ion-icon name="cloud-upload-outline"
+                            class="w-5 h-5 mr-3 text-slate-400 group-hover:text-yellow-500 transition-colors"></ion-icon>
+                        <span class="font-medium">นำเข้าสต็อกรายวัน</span>
                     </a>
                     <a href="/branch-daily-check.html" id="nav-branch-daily-check"
                         class="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all group hidden">
@@ -3654,6 +3654,19 @@
                 } else {
                     navBranchAudit.classList.add('hidden');
                     navBranchAudit.style.display = 'none';
+                }
+            }
+
+            const navAccessoryAdmin = document.getElementById('nav-accessory-admin');
+            if (navAccessoryAdmin) {
+                const userDept = (currentUser.department || '').toLowerCase();
+                const isStockTeam = ['stock', 'store', 'สต๊อก', 'คลัง', 'warehouse', 'supply'].some(keyword => userDept.includes(keyword));
+                if (['admin', 'executive', 'manager', 'hr'].includes(currentUser.role) || isStockTeam) {
+                    navAccessoryAdmin.classList.remove('hidden');
+                    navAccessoryAdmin.style.display = 'flex';
+                } else {
+                    navAccessoryAdmin.classList.add('hidden');
+                    navAccessoryAdmin.style.display = 'none';
                 }
             }
 

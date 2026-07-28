@@ -40,6 +40,7 @@ app.use('/api/device-claims', require('./routes/deviceClaimRoutes'));
 app.use('/api/logs', require('./routes/logRoutes'));
 app.use('/api/daily-stocks', require('./routes/dailyStockRoutes'));
 app.use('/api/inventory-audit', require('./routes/inventoryAuditRoutes'));
+app.use('/api/accessory-checks', require('./routes/accessoryCheckRoutes'));
 
 // Serve Uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
