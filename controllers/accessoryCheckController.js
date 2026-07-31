@@ -62,11 +62,13 @@ exports.uploadSession = async (req, res) => {
 
                 if (branchGroups[branch][code]) {
                     branchGroups[branch][code].expectedQty += qtyVal;
+                    branchGroups[branch][code].originalExpectedQty = branchGroups[branch][code].expectedQty;
                 } else {
                     branchGroups[branch][code] = {
                         productCode: code,
                         productName: name,
                         expectedQty: qtyVal,
+                        originalExpectedQty: qtyVal,
                         countedQty: 0
                     };
                 }
@@ -392,5 +394,57 @@ exports.updateShipping = async (req, res) => {
     } catch (error) {
         console.error('Update Shipping Error:', error);
         res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการบันทึกจำนวนสินค้าที่จัดส่ง' });
+    }
+};
+
+// 10. Admin update expected quantity (system count) with mandatory remark
+exports.updateExpectedQty = async (req, res) => {
+    try {
+        const { id, productCode, expectedQty, remark } = req.body;
+
+        if (!id || !productCode) {
+            return res.status(400).json({ success: false, message: 'กรุณาระบุรหัสรายการตรวจสอบและรหัสสินค้า' });
+        }
+
+        if (expectedQty === undefined || expectedQty === null || expectedQty === '') {
+            return res.status(400).json({ success: false, message: 'กรุณาระบุจำนวนสินค้าในระบบ' });
+        }
+
+        const parsedExpected = parseFloat(expectedQty);
+        if (isNaN(parsedExpected) || parsedExpected < 0) {
+            return res.status(400).json({ success: false, message: 'จำนวนสินค้าในระบบต้องเป็นตัวเลขมากกว่าหรือเท่ากับ 0' });
+        }
+
+        if (!remark || remark.trim() === '') {
+            return res.status(400).json({ success: false, message: 'กรุณาระบุหมายเหตุเพื่อชี้แจงเหตุผลในการปรับปรุงยอดระบบ' });
+        }
+
+        const checkTask = await DailyAccessoryCheck.findById(id);
+        if (!checkTask) {
+            return res.status(404).json({ success: false, message: 'ไม่พบรายการเช็คสต็อกที่ระบุ' });
+        }
+
+        const dbItem = checkTask.items.find(i => i.productCode === productCode);
+        if (!dbItem) {
+            return res.status(404).json({ success: false, message: 'ไม่พบสินค้าที่ระบุในรายการ' });
+        }
+
+        // Keep track of the original expected quantity if not set yet
+        if (dbItem.originalExpectedQty === null || dbItem.originalExpectedQty === undefined) {
+            dbItem.originalExpectedQty = dbItem.expectedQty;
+        }
+
+        dbItem.expectedQty = parsedExpected;
+        dbItem.remark = remark.trim(); // Save reason directly in remark
+        await checkTask.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'ปรับปรุงจำนวนสินค้าในระบบและหมายเหตุเรียบร้อยแล้ว',
+            data: checkTask
+        });
+    } catch (error) {
+        console.error('Update Expected Qty Error:', error);
+        res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการปรับปรุงจำนวนสินค้าในระบบ' });
     }
 };

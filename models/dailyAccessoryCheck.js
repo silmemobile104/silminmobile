@@ -26,6 +26,7 @@ const DailyAccessoryCheckSchema = new mongoose.Schema({
         productCode: { type: String, required: true },
         productName: { type: String, default: '' },
         expectedQty: { type: Number, default: 0 },
+        originalExpectedQty: { type: Number, default: null },
         countedQty: { type: Number, default: 0 },
         remark: { type: String, default: '' },
         deductionAmount: { type: Number, default: 0 },
