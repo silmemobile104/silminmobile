@@ -361,3 +361,36 @@ exports.updateDeduction = async (req, res) => {
         res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการบันทึกยอดเงินหัก' });
     }
 };
+
+// 9. Admin update shipping quantity for shortage item
+exports.updateShipping = async (req, res) => {
+    try {
+        const { id, productCode, shippingQty } = req.body;
+
+        if (!id || !productCode) {
+            return res.status(400).json({ success: false, message: 'กรุณาระบุรหัสรายการตรวจสอบและรหัสสินค้า' });
+        }
+
+        const checkTask = await DailyAccessoryCheck.findById(id);
+        if (!checkTask) {
+            return res.status(404).json({ success: false, message: 'ไม่พบรายการเช็คสต็อกที่ระบุ' });
+        }
+
+        const dbItem = checkTask.items.find(i => i.productCode === productCode);
+        if (!dbItem) {
+            return res.status(404).json({ success: false, message: 'ไม่พบสินค้าที่ระบุในรายการ' });
+        }
+
+        dbItem.shippingQty = parseInt(shippingQty) || 0;
+        await checkTask.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'บันทึกจำนวนสินค้าที่จัดส่งเรียบร้อยแล้ว',
+            data: checkTask
+        });
+    } catch (error) {
+        console.error('Update Shipping Error:', error);
+        res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการบันทึกจำนวนสินค้าที่จัดส่ง' });
+    }
+};

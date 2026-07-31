@@ -87,16 +87,22 @@
             <!-- Header Section -->
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
                 <div>
-                    <h2 class="text-2xl font-bold text-slate-800">เช็คสต็อกอุปกรณ์เสริมส่วนกลาง (Admin Overview)</h2>
+                    <h2 class="text-2xl font-bold text-slate-800">เช็คสต็อกอุปกรณ์เสริมส่วนกลาง</h2>
                     <p class="text-slate-500 mt-1">เปิดรอบและตรวจดูความคืบหน้าการนับอุปกรณ์เสริมประจำสาขา</p>
                 </div>
-                <div class="text-sm font-medium bg-slate-100 text-slate-600 px-4 py-2 rounded-lg" id="user-display">
-                    พนักงาน: กำลังโหลด...
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleUploadPanel()" class="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold rounded-xl shadow-sm transition-colors flex items-center gap-2">
+                        <ion-icon name="add-circle-outline" class="text-xl"></ion-icon>
+                        เริ่มรอบการนับสต็อก
+                    </button>
+                    <div class="text-sm font-medium bg-slate-100 text-slate-600 px-4 py-2 rounded-lg" id="user-display">
+                        พนักงาน: กำลังโหลด...
+                    </div>
                 </div>
             </div>
 
             <!-- Upload Panel -->
-            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mb-8 transition-all hover:shadow-md">
+            <div id="upload-panel" class="hidden bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mb-8 transition-all hover:shadow-md">
                 <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                     <ion-icon name="cloud-upload-outline" class="text-xl text-yellow-500"></ion-icon>
                     เริ่มรอบการนับสต็อกวันนี้ (Upload File)
@@ -156,7 +162,7 @@
 
     <!-- Detail Modal -->
     <div id="detail-modal" class="fixed inset-0 bg-slate-900/50 z-50 hidden backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-xl border border-slate-200 max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+        <div class="bg-white rounded-3xl shadow-xl border border-slate-200 max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div>
                     <h3 class="font-bold text-slate-800 text-lg" id="modal-title">รายละเอียดนับสต็อกอุปกรณ์เสริม</h3>
@@ -167,17 +173,18 @@
                 </button>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-6">
+            <div class="flex-1 overflow-y-auto px-6 pb-6 pt-0">
                 <table class="w-full text-left border-collapse text-sm">
-                    <thead class="bg-slate-50 text-slate-500 text-xs font-bold uppercase border-b border-slate-200 sticky top-0">
+                    <thead class="bg-slate-50 text-slate-500 text-xs font-bold uppercase border-b border-slate-200 sticky top-0 z-10">
                         <tr>
-                            <th class="px-4 py-3 bg-slate-50">รหัสสินค้า</th>
-                            <th class="px-4 py-3 bg-slate-50">ชื่อสินค้า</th>
-                            <th class="px-4 py-3 bg-slate-50 text-center">ระบบ</th>
-                            <th class="px-4 py-3 bg-slate-50 text-center">นับจริง</th>
-                            <th class="px-4 py-3 bg-slate-50 text-center">สถานะ</th>
-                            <th class="px-4 py-3 bg-slate-50">หมายเหตุ</th>
-                            <th class="px-4 py-3 bg-slate-50 text-center" style="width: 140px;">เงินหัก (ขาด)</th>
+                            <th class="px-4 py-3 bg-slate-50 sticky top-0 z-10">รหัสสินค้า</th>
+                            <th class="px-4 py-3 bg-slate-50 sticky top-0 z-10">ชื่อสินค้า</th>
+                            <th class="px-4 py-3 bg-slate-50 text-center sticky top-0 z-10">ระบบ</th>
+                            <th class="px-4 py-3 bg-slate-50 text-center sticky top-0 z-10">นับจริง</th>
+                            <th class="px-4 py-3 bg-slate-50 text-center sticky top-0 z-10" style="width: 110px;">กำลังจัดส่ง</th>
+                            <th class="px-4 py-3 bg-slate-50 text-center sticky top-0 z-10">สถานะ</th>
+                            <th class="px-4 py-3 bg-slate-50 sticky top-0 z-10">หมายเหตุ</th>
+                            <th class="px-4 py-3 bg-slate-50 text-center sticky top-0 z-10" style="width: 140px;">เงินหัก (ขาด)</th>
                         </tr>
                     </thead>
                     <tbody id="modal-items-body" class="divide-y divide-slate-100">
@@ -243,6 +250,13 @@
             const overlay = document.getElementById('sidebar-overlay');
             sidebar.classList.toggle('-translate-x-full');
             overlay.classList.toggle('hidden');
+        }
+
+        function toggleUploadPanel() {
+            const panel = document.getElementById('upload-panel');
+            if (panel) {
+                panel.classList.toggle('hidden');
+            }
         }
 
         async function handleRefreshOverview(e) {
@@ -387,21 +401,32 @@
 
             check.items.forEach(item => {
                 const tr = document.createElement('tr');
-                const diff = item.countedQty - item.expectedQty;
+                const effectiveQty = item.countedQty + (item.shippingQty || 0);
+                const diff = effectiveQty - item.expectedQty;
                 
                 let badge = '';
                 if (diff === 0) {
-                    badge = `<span class="px-2 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full">ตรงจำนวน</span>`;
+                    badge = `<span class="px-2 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full whitespace-nowrap">ตรงจำนวน</span>`;
                     tr.className = 'bg-emerald-50/10 hover:bg-emerald-50/30 transition-colors';
                 } else if (diff < 0) {
-                    badge = `<span class="px-2 py-0.5 text-xs font-bold bg-rose-100 text-rose-800 rounded-full">ขาด ${Math.abs(diff)}</span>`;
+                    badge = `<span class="px-2 py-0.5 text-xs font-bold bg-rose-100 text-rose-800 rounded-full whitespace-nowrap">ขาด ${Math.abs(diff)}</span>`;
                     tr.className = 'bg-rose-50/10 hover:bg-rose-50/30 transition-colors';
                 } else {
-                    badge = `<span class="px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-800 rounded-full">เกิน +${diff}</span>`;
+                    badge = `<span class="px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-800 rounded-full whitespace-nowrap">เกิน +${diff}</span>`;
                     tr.className = 'bg-amber-50/10 hover:bg-amber-50/30 transition-colors';
                 }
 
                 const remarkText = item.remark ? `<span class="text-slate-600 font-medium">${item.remark}</span>` : `<span class="text-slate-300 italic font-light">-</span>`;
+
+                const isCompleted = check.status === 'completed';
+                const disabledAttr = isCompleted ? 'disabled' : '';
+                const shippingVal = item.shippingQty || 0;
+                const shippingInput = `
+                    <div class="flex items-center justify-center">
+                        <input type="number" data-shipping-code="${item.productCode}" min="0" value="${shippingVal}" placeholder="0" ${disabledAttr}
+                            class="w-16 px-1 py-1 border border-slate-200 rounded-lg focus:border-yellow-400 focus:outline-none text-center font-bold text-slate-800 text-xs transition-all">
+                    </div>
+                `;
 
                 let deductionInput = '';
                 if (diff < 0) {
@@ -422,6 +447,7 @@
                     <td class="px-4 py-3 text-slate-800 font-medium">${item.productName}</td>
                     <td class="px-4 py-3 text-center text-slate-500 font-bold">${item.expectedQty}</td>
                     <td class="px-4 py-3 text-center text-slate-800 font-extrabold">${item.countedQty}</td>
+                    <td class="px-4 py-3 text-center">${shippingInput}</td>
                     <td class="px-4 py-3 text-center">${badge}</td>
                     <td class="px-4 py-3">${remarkText}</td>
                     <td class="px-4 py-3 text-center">${deductionInput}</td>
@@ -429,15 +455,22 @@
                 mBody.appendChild(tr);
             });
 
-            // Delegate change event for deduction autosave
+            // Delegate change event for deduction and shipping autosave
             mBody.onchange = async (e) => {
                 if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
                     const input = e.target;
-                    const code = input.getAttribute('data-deduct-code');
-                    const val = input.value.trim();
-                    const deductionAmount = parseFloat(val) || 0;
-                    
-                    await saveDeduction(checkId, code, deductionAmount, input);
+                    const deductCode = input.getAttribute('data-deduct-code');
+                    const shippingCode = input.getAttribute('data-shipping-code');
+
+                    if (deductCode) {
+                        const val = input.value.trim();
+                        const deductionAmount = parseFloat(val) || 0;
+                        await saveDeduction(checkId, deductCode, deductionAmount, input);
+                    } else if (shippingCode) {
+                        const val = input.value.trim();
+                        const shippingQty = parseInt(val) || 0;
+                        await saveShipping(checkId, shippingCode, shippingQty, input);
+                    }
                 }
             };
 
@@ -585,6 +618,51 @@
             } catch (err) {
                 console.error(err);
                 inputElement.className = 'w-24 px-2 py-1 border border-rose-400 bg-rose-50 rounded-lg focus:outline-none text-right font-bold text-slate-800 text-xs';
+            }
+        }
+
+        async function saveShipping(checkId, productCode, shippingQty, inputElement) {
+            // Highlight blue border on saving
+            inputElement.className = 'w-16 px-1 py-1 border border-blue-400 rounded-lg focus:outline-none text-center font-bold text-slate-800 text-xs animate-pulse';
+
+            try {
+                const response = await fetchAPI('/api/accessory-checks/shipping', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        id: checkId,
+                        productCode: productCode,
+                        shippingQty: shippingQty
+                    })
+                });
+                const resData = await response.json();
+                
+                if (response.ok && resData.success) {
+                    // Update client-side cached data in currentOverviewData
+                    const check = currentOverviewData.find(c => c._id === checkId);
+                    if (check) {
+                        const item = check.items.find(i => i.productCode === productCode);
+                        if (item) {
+                            item.shippingQty = shippingQty;
+                        }
+                    }
+
+                    // Re-render details to instantly update badges and fields dynamically
+                    showDetails(checkId);
+
+                    // Flash success on the new input element (re-selected because of re-render)
+                    const newInput = document.querySelector(`input[data-shipping-code="${productCode}"]`);
+                    if (newInput) {
+                        newInput.className = 'w-16 px-1 py-1 border border-emerald-400 bg-emerald-50 rounded-lg focus:outline-none text-center font-bold text-slate-800 text-xs';
+                        setTimeout(() => {
+                            newInput.className = 'w-16 px-1 py-1 border border-slate-200 rounded-lg focus:border-yellow-400 focus:outline-none text-center font-bold text-slate-800 text-xs transition-all';
+                        }, 1000);
+                    }
+                } else {
+                    inputElement.className = 'w-16 px-1 py-1 border border-rose-400 bg-rose-50 rounded-lg focus:outline-none text-center font-bold text-slate-800 text-xs';
+                }
+            } catch (err) {
+                console.error(err);
+                inputElement.className = 'w-16 px-1 py-1 border border-rose-400 bg-rose-50 rounded-lg focus:outline-none text-center font-bold text-slate-800 text-xs';
             }
         }
     </script>

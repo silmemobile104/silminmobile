@@ -30,6 +30,7 @@ router.get('/overview', protect, checkAdminOrStock, accessoryCheckController.get
 router.post('/reject', protect, checkAdminOrStock, accessoryCheckController.rejectSession);
 router.post('/approve', protect, checkAdminOrStock, accessoryCheckController.approveSession);
 router.post('/deduction', protect, checkAdminOrStock, accessoryCheckController.updateDeduction);
+router.post('/shipping', protect, checkAdminOrStock, accessoryCheckController.updateShipping);
 
 // Branch Staff routes
 router.get('/branch-task', protect, checkRole(['staff', 'admin', 'executive', 'manager', 'hr']), accessoryCheckController.getBranchTask);
