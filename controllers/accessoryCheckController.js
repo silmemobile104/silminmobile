@@ -133,19 +133,21 @@ exports.getAdminOverview = async (req, res) => {
     }
 };
 
-// 3. Branch staff get task for today
+// 3. Branch staff get task for today or a specific date
 exports.getBranchTask = async (req, res) => {
     try {
-        const todayStr = getLocalDateString();
         const branch = req.user.branch;
 
         if (!branch) {
             return res.status(400).json({ success: false, message: 'ผู้ใช้ไม่มีข้อมูลสังกัดสาขา' });
         }
 
-        const checkTask = await DailyAccessoryCheck.findOne({ date: todayStr, branch: branch });
+        const dateQuery = req.query.date;
+        const targetDate = dateQuery ? String(dateQuery) : getLocalDateString();
+
+        const checkTask = await DailyAccessoryCheck.findOne({ date: targetDate, branch: branch });
         if (!checkTask) {
-            return res.status(404).json({ success: false, message: 'ยังไม่มีการเปิดรอบเช็คสต็อกสำหรับวันนี้' });
+            return res.status(404).json({ success: false, message: `ยังไม่มีการเปิดรอบเช็คสต็อกสำหรับวันที่ ${targetDate}` });
         }
 
         res.status(200).json({

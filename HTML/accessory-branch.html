@@ -93,8 +93,11 @@
                     </div>
                     <p class="text-slate-500 mt-1" id="branch-info-text">สาขา: กำลังโหลด...</p>
                 </div>
-                <div class="text-sm font-medium bg-slate-100 text-slate-600 px-4 py-2 rounded-lg" id="user-display">
-                    พนักงาน: กำลังโหลด...
+                <div class="flex items-center gap-3">
+                    <input type="date" id="date-filter" class="px-3 py-1.5 border border-slate-200 rounded-xl focus:border-yellow-400 focus:outline-none text-sm transition-colors">
+                    <div class="text-sm font-medium bg-slate-100 text-slate-600 px-4 py-2 rounded-lg" id="user-display">
+                        พนักงาน: กำลังโหลด...
+                    </div>
                 </div>
             </div>
 
@@ -199,7 +202,20 @@
         let currentTask = null;
 
         document.addEventListener('DOMContentLoaded', () => {
+            const dateFilter = document.getElementById('date-filter');
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
+            
+            dateFilter.value = todayStr;
+
             loadBranchTask();
+
+            dateFilter.addEventListener('change', () => {
+                loadBranchTask();
+            });
         });
 
         function toggleSidebar() {
@@ -210,15 +226,27 @@
         }
 
         async function loadBranchTask() {
+            const dateFilter = document.getElementById('date-filter');
+            const selectedDate = dateFilter ? dateFilter.value : '';
+
             try {
-                const response = await fetchAPI('/api/accessory-checks/branch-task');
+                const url = selectedDate ? `/api/accessory-checks/branch-task?date=${selectedDate}` : '/api/accessory-checks/branch-task';
+                const response = await fetchAPI(url);
                 const resData = await response.json();
 
                 if (response.ok && resData.success) {
                     currentTask = resData.data;
                     displayTask();
                 } else if (response.status === 404) {
-                    document.getElementById('no-task-alert').classList.remove('hidden');
+                    const noTaskAlert = document.getElementById('no-task-alert');
+                    if (noTaskAlert) {
+                        const h3 = noTaskAlert.querySelector('h3');
+                        const p = noTaskAlert.querySelector('p');
+                        const targetDateThai = selectedDate ? new Date(selectedDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : 'วันนี้';
+                        if (h3) h3.textContent = `ยังไม่มีการเปิดรอบเช็คสต็อกสำหรับวันที่ ${targetDateThai}`;
+                        if (p) p.textContent = `ฝ่ายคลังสต็อกส่วนกลางยังไม่ได้เปิดรอบตรวจสอบสินค้าอุปกรณ์เสริมสำหรับวันที่ ${targetDateThai} หรือรอบยังไม่เริ่ม`;
+                        noTaskAlert.classList.remove('hidden');
+                    }
                     document.getElementById('active-task-container').classList.add('hidden');
                 } else {
                     Swal.fire({ icon: 'error', title: 'ดึงข้อมูลไม่สำเร็จ', text: resData.message || 'Error' });
