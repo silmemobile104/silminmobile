@@ -108,6 +108,7 @@
                             <option value="monthly">รายเดือน</option>
                             <option value="yearly">รายปี</option>
                             <option value="custom">กำหนดช่วงวัน</option>
+                            <option value="imei">ประวัติความเคลื่อนไหว IMEI</option>
                         </select>
                     </div>
 
@@ -503,6 +504,14 @@
                 document.getElementById('filter-start').value = d;
                 document.getElementById('filter-end').value = d;
             }
+            else if (type === 'imei') {
+                container.innerHTML = `
+                    <div class="w-full">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">ระบุหมายเลข IMEI ที่ต้องการตรวจสอบประวัติ</label>
+                        <input type="text" id="filter-imei-history" placeholder="พิมพ์หมายเลข IMEI 15 หลัก..." class="w-full px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500">
+                    </div>
+                `;
+            }
             // type === 'today' needs no additional inputs
         }
 
@@ -511,6 +520,7 @@
         // ------------------------------------
         let allStockData = [];
         let currentTab = 'all';
+        let globalSummary = null;
 
         // Toggle Sidebar for Mobile
         function toggleSidebar() {
@@ -557,16 +567,39 @@
                 // Show loading
                 document.getElementById('stock-table-body').innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400"><div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-yellow-500 rounded-full mb-2"></div><br>กำลังโหลดข้อมูล...</td></tr>`;
 
-                const response = await fetch(`/api/daily-stocks/report?startDate=${startDate}&endDate=${endDate}`, {
+                const branchSelectEl = document.getElementById('branch-filter');
+                const branchVal = branchSelectEl ? branchSelectEl.value : 'all';
+
+                let fetchUrl = '';
+                if (type === 'imei') {
+                    const imeiVal = document.getElementById('filter-imei-history').value.trim();
+                    if (!imeiVal) return Swal.fire('แจ้งเตือน', 'กรุณาระบุหมายเลข IMEI ที่ต้องการค้นหา', 'warning');
+                    fetchUrl = `/api/daily-stocks/report?imei=${encodeURIComponent(imeiVal)}&branch=${branchVal}`;
+                } else {
+                    fetchUrl = `/api/daily-stocks/report?startDate=${startDate}&endDate=${endDate}&branch=${branchVal}`;
+                }
+
+                const response = await fetch(fetchUrl, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (response.ok) {
                     const data = await response.json();
                     allStockData = data.data;
+                    globalSummary = data.summary;
+
+                    if (data.hasMore) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ข้อมูลรายงานมีจำนวนมาก',
+                            text: 'ระบบดึงและแสดงผลเฉพาะ 1,000 รายการแรกในตารางเพื่อความรวดเร็ว แต่ตัวเลขการ์ดสรุปผลด้านบนยังคงคิดคำนวณถูกต้องตามยอดจริงของทั้งช่วงวันที่เลือกครับ หากต้องการดูรายการสินค้าทั้งหมดแบบละเอียด กรุณาระบุขอบเขตตัวกรองสาขา หรือเลือกช่วงเวลาการค้นหาให้แคบลงครับ',
+                            confirmButtonText: 'รับทราบ',
+                            confirmButtonColor: '#eab308'
+                        });
+                    }
 
                     // Extract and populate branches
-                    const branches = [...new Set(allStockData.map(i => i.branch))].filter(Boolean).sort();
+                    const branches = data.branches || [];
                     const branchSelect = document.getElementById('branch-filter');
                     if (branchSelect) {
                         const currentVal = branchSelect.value;
@@ -634,20 +667,36 @@
         }
 
         function updateCards() {
-            const data = getFilteredData();
-            const total = data.length;
-            const pending = data.filter(i => i.status === 'pending').length;
-            const waiting = data.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting').length;
-            const success = data.filter(i => i.status === 'checked' && i.verificationStatus === 'success').length;
-            const notChecked = data.filter(i => i.status === 'not_checked').length;
-            const failed = data.filter(i => i.status !== 'not_checked' && i.verificationStatus === 'failed').length;
+            const typeVal = document.getElementById('filterType').value;
+            const modelVal = document.getElementById('filterModel').value.trim();
+            const imeiElement = document.getElementById('filterImei');
+            const imeiVal = imeiElement ? imeiElement.value.trim() : '';
 
-            document.getElementById('sum-total').textContent = total;
-            document.getElementById('sum-pending').textContent = pending;
-            document.getElementById('sum-waiting').textContent = waiting;
-            document.getElementById('sum-success').textContent = success;
-            document.getElementById('sum-not-checked').textContent = notChecked;
-            document.getElementById('sum-failed').textContent = failed;
+            const hasClientFilters = typeVal !== 'ทั้งหมด' || modelVal !== '' || imeiVal !== '';
+
+            if (!hasClientFilters && globalSummary) {
+                document.getElementById('sum-total').textContent = globalSummary.total;
+                document.getElementById('sum-pending').textContent = globalSummary.pending;
+                document.getElementById('sum-waiting').textContent = globalSummary.waiting;
+                document.getElementById('sum-success').textContent = globalSummary.success;
+                document.getElementById('sum-not-checked').textContent = globalSummary.notChecked;
+                document.getElementById('sum-failed').textContent = globalSummary.failed;
+            } else {
+                const data = getFilteredData();
+                const total = data.length;
+                const pending = data.filter(i => i.status === 'pending').length;
+                const waiting = data.filter(i => i.status === 'checked' && i.verificationStatus === 'waiting').length;
+                const success = data.filter(i => i.status === 'checked' && i.verificationStatus === 'success').length;
+                const notChecked = data.filter(i => i.status === 'not_checked').length;
+                const failed = data.filter(i => i.status !== 'not_checked' && i.verificationStatus === 'failed').length;
+
+                document.getElementById('sum-total').textContent = total;
+                document.getElementById('sum-pending').textContent = pending;
+                document.getElementById('sum-waiting').textContent = waiting;
+                document.getElementById('sum-success').textContent = success;
+                document.getElementById('sum-not-checked').textContent = notChecked;
+                document.getElementById('sum-failed').textContent = failed;
+            }
         }
 
         function showFailedBreakdown() {
@@ -762,16 +811,21 @@
                     }
                 }
 
-                let checkerInfo = '<span class="text-slate-300">-</span>';
+                let checkerInfo = '';
+                const roundDate = item.date ? new Date(item.date).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-';
                 let evidenceBtn = '<span class="text-slate-300">-</span>';
 
                 if (item.status === 'checked') {
                     if (item.checkedBy) {
-                        const time = new Date(item.scannedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        const scanDate = new Date(item.scannedAt || item.date);
+                        const dateStr = scanDate.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                        const timeStr = scanDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
                         checkerInfo = `<div class="text-xs">
                             <div class="font-bold text-slate-700"><ion-icon name="person-circle-outline" class="align-middle"></ion-icon> ${item.checkedBy.fullname || item.checkedBy.username}</div>
-                            <div class="text-slate-400 mt-0.5"><ion-icon name="time-outline" class="align-middle"></ion-icon> ${time} น.</div>
+                            <div class="text-slate-400 mt-0.5"><ion-icon name="calendar-outline" class="align-middle"></ion-icon> ${dateStr} <ion-icon name="time-outline" class="align-middle"></ion-icon> ${timeStr} น.</div>
                         </div>`;
+                    } else {
+                        checkerInfo = `<span class="text-slate-400 text-xs"><ion-icon name="calendar-outline" class="align-middle"></ion-icon> ${roundDate}</span>`;
                     }
 
                     if (item.evidenceImage) {
@@ -779,6 +833,8 @@
                             <ion-icon name="image-outline" class="text-xl"></ion-icon>
                         </button>`;
                     }
+                } else {
+                    checkerInfo = `<span class="text-slate-400 text-xs"><ion-icon name="calendar-outline" class="align-middle"></ion-icon> ${roundDate}</span>`;
                 }
 
                 const tr = document.createElement('tr');

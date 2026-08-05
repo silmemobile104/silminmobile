@@ -91,9 +91,8 @@ const connectDB = async () => {
             const ImportRequest = require('../models/importRequest');
             const admin = await User.findOne({ username: 'admin' });
             console.log('DEBUG: Admin:', admin ? `${admin.username} (${admin.companyId}, ${admin.role})` : 'Not found');
-            const imports = await ImportRequest.find({});
-            console.log('DEBUG: Imports Count:', imports.length);
-            imports.forEach(i => console.log(`DEBUG: Import ${i._id}: Company=${i.companyId}, Type=${i.type}, Branch=${i.branch}`));
+            const importsCount = await ImportRequest.countDocuments({});
+            console.log('DEBUG: Imports Count:', importsCount);
         } catch (e) {
             console.log('DEBUG ERROR:', e);
         }

@@ -250,13 +250,30 @@ exports.getDailySummary = async (req, res) => {
 // 5. ดึงข้อมูลรายงานการเช็คสต็อก (ยืดหยุ่นตามช่วงเวลา)
 exports.getDailyStockReport = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
-        if (!startDate || !endDate) {
-            return res.status(400).json({ message: 'กรุณาระบุช่วงเวลา (startDate, endDate)' });
-        }
+        const { startDate, endDate, branch, imei } = req.query;
 
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        // Build base query
+        let query = {};
+        let branchesQuery = {};
+
+        if (imei && imei.trim() !== '') {
+            query.productCode = imei.trim();
+            if (branch && branch !== 'all') {
+                query.branch = branch;
+            }
+            branchesQuery.productCode = imei.trim();
+        } else {
+            if (!startDate || !endDate) {
+                return res.status(400).json({ message: 'กรุณาระบุช่วงเวลา (startDate, endDate) หรือระบุหมายเลข IMEI' });
+            }
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            query.date = { $gte: start, $lte: end };
+            if (branch && branch !== 'all') {
+                query.branch = branch;
+            }
+            branchesQuery.date = { $gte: start, $lte: end };
+        }
 
         // Auto-update past pending items to not_checked
         try {
@@ -276,20 +293,38 @@ exports.getDailyStockReport = async (req, res) => {
             console.error('Auto update past pending error:', updateErr);
         }
 
-        const stocks = await DailyStock.find({
-            date: { $gte: start, $lte: end }
-        }).populate('checkedBy', 'username fullname role').populate('verifiedBy', 'username fullname role');
+        // 1. Compute summary stats using fast count queries (database-level)
+        const total = await DailyStock.countDocuments(query);
+        const pending = await DailyStock.countDocuments({ ...query, status: 'pending' });
+        const waiting = await DailyStock.countDocuments({ ...query, status: 'checked', verificationStatus: 'waiting' });
+        const success = await DailyStock.countDocuments({ ...query, status: 'checked', verificationStatus: 'success' });
+        const notChecked = await DailyStock.countDocuments({ ...query, status: 'not_checked' });
+        const failed = await DailyStock.countDocuments({ ...query, status: { $ne: 'not_checked' }, verificationStatus: 'failed' });
 
-        const total = stocks.length;
-        const checked = stocks.filter(s => s.status === 'checked').length;
-        const pending = total - checked;
+        // 2. Fetch distinct branches (fast, database-level)
+        const branches = await DailyStock.distinct('branch', branchesQuery);
+
+        // 3. Fetch detailed records with 1000 limit and lean deserialization
+        const sortOptions = (imei && imei.trim() !== '') ? { date: 1 } : { date: -1 };
+        const stocks = await DailyStock.find(query)
+        .select('productCode productName branch status verificationStatus failReason failDetail scannedAt checkedBy evidenceImage expectedQuantity date')
+        .sort(sortOptions)
+        .limit(1000)
+        .populate('checkedBy', 'username fullname role')
+        .lean();
 
         res.status(200).json({
             summary: {
                 total,
-                checked,
-                pending
+                pending,
+                waiting,
+                success,
+                notChecked,
+                failed
             },
+            hasMore: total > 1000,
+            limit: 1000,
+            branches: branches.filter(Boolean).sort(),
             data: stocks
         });
     } catch (error) {
