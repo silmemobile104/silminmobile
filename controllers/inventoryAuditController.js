@@ -3,6 +3,7 @@ const fs = require('fs');
 const csv = require('csv-parser');
 const xlsx = require('xlsx');
 const { logActivity } = require('../utils/logger');
+const { uploadBufferToDriveInNestedFolder } = require('../utils/googleDrive');
 
 // 1. อัปโหลดไฟล์ Excel/CSV และสร้างแบบฟอร์มตรวจสอบสถานะ 'pending'
 exports.uploadAuditFile = async (req, res) => {
@@ -142,7 +143,9 @@ exports.saveAuditResult = async (req, res) => {
                     dbItem.scannedQty = scanned;
                     
                     // คำนวณสถานะส่วนต่าง
-                    if (scanned === dbItem.expectedQty) {
+                    if (dbItem.status === 'in_transit' || (dbItem.inTransitQty && dbItem.inTransitQty > 0)) {
+                        dbItem.status = 'in_transit';
+                    } else if (scanned === dbItem.expectedQty) {
                         dbItem.status = 'matched';
                     } else if (scanned < dbItem.expectedQty) {
                         dbItem.status = 'missing';
@@ -208,5 +211,97 @@ exports.getAuditHistory = async (req, res) => {
     } catch (error) {
         console.error('Get Audit History Error:', error);
         res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงประวัติการตรวจสอบสต็อก' });
+    }
+};
+
+// 4. อัปโหลดรูปภาพหลักฐานสินค้ากำลังโอนย้าย และอัปเดตสถานะของไอเทมนั้น
+exports.uploadAuditEvidence = async (req, res) => {
+    try {
+        const { auditId, productCode, inTransitQty, remark } = req.body;
+
+        if (!auditId || !productCode) {
+            return res.status(400).json({ success: false, message: 'กรุณาระบุ Audit ID และ รหัสสินค้า (productCode)' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'กรุณาแนบไฟล์รูปหลักฐานโอนย้าย' });
+        }
+
+        const auditSession = await InventoryAudit.findById(auditId);
+        if (!auditSession) {
+            return res.status(404).json({ success: false, message: 'ไม่พบรายการตรวจสอบสต็อกนี้' });
+        }
+
+        if (auditSession.status === 'completed') {
+            return res.status(400).json({ success: false, message: 'รายการตรวจสอบนี้ถูกบันทึกสำเร็จเสร็จสิ้นไปแล้ว ไม่สามารถแก้ไขได้' });
+        }
+
+        // ค้นหาสินค้าในรายการหลัก
+        const item = auditSession.items.find(i => i.productCode === productCode);
+        if (!item) {
+            return res.status(404).json({ success: false, message: 'ไม่พบรหัสสินค้านี้ในรายการตรวจสอบระบบ' });
+        }
+
+        // อัปโหลดไฟล์หลักฐานไปยัง Google Drive ในโฟลเดอร์แบบ Nested
+        const timestamp = Date.now();
+        const fileName = `audit_evidence_${auditId}_${productCode}_${timestamp}.jpg`;
+        let evidenceImageUrl = '';
+        
+        try {
+            // ฟอร์แมตวันที่เพื่อตั้งชื่อโฟลเดอร์ย่อย เช่น สาขาหาดใหญ่_05-08-2026
+            const dateObj = new Date(auditSession.auditDate || auditSession.createdAt);
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const year = dateObj.getFullYear();
+            const dateStr = `${day}-${month}-${year}`;
+            const folderName = `สาขา${auditSession.branch}_${dateStr}`;
+
+            evidenceImageUrl = await uploadBufferToDriveInNestedFolder(
+                req.file.buffer, 
+                req.file.mimetype, 
+                fileName, 
+                ['Audit(หลักฐานสินค้าขาดหาย)', folderName]
+            );
+        } catch (driveErr) {
+            console.error('Google Drive Upload Error for Audit Evidence:', driveErr);
+            return res.status(500).json({ success: false, message: 'ไม่สามารถอัปโหลดรูปภาพไปยัง Google Drive ได้' });
+        }
+
+        // อัปเดตข้อมูลไอเทม
+        const qty = parseInt(inTransitQty) || 0;
+        item.inTransitQty = qty;
+        item.evidenceImage = evidenceImageUrl;
+        item.remark = remark || 'กำลังโอนย้าย';
+        item.status = 'in_transit';
+
+        await auditSession.save();
+
+        // บันทึก Activity Log
+        await logActivity(req, 'UPDATE', 'InventoryAudit', `แนบภาพหลักฐานโอนย้ายสินค้า: ${productCode} สาขา: ${auditSession.branch}`, { id: auditSession._id, productCode, inTransitQty: qty });
+
+        res.status(200).json({
+            success: true,
+            message: 'อัปโหลดรูปหลักฐานการโอนย้ายสำเร็จ',
+            audit: auditSession
+        });
+
+    } catch (error) {
+        console.error('Upload Audit Evidence Error:', error);
+        res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการอัปโหลดหลักฐานสินค้าโอนย้าย' });
+    }
+};
+
+// 5. ดึงข้อมูลรายการตรวจสอบเดี่ยวโดย ID (สำหรับกู้คืนเซสชันเมื่อ Refresh)
+exports.getAuditSession = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const audit = await InventoryAudit.findById(id).populate('auditedBy', 'name username');
+        if (!audit) {
+            return res.status(404).json({ success: false, message: 'ไม่พบรายการตรวจสอบสต็อกนี้' });
+        }
+        res.status(200).json({ success: true, audit });
+    } catch (error) {
+        console.error('Get Audit Session Error:', error);
+        res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูลตรวจสอบสต็อก' });
     }
 };

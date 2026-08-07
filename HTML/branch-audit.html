@@ -169,6 +169,7 @@
                                     <th class="px-6 py-4 bg-slate-50">ผู้ตรวจสอบ</th>
                                     <th class="px-6 py-4 bg-slate-50 text-center">สินค้าทั้งหมด</th>
                                     <th class="px-6 py-4 bg-slate-50 text-center">ตรง</th>
+                                    <th class="px-6 py-4 bg-slate-50 text-center font-bold text-yellow-600">โอนย้าย</th>
                                     <th class="px-6 py-4 bg-slate-50 text-center font-bold text-red-500">ขาด</th>
                                     <th class="px-6 py-4 bg-slate-50 text-center font-bold text-amber-500">เกิน</th>
                                     <th class="px-6 py-4 bg-slate-50 text-center font-bold text-orange-500">นอกไฟล์</th>
@@ -177,7 +178,7 @@
                             </thead>
                             <tbody id="history-table-body" class="divide-y divide-slate-100 text-sm">
                                 <tr>
-                                    <td colspan="9" class="px-6 py-8 text-center text-slate-400 font-medium">กำลังโหลดประวัติการเช็คสต็อก...</td>
+                                    <td colspan="10" class="px-6 py-8 text-center text-slate-400 font-medium">กำลังโหลดประวัติการเช็คสต็อก...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -188,7 +189,7 @@
             <!-- STEP 2: Scanning & Verification Area (Hidden initially) -->
             <div id="scanning-panel" class="hidden">
                 <!-- Stats Summary -->
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">รายการทั้งหมด</span>
                         <span class="text-3xl font-extrabold text-slate-800 mt-2" id="stat-total-items">0</span>
@@ -200,6 +201,10 @@
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">ตรงกับระบบ</span>
                         <span class="text-3xl font-extrabold text-emerald-600 mt-2" id="stat-matched">0</span>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">กำลังโอนย้าย</span>
+                        <span class="text-3xl font-extrabold text-yellow-600 mt-2" id="stat-in-transit">0</span>
                     </div>
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">สต็อกขาด</span>
@@ -251,6 +256,7 @@
                                         <th class="px-6 py-4 bg-slate-50 text-center">ระบบ</th>
                                         <th class="px-6 py-4 bg-slate-50 text-center">สแกนจริง</th>
                                         <th class="px-6 py-4 bg-slate-50 text-center">สถานะ</th>
+                                        <th class="px-6 py-4 bg-slate-50 text-center">จัดการ</th>
                                     </tr>
                                 </thead>
                                 <tbody id="remaining-items-table-body" class="divide-y divide-slate-100 text-sm">
@@ -355,7 +361,74 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadAuditHistory();
+            checkActiveSession(); // ตรวจสอบเซสชันค้างเมื่อรีเฟรชหน้าเว็บ
         });
+
+        async function checkActiveSession() {
+            const savedAuditId = localStorage.getItem('activeAuditId');
+            if (!savedAuditId) return;
+
+            try {
+                const response = await fetch(`/api/inventory-audit/session/${savedAuditId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success && data.audit.status === 'pending') {
+                    activeAuditId = savedAuditId;
+                    auditBranch = localStorage.getItem('auditBranch') || data.audit.branch;
+                    
+                    const localItems = localStorage.getItem('auditItems');
+                    const localExtra = localStorage.getItem('extraItems');
+                    
+                    auditItems = localItems ? JSON.parse(localItems) : data.audit.items;
+                    extraItems = localExtra ? JSON.parse(localExtra) : [];
+
+                    document.getElementById('audit-branch-tag').textContent = `สาขา: ${auditBranch}`;
+                    
+                    // ปรับแสดงหน้าจอสแกน
+                    document.getElementById('upload-panel').classList.add('hidden');
+                    document.getElementById('history-panel').classList.add('hidden');
+                    document.getElementById('scanning-panel').classList.remove('hidden');
+
+                    renderTables();
+                    updateStats();
+                    
+                    setTimeout(() => {
+                        keepFocusOnScanner();
+                    }, 200);
+
+                    Toastify({ text: "กู้คืนการเช็คสต็อกต่อจากเซสชันเดิมสำเร็จ", backgroundColor: "#3b82f6" }).showToast();
+                } else {
+                    clearLocalSession();
+                }
+            } catch (err) {
+                console.error('Error checking active session:', err);
+                const localItems = localStorage.getItem('auditItems');
+                if (localItems) {
+                    activeAuditId = savedAuditId;
+                    auditBranch = localStorage.getItem('auditBranch');
+                    auditItems = JSON.parse(localItems);
+                    extraItems = JSON.parse(localStorage.getItem('extraItems') || '[]');
+                    
+                    document.getElementById('audit-branch-tag').textContent = `สาขา: ${auditBranch}`;
+                    document.getElementById('upload-panel').classList.add('hidden');
+                    document.getElementById('history-panel').classList.add('hidden');
+                    document.getElementById('scanning-panel').classList.remove('hidden');
+                    renderTables();
+                    updateStats();
+                }
+            }
+        }
+
+        function clearLocalSession() {
+            localStorage.removeItem('activeAuditId');
+            localStorage.removeItem('auditBranch');
+            localStorage.removeItem('auditItems');
+            localStorage.removeItem('extraItems');
+        }
 
         // กำหนดโฟกัสช่องบาร์โค้ดตลอดเวลา
         const barcodeInput = document.getElementById('barcode-input');
@@ -471,6 +544,12 @@
                     auditItems = data.audit.items;
                     extraItems = [];
 
+                    // บันทึกสถานะเพื่อกู้คืนเมื่อ Refresh หน้าเว็บ
+                    localStorage.setItem('activeAuditId', activeAuditId);
+                    localStorage.setItem('auditBranch', auditBranch);
+                    localStorage.setItem('auditItems', JSON.stringify(auditItems));
+                    localStorage.setItem('extraItems', JSON.stringify(extraItems));
+
                     document.getElementById('audit-branch-tag').textContent = `สาขา: ${auditBranch}`;
                     
                     // ปรับแสดงหน้าจอ
@@ -540,6 +619,9 @@
                 Toastify({ text: `คำเตือน! สินค้าส่วนเกิน (ไม่อยู่ในระบบ): ${code}`, backgroundColor: "#f59e0b", duration: 2500 }).showToast();
             }
 
+            localStorage.setItem('auditItems', JSON.stringify(auditItems));
+            localStorage.setItem('extraItems', JSON.stringify(extraItems));
+
             renderTables();
             updateStats();
             keepFocusOnScanner();
@@ -552,10 +634,13 @@
             const totalScanned = auditItems.reduce((sum, i) => sum + i.scannedQty, 0) + extraItems.reduce((sum, i) => sum + i.scannedQty, 0);
             document.getElementById('stat-total-scanned').textContent = totalScanned;
 
-            const matched = auditItems.filter(i => i.scannedQty === i.expectedQty).length;
+            const matched = auditItems.filter(i => i.status !== 'in_transit' && i.scannedQty === i.expectedQty).length;
             document.getElementById('stat-matched').textContent = matched;
 
-            const missing = auditItems.filter(i => i.scannedQty < i.expectedQty).length;
+            const inTransit = auditItems.filter(i => i.status === 'in_transit').reduce((sum, i) => sum + i.inTransitQty, 0);
+            document.getElementById('stat-in-transit').textContent = inTransit;
+
+            const missing = auditItems.filter(i => i.status !== 'in_transit' && i.scannedQty < i.expectedQty).length;
             document.getElementById('stat-missing').textContent = missing;
 
             const extraCount = extraItems.reduce((sum, i) => sum + i.scannedQty, 0);
@@ -568,7 +653,7 @@
             const remainingBody = document.getElementById('remaining-items-table-body');
             remainingBody.innerHTML = '';
             
-            const remaining = auditItems.filter(item => item.scannedQty < item.expectedQty);
+            const remaining = auditItems.filter(item => item.status !== 'in_transit' && item.scannedQty < item.expectedQty);
 
             // อัปเดตจำนวนรายการใน Badge
             const remainingCountBadge = document.getElementById('remaining-count-badge');
@@ -579,7 +664,7 @@
             if (remaining.length === 0) {
                 remainingBody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="px-6 py-8 text-center text-emerald-600 font-bold bg-emerald-50/30">
+                        <td colspan="6" class="px-6 py-8 text-center text-emerald-600 font-bold bg-emerald-50/30">
                             🎉 ยอดเยี่ยม! ตรวจสอบครบตามเอกสารนำเข้าเรียบร้อยแล้ว
                         </td>
                     </tr>
@@ -596,6 +681,12 @@
                         <td class="px-6 py-4 text-center">
                             <span class="inline-flex px-2 py-1 text-xs font-bold bg-rose-100 text-rose-800 rounded-full">ขาดอีก ${item.expectedQty - item.scannedQty} ชิ้น</span>
                         </td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="openEvidenceUpload('${item.productCode}', ${item.expectedQty - item.scannedQty})" class="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold rounded-lg transition-colors flex items-center justify-center gap-1 mx-auto text-xs">
+                                <ion-icon name="cloud-upload-outline"></ion-icon>
+                                <span>แนบหลักฐาน</span>
+                            </button>
+                        </td>
                     `;
                     remainingBody.appendChild(tr);
                 });
@@ -605,7 +696,7 @@
             const completedBody = document.getElementById('completed-items-table-body');
             completedBody.innerHTML = '';
 
-            const completed = auditItems.filter(item => item.scannedQty >= item.expectedQty);
+            const completed = auditItems.filter(item => item.status === 'in_transit' || item.scannedQty >= item.expectedQty);
 
             // อัปเดตจำนวนรายการใน Badge
             const completedCountBadge = document.getElementById('completed-count-badge');
@@ -622,12 +713,34 @@
             } else {
                 completed.forEach(item => {
                     const tr = document.createElement('tr');
-                    tr.className = item.scannedQty > item.expectedQty ? 'bg-amber-50/50 hover:bg-amber-100/50 font-medium' : 'bg-emerald-50/30 hover:bg-emerald-50/50 font-medium';
-                    tr.innerHTML = `
-                        <td class="px-4 py-4 font-mono text-xs font-bold text-slate-700">${item.productCode}</td>
-                        <td class="px-4 py-4 text-xs max-w-[120px] truncate" title="${item.productName}">${item.productName}</td>
-                        <td class="px-4 py-4 text-center font-bold text-xs ${item.scannedQty > item.expectedQty ? 'text-amber-600' : 'text-emerald-600'}">${item.scannedQty} / ${item.expectedQty}</td>
-                    `;
+                    if (item.status === 'in_transit') {
+                        tr.className = 'bg-yellow-50/50 hover:bg-yellow-100/50 font-medium';
+                        const linkHtml = item.evidenceImage ? `
+                            <a href="${item.evidenceImage}" target="_blank" class="inline-flex items-center gap-1 text-yellow-600 hover:text-yellow-700 font-bold underline text-[10px] mt-1">
+                                <ion-icon name="image-outline"></ion-icon> ดูหลักฐาน
+                            </a>
+                        ` : '';
+                        tr.innerHTML = `
+                            <td class="px-4 py-4 font-mono text-xs font-bold text-slate-700">
+                                ${item.productCode}
+                                <div class="text-[10px] text-slate-400 font-normal mt-0.5" title="${item.remark}">หมายเหตุ: ${item.remark.substring(0, 20)}${item.remark.length > 20 ? '...' : ''}</div>
+                            </td>
+                            <td class="px-4 py-4 text-xs max-w-[120px] truncate" title="${item.productName}">
+                                ${item.productName}
+                                <br>${linkHtml}
+                            </td>
+                            <td class="px-4 py-4 text-center font-bold text-xs text-yellow-600">
+                                โอนย้าย (${item.inTransitQty} ชิ้น)
+                            </td>
+                        `;
+                    } else {
+                        tr.className = item.scannedQty > item.expectedQty ? 'bg-amber-50/50 hover:bg-amber-100/50 font-medium' : 'bg-emerald-50/30 hover:bg-emerald-50/50 font-medium';
+                        tr.innerHTML = `
+                            <td class="px-4 py-4 font-mono text-xs font-bold text-slate-700">${item.productCode}</td>
+                            <td class="px-4 py-4 text-xs max-w-[120px] truncate" title="${item.productName}">${item.productName}</td>
+                            <td class="px-4 py-4 text-center font-bold text-xs ${item.scannedQty > item.expectedQty ? 'text-amber-600' : 'text-emerald-600'}">${item.scannedQty} / ${item.expectedQty}</td>
+                        `;
+                    }
                     completedBody.appendChild(tr);
                 });
             }
@@ -655,6 +768,118 @@
             }
         }
 
+        // ฟังก์ชันเปิดโมดอลอัปโหลดรูปหลักฐานการโอนย้าย
+        function openEvidenceUpload(productCode, maxQty) {
+            Swal.fire({
+                title: 'แนบรูปหลักฐานสินค้ากำลังโอนย้าย',
+                html: `
+                    <div class="text-left space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">เลือกไฟล์รูปหลักฐาน (บิลโอน) *</label>
+                            <input type="file" id="evidence-file" accept="image/*" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">จำนวนที่โอนย้าย *</label>
+                            <input type="number" id="evidence-qty" min="1" max="${maxQty}" value="${maxQty}" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-yellow-400 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">หมายเหตุ / เลขที่บิล (ไม่บังคับ)</label>
+                            <input type="text" id="evidence-remark" placeholder="ระบุเลขที่บิลโอนย้าย หรือรายละเอียด..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-yellow-400 focus:outline-none">
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonColor: '#eab308',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'อัปโหลดหลักฐาน',
+                cancelButtonText: 'ยกเลิก',
+                preConfirm: () => {
+                    const fileInput = document.getElementById('evidence-file');
+                    const qtyInput = document.getElementById('evidence-qty');
+                    const remarkInput = document.getElementById('evidence-remark');
+
+                    if (!fileInput.files || fileInput.files.length === 0) {
+                        Swal.showValidationMessage('กรุณาเลือกไฟล์รูปภาพหลักฐาน');
+                        return false;
+                    }
+                    const qty = parseInt(qtyInput.value) || 0;
+                    if (qty <= 0 || qty > maxQty) {
+                        Swal.showValidationMessage(`จำนวนต้องอยู่ระหว่าง 1 ถึง ${maxQty}`);
+                        return false;
+                    }
+
+                    return {
+                        file: fileInput.files[0],
+                        qty: qty,
+                        remark: remarkInput.value.trim() || 'กำลังโอนย้าย'
+                    };
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'กำลังอัปโหลดหลักฐานไปยัง Google Drive...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    const formData = new FormData();
+                    formData.append('auditId', activeAuditId);
+                    formData.append('productCode', productCode);
+                    formData.append('inTransitQty', result.value.qty);
+                    formData.append('remark', result.value.remark);
+                    formData.append('file', result.value.file);
+
+                    try {
+                        const response = await fetch('/api/inventory-audit/upload-evidence', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: formData
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            const updatedAudit = data.audit;
+                            auditItems = updatedAudit.items;
+                            extraItems = updatedAudit.extraItems || [];
+
+                            // บันทึกสถานะลง localStorage
+                            localStorage.setItem('auditItems', JSON.stringify(auditItems));
+                            localStorage.setItem('extraItems', JSON.stringify(extraItems));
+
+                            renderTables();
+                            updateStats();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'อัปโหลดหลักฐานสำเร็จ',
+                                text: 'บันทึกสถานะกำลังโอนย้ายเรียบร้อยแล้ว',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'อัปโหลดหลักฐานล้มเหลว',
+                                text: data.message || 'เกิดข้อผิดพลาดในการบันทึก'
+                            });
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาดการเชื่อมต่อ',
+                            text: 'ไม่สามารถอัปโหลดข้อมูลไปยังเซิร์ฟเวอร์ได้'
+                        });
+                    }
+                }
+            });
+        }
+
         // ยกเลิกเซสชัน
         function confirmCancelAudit() {
             Swal.fire({
@@ -668,6 +893,7 @@
                 cancelButtonText: 'ย้อนกลับ'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    clearLocalSession();
                     location.reload();
                 }
             });
@@ -722,6 +948,7 @@
                                 text: 'ได้จัดส่งผลลัพธ์การตรวจสอบสต็อกสาขาเรียบร้อยแล้ว',
                                 confirmButtonText: 'ตกลง'
                             });
+                            clearLocalSession();
                             location.reload(); // รีเซ็ตเพื่อขึ้นรายการใหม่
                         } else {
                             Swal.fire({ icon: 'error', title: 'บันทึกล้มเหลว', text: data.message || 'เกิดข้อผิดพลาดในการบันทึก' });
@@ -763,7 +990,7 @@
             if (completedAudits.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="px-6 py-8 text-center text-slate-400 font-medium">ยังไม่มีประวัติการเช็คสต็อกสินค้าในระบบ</td>
+                        <td colspan="10" class="px-6 py-8 text-center text-slate-400 font-medium">ยังไม่มีประวัติการเช็คสต็อกสินค้าในระบบ</td>
                     </tr>
                 `;
                 return;
@@ -774,9 +1001,10 @@
                 const dateStr = date.toLocaleDateString('th-TH') + ' ' + date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
                 
                 const totalItems = audit.items.length;
-                const matched = audit.items.filter(i => i.scannedQty === i.expectedQty).length;
-                const missing = audit.items.filter(i => i.scannedQty < i.expectedQty).length;
-                const excess = audit.items.filter(i => i.scannedQty > i.expectedQty).length;
+                const matched = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty === i.expectedQty).length;
+                const transit = audit.items.filter(i => i.status === 'in_transit').reduce((sum, i) => sum + i.inTransitQty, 0);
+                const missing = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty < i.expectedQty).length;
+                const excess = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty > i.expectedQty).length;
                 const extra = audit.extraItems ? audit.extraItems.reduce((sum, i) => sum + i.scannedQty, 0) : 0;
 
                 const tr = document.createElement('tr');
@@ -787,6 +1015,7 @@
                     <td class="px-6 py-4 text-slate-600">${audit.auditedBy ? (audit.auditedBy.name || audit.auditedBy.username) : 'ไม่ระบุ'}</td>
                     <td class="px-6 py-4 text-center font-bold text-slate-700">${totalItems}</td>
                     <td class="px-6 py-4 text-center font-bold text-emerald-600">${matched}</td>
+                    <td class="px-6 py-4 text-center font-bold ${transit > 0 ? 'text-yellow-600' : 'text-slate-400'}">${transit}</td>
                     <td class="px-6 py-4 text-center font-bold ${missing > 0 ? 'text-rose-500' : 'text-slate-400'}">${missing}</td>
                     <td class="px-6 py-4 text-center font-bold ${excess > 0 ? 'text-amber-500' : 'text-slate-400'}">${excess}</td>
                     <td class="px-6 py-4 text-center font-bold ${extra > 0 ? 'text-orange-500' : 'text-slate-400'}">${extra}</td>
@@ -894,9 +1123,10 @@
             document.getElementById('modal-subtitle').textContent = `เมื่อ ${dateStr} | ผู้ตรวจสอบ: ${audit.auditedBy ? (audit.auditedBy.name || audit.auditedBy.username) : 'ไม่ระบุ'}`;
 
             const totalItems = audit.items.length;
-            const matched = audit.items.filter(i => i.scannedQty === i.expectedQty).length;
-            const missing = audit.items.filter(i => i.scannedQty < i.expectedQty).length;
-            const excess = audit.items.filter(i => i.scannedQty > i.expectedQty).length;
+            const matched = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty === i.expectedQty).length;
+            const transit = audit.items.filter(i => i.status === 'in_transit').reduce((sum, i) => sum + i.inTransitQty, 0);
+            const missing = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty < i.expectedQty).length;
+            const excess = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty > i.expectedQty).length;
             const extra = audit.extraItems ? audit.extraItems.reduce((sum, i) => sum + i.scannedQty, 0) : 0;
 
             const modalStats = document.getElementById('modal-stats');
@@ -908,6 +1138,10 @@
                 <div class="bg-emerald-50 p-4 rounded-xl text-center">
                     <div class="text-emerald-500 text-xs font-bold uppercase">ตรงกัน</div>
                     <div class="text-xl font-bold text-emerald-600 mt-1">${matched}</div>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded-xl text-center">
+                    <div class="text-yellow-500 text-xs font-bold uppercase">กำลังโอนย้าย</div>
+                    <div class="text-xl font-bold text-yellow-600 mt-1">${transit}</div>
                 </div>
                 <div class="bg-rose-50 p-4 rounded-xl text-center">
                     <div class="text-rose-500 text-xs font-bold uppercase">สินค้าขาด</div>
@@ -923,7 +1157,9 @@
             modalItemsBody.innerHTML = '';
             audit.items.forEach(item => {
                 const tr = document.createElement('tr');
-                if (item.scannedQty === item.expectedQty) {
+                if (item.status === 'in_transit') {
+                    tr.className = 'bg-yellow-50/20';
+                } else if (item.scannedQty === item.expectedQty) {
                     tr.className = 'bg-emerald-50/20';
                 } else if (item.scannedQty > item.expectedQty) {
                     tr.className = 'bg-amber-50/20';
@@ -932,7 +1168,13 @@
                 }
                 
                 let statusBadge = '';
-                if (item.scannedQty === item.expectedQty) {
+                let productNameHtml = item.productName;
+                if (item.status === 'in_transit') {
+                    statusBadge = `<span class="text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded-full text-xs font-bold">โอนย้าย ${item.inTransitQty} ชิ้น</span>`;
+                    if (item.evidenceImage) {
+                        productNameHtml += `<br><span class="text-[10px] text-slate-500 font-normal">หมายเหตุ: ${item.remark}</span><br><a href="${item.evidenceImage}" target="_blank" class="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-700 font-bold underline text-[10px]"><ion-icon name="image-outline"></ion-icon> ดูหลักฐานใบโอน</a>`;
+                    }
+                } else if (item.scannedQty === item.expectedQty) {
                     statusBadge = `<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-xs font-bold">ตรงจำนวน</span>`;
                 } else if (item.scannedQty < item.expectedQty) {
                     statusBadge = `<span class="text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full text-xs font-bold">ขาดอีก ${item.expectedQty - item.scannedQty}</span>`;
@@ -942,9 +1184,9 @@
 
                 tr.innerHTML = `
                     <td class="px-4 py-3 font-mono font-bold text-slate-700">${item.productCode}</td>
-                    <td class="px-4 py-3">${item.productName}</td>
+                    <td class="px-4 py-3">${productNameHtml}</td>
                     <td class="px-4 py-3 text-center font-bold">${item.expectedQty}</td>
-                    <td class="px-4 py-3 text-center font-extrabold text-slate-800">${item.scannedQty}</td>
+                    <td class="px-4 py-3 text-center font-extrabold text-slate-800">${item.status === 'in_transit' ? `โอนย้าย (${item.inTransitQty})` : item.scannedQty}</td>
                     <td class="px-4 py-3 text-center">${statusBadge}</td>
                 `;
                 modalItemsBody.appendChild(tr);
@@ -993,9 +1235,10 @@
             const auditorName = audit.auditedBy ? (audit.auditedBy.name || audit.auditedBy.username) : 'ไม่ระบุ';
 
             const totalItems = audit.items.length;
-            const matched = audit.items.filter(i => i.scannedQty === i.expectedQty).length;
-            const missing = audit.items.filter(i => i.scannedQty < i.expectedQty).length;
-            const excess = audit.items.filter(i => i.scannedQty > i.expectedQty).length;
+            const matched = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty === i.expectedQty).length;
+            const transit = audit.items.filter(i => i.status === 'in_transit').reduce((sum, i) => sum + i.inTransitQty, 0);
+            const missing = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty < i.expectedQty).length;
+            const excess = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty > i.expectedQty).length;
             const extra = audit.extraItems ? audit.extraItems.reduce((sum, i) => sum + i.scannedQty, 0) : 0;
 
             // Generate items table rows
@@ -1007,7 +1250,11 @@
                 let statusText = '';
                 let statusClass = '';
 
-                if (diff === 0) {
+                if (item.status === 'in_transit') {
+                    diffText = '0';
+                    statusText = `โอนย้าย ${item.inTransitQty}`;
+                    statusClass = 'text-amber-700 bg-amber-50';
+                } else if (diff === 0) {
                     diffText = '0';
                     statusText = 'ตรงจำนวน';
                     statusClass = 'text-emerald-700 bg-emerald-50';
@@ -1023,12 +1270,17 @@
                     statusClass = 'text-amber-700 bg-amber-50';
                 }
 
+                let productNameHtml = item.productName;
+                if (item.status === 'in_transit' && item.evidenceImage) {
+                    productNameHtml += `<br><span style="font-size: 10px; color: #b45309;">หมายเหตุ: ${item.remark}</span><br><a href="${item.evidenceImage}" target="_blank" style="font-size: 10px; font-weight: bold; color: #2563eb; text-decoration: underline;">[ดูหลักฐานใบโอนย้าย]</a>`;
+                }
+
                 itemsRowsHtml += `
                     <tr>
                         <td style="font-family: monospace; font-weight: bold;">${item.productCode}</td>
-                        <td>${item.productName}</td>
+                        <td>${productNameHtml}</td>
                         <td class="text-center">${item.expectedQty}</td>
-                        <td class="text-center">${item.scannedQty}</td>
+                        <td class="text-center">${item.status === 'in_transit' ? `โอนย้าย (${item.inTransitQty})` : item.scannedQty}</td>
                         <td class="text-center ${diffClass}">${diffText}</td>
                         <td class="text-center"><span class="badge ${statusClass}">${statusText}</span></td>
                     </tr>
@@ -1130,7 +1382,7 @@
         }
         .stats-grid {
             display: grid;
-            grid-template-cols: repeat(4, 1fr);
+            grid-template-cols: repeat(5, 1fr);
             gap: 1rem;
             margin-bottom: 2rem;
         }
@@ -1142,6 +1394,7 @@
         }
         .stat-card.total { background: #f1f5f9; }
         .stat-card.matched { background: #ecfdf5; border-color: #a7f3d0; }
+        .stat-card.transit { background: #fffdf5; border-color: #fde68a; }
         .stat-card.missing { background: #fef2f2; border-color: #fca5a5; }
         .stat-card.excess { background: #fffbeb; border-color: #fde68a; }
         
@@ -1159,6 +1412,7 @@
         }
         .stat-card.total .stat-value { color: #334155; }
         .stat-card.matched .stat-value { color: #059669; }
+        .stat-card.transit .stat-value { color: #d97706; }
         .stat-card.missing .stat-value { color: #dc2626; }
         .stat-card.excess .stat-value { color: #d97706; }
 
@@ -1266,6 +1520,10 @@
                 <div class="stat-label">นับตรง</div>
                 <div class="stat-value">${matched}</div>
             </div>
+            <div class="stat-card transit">
+                <div class="stat-label">กำลังโอนย้าย</div>
+                <div class="stat-value">${transit}</div>
+            </div>
             <div class="stat-card missing">
                 <div class="stat-label">สินค้าขาด</div>
                 <div class="stat-value">${missing}</div>
@@ -1365,7 +1623,7 @@
             <!-- Modal Content (Scrollable) -->
             <div class="flex-1 overflow-y-auto p-6 space-y-6">
                 <!-- Summary Stats -->
-                <div class="grid grid-cols-4 gap-4" id="modal-stats">
+                <div class="grid grid-cols-5 gap-4" id="modal-stats">
                     <!-- Stats injected here -->
                 </div>
 

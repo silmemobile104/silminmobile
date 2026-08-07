@@ -23,9 +23,12 @@ const InventoryAuditSchema = new mongoose.Schema({
         productName: { type: String, default: '' },
         expectedQty: { type: Number, default: 0 },
         scannedQty: { type: Number, default: 0 },
+        inTransitQty: { type: Number, default: 0 },
+        evidenceImage: { type: String, default: '' },
+        remark: { type: String, default: '' },
         status: {
             type: String,
-            enum: ['matched', 'missing', 'excess'],
+            enum: ['matched', 'missing', 'excess', 'in_transit'],
             default: 'missing'
         }
     }],

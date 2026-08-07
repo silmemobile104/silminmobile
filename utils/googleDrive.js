@@ -126,9 +126,8 @@ const uploadBufferToDrive = async (buffer, mimeType, fileName, maxRetries = 3) =
     }
 };
 
-const getOrCreateSubFolderId = async (folderName) => {
+const getOrCreateSubFolderId = async (folderName, parentFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID) => {
     const drive = getDriveService();
-    const parentFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
     if (!parentFolderId) {
         throw new Error('GOOGLE_DRIVE_FOLDER_ID not set in environment');
@@ -195,8 +194,54 @@ const uploadBufferToDriveInFolder = async (buffer, mimeType, fileName, folderNam
     }
 };
 
+const uploadBufferToDriveInNestedFolder = async (buffer, mimeType, fileName, folderPathArray) => {
+    try {
+        const drive = getDriveService();
+        let currentParentId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+
+        if (!currentParentId) {
+            throw new Error('GOOGLE_DRIVE_FOLDER_ID not set in environment');
+        }
+
+        // สร้าง/ดึงโฟลเดอร์ซ้อนกันตามลำดับในอาร์เรย์
+        for (const folderName of folderPathArray) {
+            currentParentId = await getOrCreateSubFolderId(folderName, currentParentId);
+        }
+
+        const bufferStream = new stream.PassThrough();
+        bufferStream.end(buffer);
+
+        const fileMetadata = {
+            name: fileName,
+            parents: [currentParentId]
+        };
+
+        const media = {
+            mimeType: mimeType,
+            body: bufferStream
+        };
+
+        const file = await drive.files.create({
+            resource: fileMetadata,
+            media: media,
+            fields: 'id'
+        });
+
+        await drive.permissions.create({
+            fileId: file.data.id,
+            requestBody: { role: 'reader', type: 'anyone' }
+        });
+
+        return `https://drive.google.com/thumbnail?id=${file.data.id}&sz=w1000`;
+    } catch (error) {
+        console.error('Error uploading buffer to Drive in nested folder:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     uploadUrlToDrive,
     uploadBufferToDrive,
-    uploadBufferToDriveInFolder
+    uploadBufferToDriveInFolder,
+    uploadBufferToDriveInNestedFolder
 };
