@@ -901,8 +901,8 @@
 
         // ส่งบันทึกผลตรวจสอบสต็อกไปยังหลังบ้าน
         async function submitAuditResult() {
-            const totalMissing = auditItems.filter(i => i.scannedQty < i.expectedQty).length;
-            const totalExcess = auditItems.filter(i => i.scannedQty > i.expectedQty).length;
+            const totalMissing = auditItems.filter(i => i.status !== 'in_transit' && i.scannedQty < i.expectedQty).length;
+            const totalExcess = auditItems.filter(i => i.status !== 'in_transit' && i.scannedQty > i.expectedQty).length;
             const totalExtra = extraItems.length;
 
             let confirmText = `การตรวจเช็คสต็อกตรงกับระบบสมบูรณ์`;
@@ -911,14 +911,14 @@
             }
 
             Swal.fire({
-                title: 'ยืนยันปิดผลการเช็คสต็อก?',
+                title: 'ยืนยันบันทึกผลการเช็คสต็อก?',
                 text: confirmText,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#059669',
                 cancelButtonColor: '#94a3b8',
-                confirmButtonText: 'บันทึกสำเร็จ',
-                cancelButtonText: 'ตรวจเช็คต่อ'
+                confirmButtonText: 'ยืนยันบันทึก',
+                cancelButtonText: 'ยกเลิก'
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     Swal.fire({
@@ -942,14 +942,40 @@
                         const data = await response.json();
 
                         if (response.ok && data.success) {
-                            await Swal.fire({
+                            const saveNum = data.audit.saveLogs ? data.audit.saveLogs.length : 1;
+                            
+                            // อัปเดตข้อมูลเซสชันปัจจุบันด้วยข้อมูลล่าสุด
+                            activeAuditId = data.audit._id;
+                            auditBranch = data.audit.branch;
+                            auditItems = data.audit.items;
+                            extraItems = data.audit.extraItems || [];
+
+                            localStorage.setItem('activeAuditId', activeAuditId);
+                            localStorage.setItem('auditBranch', auditBranch);
+                            localStorage.setItem('auditItems', JSON.stringify(auditItems));
+                            localStorage.setItem('extraItems', JSON.stringify(extraItems));
+
+                            renderTables();
+                            updateStats();
+
+                            Swal.fire({
                                 icon: 'success',
-                                title: 'บันทึกสำเร็จ!',
-                                text: 'ได้จัดส่งผลลัพธ์การตรวจสอบสต็อกสาขาเรียบร้อยแล้ว',
-                                confirmButtonText: 'ตกลง'
+                                title: `บันทึกสำเร็จ (ครั้งที่ ${saveNum})`,
+                                text: 'คุณสามารถตรวจเช็คสต็อกต่อ หรือกลับสู่หน้ารวมประวัติได้',
+                                showCancelButton: true,
+                                confirmButtonColor: '#eab308',
+                                cancelButtonColor: '#64748b',
+                                confirmButtonText: '<ion-icon name="barcode-outline"></ion-icon> ตรวจเช็คต่อทันที',
+                                cancelButtonText: '<ion-icon name="home-outline"></ion-icon> กลับสู่หน้าหลัก'
+                            }).then((choice) => {
+                                if (choice.isConfirmed) {
+                                    keepFocusOnScanner();
+                                    Toastify({ text: `พร้อมตรวจเช็คต่อ (บันทึกสะสม ${saveNum} ครั้ง)`, backgroundColor: "#10b981", duration: 3000 }).showToast();
+                                } else {
+                                    clearLocalSession();
+                                    location.reload();
+                                }
                             });
-                            clearLocalSession();
-                            location.reload(); // รีเซ็ตเพื่อขึ้นรายการใหม่
                         } else {
                             Swal.fire({ icon: 'error', title: 'บันทึกล้มเหลว', text: data.message || 'เกิดข้อผิดพลาดในการบันทึก' });
                         }
@@ -959,6 +985,58 @@
                     }
                 }
             });
+        }
+
+        // ฟังก์ชันเปิดรอบตรวจเช็คสต็อกเดิมเพื่อเช็คต่อ
+        async function resumeAudit(auditId) {
+            try {
+                Swal.fire({
+                    title: 'กำลังโหลดข้อมูลเพื่อตรวจเช็คต่อ...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                const response = await fetch(`/api/inventory-audit/session/${auditId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    activeAuditId = data.audit._id;
+                    auditBranch = data.audit.branch;
+                    auditItems = data.audit.items;
+                    extraItems = data.audit.extraItems || [];
+
+                    localStorage.setItem('activeAuditId', activeAuditId);
+                    localStorage.setItem('auditBranch', auditBranch);
+                    localStorage.setItem('auditItems', JSON.stringify(auditItems));
+                    localStorage.setItem('extraItems', JSON.stringify(extraItems));
+
+                    document.getElementById('audit-branch-tag').textContent = `สาขา: ${auditBranch}`;
+                    
+                    document.getElementById('upload-panel').classList.add('hidden');
+                    document.getElementById('history-panel').classList.add('hidden');
+                    document.getElementById('scanning-panel').classList.remove('hidden');
+
+                    renderTables();
+                    updateStats();
+
+                    Swal.close();
+                    setTimeout(() => { keepFocusOnScanner(); }, 200);
+
+                    const saveCount = data.audit.saveLogs ? data.audit.saveLogs.length : 1;
+                    Toastify({ 
+                        text: `เปิดรอบตรวจเช็คสาขา ${auditBranch} สำเร็จ (บันทึกแล้ว ${saveCount} ครั้ง)`, 
+                        backgroundColor: "#3b82f6",
+                        duration: 3500 
+                    }).showToast();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'ไม่สามารถเปิดรอบตรวจสอบได้', text: data.message || 'กรุณาลองใหม่อีกครั้ง' });
+                }
+            } catch (err) {
+                console.error('Error resuming audit:', err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้' });
+            }
         }
 
         // =======================================================
@@ -1006,12 +1084,18 @@
                 const missing = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty < i.expectedQty).length;
                 const excess = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty > i.expectedQty).length;
                 const extra = audit.extraItems ? audit.extraItems.reduce((sum, i) => sum + i.scannedQty, 0) : 0;
+                const saveCount = audit.saveLogs ? audit.saveLogs.length : 1;
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition-colors';
                 tr.innerHTML = `
                     <td class="px-6 py-4 font-bold text-slate-800">${audit.branch}</td>
-                    <td class="px-6 py-4 text-slate-500">${dateStr} น.</td>
+                    <td class="px-6 py-4">
+                        <div class="text-slate-700 font-medium">${dateStr} น.</div>
+                        <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full mt-1">
+                            <ion-icon name="bookmark-outline"></ion-icon> บันทึก ${saveCount} ครั้ง
+                        </span>
+                    </td>
                     <td class="px-6 py-4 text-slate-600">${audit.auditedBy ? (audit.auditedBy.name || audit.auditedBy.username) : 'ไม่ระบุ'}</td>
                     <td class="px-6 py-4 text-center font-bold text-slate-700">${totalItems}</td>
                     <td class="px-6 py-4 text-center font-bold text-emerald-600">${matched}</td>
@@ -1020,12 +1104,16 @@
                     <td class="px-6 py-4 text-center font-bold ${excess > 0 ? 'text-amber-500' : 'text-slate-400'}">${excess}</td>
                     <td class="px-6 py-4 text-center font-bold ${extra > 0 ? 'text-orange-500' : 'text-slate-400'}">${extra}</td>
                     <td class="px-6 py-4">
-                        <div class="flex items-center justify-center gap-2">
-                            <button onclick="showAuditDetails('${audit._id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors flex items-center gap-1">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="resumeAudit('${audit._id}')" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center gap-1 shadow-sm text-xs" title="ตรวจเช็คต่อ">
+                                <ion-icon name="play-outline"></ion-icon>
+                                <span>เช็คต่อ</span>
+                            </button>
+                            <button onclick="showAuditDetails('${audit._id}')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors flex items-center gap-1 text-xs">
                                 <ion-icon name="eye-outline"></ion-icon>
                                 <span>รายละเอียด</span>
                             </button>
-                            <button onclick="printAuditReport('${audit._id}')" class="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold rounded-lg transition-colors flex items-center gap-1" title="พิมพ์รายงาน">
+                            <button onclick="printAuditReport('${audit._id}')" class="px-2.5 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold rounded-lg transition-colors flex items-center gap-1 text-xs" title="พิมพ์รายงาน">
                                 <ion-icon name="print-outline"></ion-icon>
                                 <span>พิมพ์</span>
                             </button>
@@ -1116,11 +1204,20 @@
                 printBtn.onclick = () => printAuditReport(auditId);
             }
 
+            const resumeBtn = document.getElementById('btn-modal-resume');
+            if (resumeBtn) {
+                resumeBtn.onclick = () => {
+                    closeDetailModal();
+                    resumeAudit(auditId);
+                };
+            }
+
+            const saveCount = audit.saveLogs ? audit.saveLogs.length : 1;
             document.getElementById('modal-title').textContent = `รายละเอียดการเช็คสต็อก: ${audit.branch}`;
             
             const date = new Date(audit.auditDate || audit.updatedAt);
             const dateStr = date.toLocaleDateString('th-TH') + ' ' + date.toLocaleTimeString('th-TH') + ' น.';
-            document.getElementById('modal-subtitle').textContent = `เมื่อ ${dateStr} | ผู้ตรวจสอบ: ${audit.auditedBy ? (audit.auditedBy.name || audit.auditedBy.username) : 'ไม่ระบุ'}`;
+            document.getElementById('modal-subtitle').textContent = `บันทึกสะสม ${saveCount} ครั้ง | อัปเดตล่าสุด: ${dateStr} | ผู้ตรวจสอบ: ${audit.auditedBy ? (audit.auditedBy.name || audit.auditedBy.username) : 'ไม่ระบุ'}`;
 
             const totalItems = audit.items.length;
             const matched = audit.items.filter(i => i.status !== 'in_transit' && i.scannedQty === i.expectedQty).length;
@@ -1209,6 +1306,51 @@
                 });
             } else {
                 modalExtraSection.classList.add('hidden');
+            }
+
+            // แสดงประวัติการกดบันทึกย้อนหลัง (Save History Logs)
+            const saveLogsList = document.getElementById('modal-save-logs-list');
+            const saveCountBadge = document.getElementById('modal-save-count-badge');
+            const logs = audit.saveLogs || [];
+            
+            if (saveCountBadge) {
+                saveCountBadge.textContent = `${logs.length || 1} ครั้ง`;
+            }
+
+            if (saveLogsList) {
+                if (logs.length === 0) {
+                    saveLogsList.innerHTML = `
+                        <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs text-slate-500 flex items-center justify-between">
+                            <span>บันทึกครั้งแรกเมื่อ: ${dateStr} โดย <strong>${audit.auditedBy ? (audit.auditedBy.name || audit.auditedBy.username) : 'ไม่ระบุ'}</strong></span>
+                            <span class="text-emerald-600 font-bold">บันทึกสำเร็จ</span>
+                        </div>
+                    `;
+                } else {
+                    saveLogsList.innerHTML = logs.map((log, idx) => {
+                        const logDate = new Date(log.savedAt);
+                        const logDateStr = logDate.toLocaleDateString('th-TH') + ' ' + logDate.toLocaleTimeString('th-TH') + ' น.';
+                        const saverName = log.savedBy ? (log.savedBy.name || log.savedBy.username) : (audit.auditedBy ? (audit.auditedBy.name || audit.auditedBy.username) : 'ไม่ระบุ');
+                        return `
+                            <div class="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                <div>
+                                    <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                                        <span class="w-5 h-5 rounded-full bg-yellow-400 text-slate-950 flex items-center justify-center font-extrabold text-[10px] shadow-sm">${idx + 1}</span>
+                                        <span>บันทึกครั้งที่ ${idx + 1}</span>
+                                        <span class="text-slate-400 font-normal">(${logDateStr})</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 mt-1">ผู้กดบันทึก: <strong class="text-slate-700">${saverName}</strong></div>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 font-bold text-[10px]">
+                                    <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md">นับรวม: ${log.totalScanned || 0}</span>
+                                    <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md">ตรง: ${log.matchedCount || 0}</span>
+                                    ${(log.inTransitCount || 0) > 0 ? `<span class="bg-yellow-50 text-yellow-800 px-2 py-0.5 rounded-md">โอน: ${log.inTransitCount}</span>` : ''}
+                                    <span class="bg-rose-50 text-rose-700 px-2 py-0.5 rounded-md">ขาด: ${log.missingCount || 0}</span>
+                                    <span class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md">เกิน: ${log.excessCount || 0}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).reverse().join('');
+                }
             }
 
             const modal = document.getElementById('detail-modal');
@@ -1664,16 +1806,36 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Save History Logs Section -->
+                <div id="modal-save-logs-section" class="space-y-3 pt-2 border-t border-slate-100">
+                    <h4 class="font-bold text-slate-800 text-sm flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <ion-icon name="time-outline" class="text-lg text-yellow-500"></ion-icon>
+                            ประวัติการกดบันทึกย้อนหลัง (Save History Timeline)
+                        </span>
+                        <span id="modal-save-count-badge" class="text-xs font-bold px-2.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full">1 ครั้ง</span>
+                    </h4>
+                    <div id="modal-save-logs-list" class="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                        <!-- Save log items injected here -->
+                    </div>
+                </div>
             </div>
             <!-- Modal Footer -->
-            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                <button id="btn-modal-print" class="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-sm">
-                    <ion-icon name="print-outline" class="text-lg"></ion-icon>
-                    <span>พิมพ์รายงาน</span>
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center gap-3">
+                <button id="btn-modal-resume" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-sm">
+                    <ion-icon name="play-outline" class="text-lg"></ion-icon>
+                    <span>ตรวจเช็คต่อ</span>
                 </button>
-                <button onclick="closeDetailModal()" class="px-5 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-colors">
-                    ปิดหน้าต่าง
-                </button>
+                <div class="flex gap-3">
+                    <button id="btn-modal-print" class="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-sm">
+                        <ion-icon name="print-outline" class="text-lg"></ion-icon>
+                        <span>พิมพ์รายงาน</span>
+                    </button>
+                    <button onclick="closeDetailModal()" class="px-5 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-colors">
+                        ปิดหน้าต่าง
+                    </button>
+                </div>
             </div>
         </div>
     </div>

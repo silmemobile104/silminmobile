@@ -35,6 +35,17 @@ const InventoryAuditSchema = new mongoose.Schema({
     extraItems: [{
         productCode: { type: String, required: true },
         scannedQty: { type: Number, default: 0 }
+    }],
+    saveLogs: [{
+        savedAt: { type: Date, default: Date.now },
+        savedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        totalScanned: { type: Number, default: 0 },
+        matchedCount: { type: Number, default: 0 },
+        missingCount: { type: Number, default: 0 },
+        excessCount: { type: Number, default: 0 },
+        inTransitCount: { type: Number, default: 0 },
+        extraCount: { type: Number, default: 0 },
+        note: { type: String, default: '' }
     }]
 }, { timestamps: true });
 

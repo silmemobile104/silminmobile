@@ -119,7 +119,7 @@ exports.uploadAuditFile = async (req, res) => {
 // 2. บันทึกผลลัพธ์การสแกนตรวจสอบสต็อกและเปลี่ยนสถานะเป็น 'completed'
 exports.saveAuditResult = async (req, res) => {
     try {
-        const { id, items, extraItems } = req.body;
+        const { id, items, extraItems, note } = req.body;
 
         if (!id) {
             return res.status(400).json({ success: false, message: 'กรุณาระบุรหัสรายการตรวจสอบ (Audit ID)' });
@@ -128,10 +128,6 @@ exports.saveAuditResult = async (req, res) => {
         const auditSession = await InventoryAudit.findById(id);
         if (!auditSession) {
             return res.status(404).json({ success: false, message: 'ไม่พบรายการตรวจสอบสต็อกนี้' });
-        }
-
-        if (auditSession.status === 'completed') {
-            return res.status(400).json({ success: false, message: 'รายการตรวจสอบนี้ถูกบันทึกสำเร็จเสร็จสิ้นไปแล้ว' });
         }
 
         // อัปเดตรายการหลักและประเมินสถานะของแต่ละรายการ
@@ -164,18 +160,44 @@ exports.saveAuditResult = async (req, res) => {
             }));
         }
 
+        // คำนวณสถิติสรุปสำหรับบันทึกประวัติการกดบันทึก (Save Log)
+        const totalScanned = auditSession.items.reduce((sum, i) => sum + i.scannedQty, 0) + (auditSession.extraItems ? auditSession.extraItems.reduce((sum, i) => sum + i.scannedQty, 0) : 0);
+        const matchedCount = auditSession.items.filter(i => i.status !== 'in_transit' && i.scannedQty === i.expectedQty).length;
+        const inTransitCount = auditSession.items.filter(i => i.status === 'in_transit').reduce((sum, i) => sum + (i.inTransitQty || 0), 0);
+        const missingCount = auditSession.items.filter(i => i.status !== 'in_transit' && i.scannedQty < i.expectedQty).length;
+        const excessCount = auditSession.items.filter(i => i.status !== 'in_transit' && i.scannedQty > i.expectedQty).length;
+        const extraCount = auditSession.extraItems ? auditSession.extraItems.length : 0;
+
+        if (!auditSession.saveLogs) {
+            auditSession.saveLogs = [];
+        }
+
+        const saveNumber = auditSession.saveLogs.length + 1;
+        auditSession.saveLogs.push({
+            savedAt: new Date(),
+            savedBy: req.user._id,
+            totalScanned,
+            matchedCount,
+            missingCount,
+            excessCount,
+            inTransitCount,
+            extraCount,
+            note: note || `บันทึกครั้งที่ ${saveNumber}`
+        });
+
         // สรุปปิดงาน
         auditSession.status = 'completed';
         auditSession.auditDate = new Date();
 
         await auditSession.save();
+        await auditSession.populate('saveLogs.savedBy', 'name username');
 
         // บันทึก Activity Log
-        await logActivity(req, 'UPDATE', 'InventoryAudit', `บันทึกผลตรวจสอบสต็อกสาขา: ${auditSession.branch} สำเร็จ`, { id: auditSession._id, branch: auditSession.branch });
+        await logActivity(req, 'UPDATE', 'InventoryAudit', `บันทึกผลตรวจสอบสต็อกสาขา: ${auditSession.branch} (ครั้งที่ ${saveNumber})`, { id: auditSession._id, branch: auditSession.branch, saveNumber });
 
         res.status(200).json({
             success: true,
-            message: 'บันทึกผลตรวจสอบสำเร็จ',
+            message: `บันทึกผลตรวจสอบสำเร็จ (ครั้งที่ ${saveNumber})`,
             audit: auditSession
         });
 
@@ -202,6 +224,7 @@ exports.getAuditHistory = async (req, res) => {
 
         const history = await InventoryAudit.find(query)
             .populate('auditedBy', 'name username')
+            .populate('saveLogs.savedBy', 'name username')
             .sort({ auditDate: -1, createdAt: -1 });
 
         res.status(200).json({
@@ -230,10 +253,6 @@ exports.uploadAuditEvidence = async (req, res) => {
         const auditSession = await InventoryAudit.findById(auditId);
         if (!auditSession) {
             return res.status(404).json({ success: false, message: 'ไม่พบรายการตรวจสอบสต็อกนี้' });
-        }
-
-        if (auditSession.status === 'completed') {
-            return res.status(400).json({ success: false, message: 'รายการตรวจสอบนี้ถูกบันทึกสำเร็จเสร็จสิ้นไปแล้ว ไม่สามารถแก้ไขได้' });
         }
 
         // ค้นหาสินค้าในรายการหลัก
@@ -291,11 +310,13 @@ exports.uploadAuditEvidence = async (req, res) => {
     }
 };
 
-// 5. ดึงข้อมูลรายการตรวจสอบเดี่ยวโดย ID (สำหรับกู้คืนเซสชันเมื่อ Refresh)
+// 5. ดึงข้อมูลรายการตรวจสอบเดี่ยวโดย ID (สำหรับกู้คืนเซสชันเมื่อ Refresh หรือเปิดเช็คต่อ)
 exports.getAuditSession = async (req, res) => {
     try {
         const { id } = req.params;
-        const audit = await InventoryAudit.findById(id).populate('auditedBy', 'name username');
+        const audit = await InventoryAudit.findById(id)
+            .populate('auditedBy', 'name username')
+            .populate('saveLogs.savedBy', 'name username');
         if (!audit) {
             return res.status(404).json({ success: false, message: 'ไม่พบรายการตรวจสอบสต็อกนี้' });
         }
