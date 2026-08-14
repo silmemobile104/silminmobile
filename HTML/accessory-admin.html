@@ -399,7 +399,14 @@
             const mBody = document.getElementById('modal-items-body');
             mBody.innerHTML = '';
 
-            check.items.forEach(item => {
+            // เรียงลำดับรายการสินค้าจาก ก-ฮ
+            const sortedItems = [...check.items].sort((a, b) => {
+                const nameA = a.productName || '';
+                const nameB = b.productName || '';
+                return nameA.localeCompare(nameB, 'th');
+            });
+
+            sortedItems.forEach(item => {
                 const tr = document.createElement('tr');
                 const effectiveQty = item.countedQty + (item.shippingQty || 0);
                 const diff = effectiveQty - item.expectedQty;

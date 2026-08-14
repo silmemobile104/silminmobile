@@ -303,7 +303,14 @@
             const tbody = document.getElementById('items-table-body');
             tbody.innerHTML = '';
 
-            currentTask.items.forEach(item => {
+            // เรียงลำดับรายการสินค้าจาก ก-ฮ
+            const sortedItems = [...currentTask.items].sort((a, b) => {
+                const nameA = a.productName || '';
+                const nameB = b.productName || '';
+                return nameA.localeCompare(nameB, 'th');
+            });
+
+            sortedItems.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.className = 'border-b hover:bg-slate-50/50 transition-colors';
 
