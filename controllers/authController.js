@@ -55,7 +55,7 @@ exports.registerUser = async (req, res) => {
         jwt.sign(
             payload,
             jwtSecret,
-            { expiresIn: '24h' }, // Token หมดอายุใน 24 ชั่วโมง
+            {}, // ไม่มีวันหมดอายุ (Permanent Token)
             (err, token) => {
                 if (err) throw err;
                 res.status(201).json({ token }); // ส่ง Token กลับไป
@@ -115,7 +115,7 @@ exports.loginUser = async (req, res) => {
         jwt.sign(
             payload,
             jwtSecret,
-            { expiresIn: '24h' },
+            {}, // ไม่มีวันหมดอายุ (Permanent Token)
             (err, token) => {
                 if (err) throw err;
 
