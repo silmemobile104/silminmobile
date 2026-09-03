@@ -260,7 +260,12 @@
                         <ion-icon name="barcode-outline"></ion-icon>
                     </div>
                     <div class="relative z-10 space-y-2">
-                        <label class="block text-sm font-bold text-yellow-400">ช่องสแกนบาร์โค้ด / IMEI (ระบบจะเน้นช่องนี้อัตโนมัติ)</label>
+                        <label class="text-sm font-bold text-yellow-400 flex flex-wrap items-center justify-between gap-2">
+                            <span>ช่องสแกนบาร์โค้ด / IMEI (ระบบจะเน้นช่องนี้อัตโนมัติ)</span>
+                            <span class="text-xs font-medium text-yellow-200/80 bg-yellow-400/10 px-2.5 py-0.5 rounded-full border border-yellow-400/20 inline-flex items-center gap-1">
+                                <ion-icon name="shield-checkmark-outline"></ion-icon> หน่วงเวลา 0.5 วิ ป้องกันการลั่น
+                            </span>
+                        </label>
                         <div class="flex gap-4">
                             <input type="text" id="barcode-input" placeholder="ยิงสแกนเนอร์บาร์โค้ด หรือพิมพ์ IMEI แล้วกดปุ่ม Enter..."
                                 class="flex-1 px-5 py-4 text-lg bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/40 focus:bg-white focus:text-slate-900 focus:border-yellow-400 focus:outline-none transition-all font-medium"
@@ -298,10 +303,41 @@
                             </button>
                         </div>
                     </div>
+
+                    <!-- Accessory Batch Action Toolbar -->
+                    <div id="accessory-batch-toolbar" class="px-6 py-3.5 bg-gradient-to-r from-purple-50/90 via-indigo-50/40 to-slate-50 border-b border-purple-100 flex flex-wrap gap-3 items-center justify-between transition-all">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-extrabold text-purple-900 flex items-center gap-1.5">
+                                <ion-icon name="checkbox-outline" class="text-base text-purple-600"></ion-icon>
+                                <span>จัดการอุปกรณ์เสริม:</span>
+                            </span>
+                            <span id="accessory-selected-badge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                                เลือกอยู่ 0 รายการ
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <button type="button" onclick="selectAllAccessories()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 transition-colors shadow-2xs flex items-center gap-1">
+                                <ion-icon name="checkmark-done-circle-outline" class="text-sm text-purple-600"></ion-icon>
+                                <span>เลือกทั้งหมด</span>
+                            </button>
+                            <button type="button" onclick="clearSelectedAccessories()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors shadow-2xs flex items-center gap-1">
+                                <ion-icon name="close-circle-outline" class="text-sm"></ion-icon>
+                                <span>ล้างตัวเลือก</span>
+                            </button>
+                            <button type="button" id="btn-batch-confirm-accessories" onclick="confirmBatchAccessories()" disabled class="px-4 py-1.5 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-600">
+                                <ion-icon name="checkmark-circle" class="text-base"></ion-icon>
+                                <span>ยืนยันสินค้าครบตามระบบ (<span id="batch-confirm-count">0</span> รายการ)</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="overflow-auto max-h-[450px]">
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200 sticky top-0 z-10">
+                                    <th class="px-4 py-4 bg-slate-50 text-center w-12">
+                                        <input type="checkbox" id="th-select-all-accessories" onchange="toggleSelectAllAccessories(this.checked)" title="เลือก/ยกเลิกอุปกรณ์เสริมทั้งหมด" class="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-600">
+                                    </th>
                                     <th class="px-6 py-4 bg-slate-50">รหัสสินค้า (IMEI/Barcode)</th>
                                     <th class="px-6 py-4 bg-slate-50">ชื่อสินค้า</th>
                                     <th class="px-6 py-4 bg-slate-50 text-center">ระบบ</th>
@@ -494,6 +530,7 @@
             localStorage.removeItem('auditBranch');
             localStorage.removeItem('auditItems');
             localStorage.removeItem('extraItems');
+            if (typeof selectedAccessories !== 'undefined') selectedAccessories.clear();
         }
 
         // กำหนดโฟกัสช่องบาร์โค้ดตลอดเวลา
@@ -518,10 +555,11 @@
             if (activeAuditId) keepFocusOnScanner();
         });
 
-        // ดัก Event การกดยืนยันบาร์โค้ด
+        // ดัก Event การกดยืนยันบาร์โค้ด (รองรับทั้งเครื่องสแกนและคีย์บอร์ด)
         if (barcodeInput) {
-            barcodeInput.addEventListener('keypress', (e) => {
+            barcodeInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     processBarcode();
                 }
             });
@@ -649,8 +687,12 @@
             if (!item) return;
 
             item.itemType = (item.itemType === 'accessory') ? 'phone' : 'accessory';
+            if (item.itemType === 'phone') {
+                selectedAccessories.delete(productCode);
+            }
             localStorage.setItem('auditItems', JSON.stringify(auditItems));
             renderTables();
+            updateAccessoryBatchUI();
 
             const typeLabel = item.itemType === 'accessory' ? 'อุปกรณ์เสริม (กรอกจำนวนได้)' : 'เครื่องโทรศัพท์ (สแกนทีละชิ้น)';
             Toastify({ 
@@ -767,13 +809,39 @@
             });
         }
 
-        // ประมวลผลการยิงบาร์โค้ด
+        // ตัวแปรควบคุมการหน่วงเวลาป้องกันการยิงลั่น/ยิงเบิ้ล (0.5 วินาที)
+        let isBarcodeCoolingDown = false;
+        let lastScanTime = 0;
+
+        // ประมวลผลการยิงบาร์โค้ด (มีหน่วงเวลาดีเลย์ 0.5 วิ เพื่อป้องกันการลั่น)
         function processBarcode() {
-            const code = barcodeInput.value.trim();
+            const now = Date.now();
+
+            // หากมีการส่งบาร์โค้ดซ้ำเข้ามาภายใน 0.5 วินาที (500ms) ให้บล็อกและล้างค่าทิ้งทันที
+            if (isBarcodeCoolingDown || (now - lastScanTime < 500)) {
+                if (barcodeInput) barcodeInput.value = '';
+                return;
+            }
+
+            const code = barcodeInput ? barcodeInput.value.trim() : '';
             if (!code) return;
 
-            // ล้าง Input ทันทีเพื่อความลื่นไหลในการสแกน
-            barcodeInput.value = '';
+            // เริ่มนับดีเลย์ 0.5 วิ และล้างช่องสแกนทันที
+            lastScanTime = now;
+            isBarcodeCoolingDown = true;
+            if (barcodeInput) {
+                barcodeInput.value = '';
+                barcodeInput.classList.add('ring-2', 'ring-yellow-400');
+            }
+
+            // ปลดล็อคดีเลย์หลังครบ 0.5 วินาที (500ms)
+            setTimeout(() => {
+                isBarcodeCoolingDown = false;
+                if (barcodeInput) {
+                    barcodeInput.classList.remove('ring-2', 'ring-yellow-400');
+                    keepFocusOnScanner();
+                }
+            }, 500);
 
             // ค้นหารหัสสินค้าในรายการหลัก
             const item = auditItems.find(i => i.productCode === code);
@@ -881,6 +949,178 @@
             }
         }
 
+        // =======================================================
+        // ระบบเลือกและยืนยันอุปกรณ์เสริมเป็นชุด (Batch Accessory Confirmation)
+        // =======================================================
+        let selectedAccessories = new Set();
+
+        function toggleAccessorySelect(productCode, isChecked) {
+            if (isChecked) {
+                selectedAccessories.add(productCode);
+            } else {
+                selectedAccessories.delete(productCode);
+            }
+            updateAccessoryBatchUI();
+        }
+
+        function selectAllAccessories() {
+            // เลือกเฉพาะอุปกรณ์เสริมที่อยู่ในค้างตรวจ (Remaining Accessories)
+            const remainingAccessories = auditItems.filter(item => 
+                item.status !== 'in_transit' && 
+                item.scannedQty < item.expectedQty && 
+                item.itemType === 'accessory'
+            );
+
+            if (remainingAccessories.length === 0) {
+                Toastify({ text: "ไม่มีรายการอุปกรณ์เสริมที่ค้างตรวจสอบ", backgroundColor: "#64748b", duration: 1800 }).showToast();
+                return;
+            }
+
+            remainingAccessories.forEach(item => {
+                selectedAccessories.add(item.productCode);
+            });
+
+            document.querySelectorAll('.accessory-row-cb').forEach(cb => {
+                const code = cb.getAttribute('data-code');
+                if (selectedAccessories.has(code)) {
+                    cb.checked = true;
+                }
+            });
+
+            updateAccessoryBatchUI();
+            Toastify({ text: `เลือกอุปกรณ์เสริมทั้งหมด ${selectedAccessories.size} รายการ`, backgroundColor: "#8b5cf6", duration: 1800 }).showToast();
+        }
+
+        function clearSelectedAccessories() {
+            selectedAccessories.clear();
+            document.querySelectorAll('.accessory-row-cb').forEach(cb => {
+                cb.checked = false;
+            });
+            updateAccessoryBatchUI();
+            Toastify({ text: "ล้างการเลือกอุปกรณ์เสริมทั้งหมดแล้ว", backgroundColor: "#64748b", duration: 1500 }).showToast();
+        }
+
+        function toggleSelectAllAccessories(isChecked) {
+            if (isChecked) {
+                selectAllAccessories();
+            } else {
+                clearSelectedAccessories();
+            }
+        }
+
+        function updateAccessoryBatchUI() {
+            const validRemainingCodes = new Set(
+                auditItems
+                    .filter(item => item.status !== 'in_transit' && item.scannedQty < item.expectedQty && item.itemType === 'accessory')
+                    .map(item => item.productCode)
+            );
+
+            // นำโค้ดที่ตรวจเสร็จแล้วออกจาก Set อัตโนมัติ
+            for (const code of Array.from(selectedAccessories)) {
+                if (!validRemainingCodes.has(code)) {
+                    selectedAccessories.delete(code);
+                }
+            }
+
+            const count = selectedAccessories.size;
+            const totalRemainingAcc = validRemainingCodes.size;
+
+            const badge = document.getElementById('accessory-selected-badge');
+            if (badge) {
+                badge.textContent = `เลือกอยู่ ${count} รายการ`;
+                badge.className = count > 0 
+                    ? 'text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-purple-600 text-white border border-purple-600 shadow-2xs' 
+                    : 'text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200';
+            }
+
+            const btnConfirm = document.getElementById('btn-batch-confirm-accessories');
+            const countSpan = document.getElementById('batch-confirm-count');
+            if (countSpan) countSpan.textContent = count;
+            if (btnConfirm) {
+                btnConfirm.disabled = count === 0;
+            }
+
+            const thCb = document.getElementById('th-select-all-accessories');
+            if (thCb) {
+                if (totalRemainingAcc > 0 && count === totalRemainingAcc) {
+                    thCb.checked = true;
+                    thCb.indeterminate = false;
+                } else if (count > 0) {
+                    thCb.checked = false;
+                    thCb.indeterminate = true;
+                } else {
+                    thCb.checked = false;
+                    thCb.indeterminate = false;
+                }
+            }
+
+            const toolbar = document.getElementById('accessory-batch-toolbar');
+            if (toolbar) {
+                if (totalRemainingAcc === 0) {
+                    toolbar.classList.add('opacity-50', 'pointer-events-none');
+                } else {
+                    toolbar.classList.remove('opacity-50', 'pointer-events-none');
+                }
+            }
+        }
+
+        async function confirmBatchAccessories() {
+            const count = selectedAccessories.size;
+            if (count === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ยังไม่ได้เลือกรายการ',
+                    text: 'กรุณาติ๊กเลือกอุปกรณ์เสริมที่ต้องการยืนยันครบอย่างน้อย 1 รายการ'
+                });
+                return;
+            }
+
+            let totalPieces = 0;
+            selectedAccessories.forEach(code => {
+                const item = auditItems.find(i => i.productCode === code);
+                if (item) {
+                    totalPieces += (item.expectedQty - item.scannedQty);
+                }
+            });
+
+            const result = await Swal.fire({
+                title: `ยืนยันสินค้าครบ ${count} รายการ?`,
+                html: `คุณกำลังจะปรับยอดอุปกรณ์เสริมที่เลือกจำนวน <b>${count} รายการ</b> (นับเพิ่มที่ขาดอีก <b>${totalPieces} ชิ้น</b>) ให้นับ<b>ครบตามระบบ</b>ทันที`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<ion-icon name="checkmark-circle-outline"></ion-icon> ยืนยันครบตามระบบ',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (result.isConfirmed) {
+                let updatedCount = 0;
+                selectedAccessories.forEach(code => {
+                    const item = auditItems.find(i => i.productCode === code);
+                    if (item) {
+                        item.scannedQty = item.expectedQty;
+                        item.status = 'matched';
+                        updatedCount++;
+                    }
+                });
+
+                selectedAccessories.clear();
+                localStorage.setItem('auditItems', JSON.stringify(auditItems));
+
+                playSuccessSound();
+                renderTables();
+                updateStats();
+                keepFocusOnScanner();
+
+                Toastify({
+                    text: `ยืนยันอุปกรณ์เสริมครบตามระบบสำเร็จ ${updatedCount} รายการ!`,
+                    backgroundColor: "#10b981",
+                    duration: 3500
+                }).showToast();
+            }
+        }
+
         // วาดตารางข้อมูลแยกตารางตรวจสอบและตารางสแกนเสร็จสิ้น
         function renderTables() {
             // 1. ตารางรายการสินค้าที่ต้องสแกนต่อ (Remaining Items)
@@ -919,7 +1159,7 @@
                     : `ไม่พบรายการสินค้าหมวด "${remainingFilter === 'phone' ? 'เครื่องโทรศัพท์' : 'อุปกรณ์เสริม'}" ที่ต้องตรวจสอบต่อ`;
                 remainingBody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="px-6 py-8 text-center text-slate-500 font-bold bg-slate-50/30">
+                        <td colspan="7" class="px-6 py-8 text-center text-slate-500 font-bold bg-slate-50/30">
                             ${emptyMsg}
                         </td>
                     </tr>
@@ -931,9 +1171,19 @@
                         ? `<button type="button" onclick="toggleItemType('${item.productCode}')" title="คลิกเพื่อสลับเป็นเครื่องโทรศัพท์ (สแกนทีละชิ้น)" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors mt-1 cursor-pointer"><ion-icon name="headset-outline"></ion-icon> <span>อุปกรณ์เสริม</span></button>`
                         : `<button type="button" onclick="toggleItemType('${item.productCode}')" title="คลิกเพื่อสลับเป็นอุปกรณ์เสริม (กรอกจำนวนได้)" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors mt-1 cursor-pointer"><ion-icon name="phone-portrait-outline"></ion-icon> <span>เครื่อง</span></button>`;
 
+                    const cbCell = isAccessory 
+                        ? `<td class="px-4 py-4 text-center">
+                                <input type="checkbox" class="accessory-row-cb w-4 h-4 rounded text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-600" 
+                                    data-code="${item.productCode}" 
+                                    onchange="toggleAccessorySelect('${item.productCode}', this.checked)" 
+                                    ${selectedAccessories.has(item.productCode) ? 'checked' : ''}>
+                           </td>`
+                        : `<td class="px-4 py-4 text-center text-slate-300 font-bold text-xs">-</td>`;
+
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-slate-50 transition-colors';
                     tr.innerHTML = `
+                        ${cbCell}
                         <td class="px-6 py-4 font-mono font-bold text-slate-700">${item.productCode}</td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-slate-800">${item.productName}</div>
@@ -1096,6 +1346,9 @@
                     extraTableBody.appendChild(tr);
                 });
             }
+
+            // อัปเดตสถานะปุ่มและตัวนับของการเลือกอุปกรณ์เสริม
+            updateAccessoryBatchUI();
         }
 
         // ฟังก์ชันเปิดโมดอลอัปโหลดรูปหลักฐานการโอนย้าย
