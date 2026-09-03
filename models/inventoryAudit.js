@@ -30,6 +30,15 @@ const InventoryAuditSchema = new mongoose.Schema({
             type: String,
             enum: ['matched', 'missing', 'excess', 'in_transit'],
             default: 'missing'
+        },
+        itemType: {
+            type: String,
+            enum: ['phone', 'accessory'],
+            default: 'phone'
+        },
+        unit: {
+            type: String,
+            default: ''
         }
     }],
     extraItems: [{

@@ -56,32 +56,78 @@ exports.uploadAuditFile = async (req, res) => {
             return foundKey ? row[foundKey] : undefined;
         };
 
-        // แผนที่คีย์ที่เป็นไปได้
+        // แผนที่คีย์ที่เป็นไปได้ (รองรับไฟล์ระบบจริงของ SILMIN MOBILE)
         const codeKeys = ['รหัสสินค้า', 'imei', 'barcode', 'productcode', 'รหัส', 'serial', 'serialnumber'];
         const nameKeys = ['ชื่อสินค้า', 'productname', 'ชื่อ', 'itemname', 'description'];
         const qtyKeys = ['จำนวน', 'expectedqty', 'quantity', 'qty', 'จำนวนสินค้า'];
+        const unitKeys = ['หน่วยนับ', 'หน่วย', 'unit', 'uom'];
+        const typeKeys = ['ประเภท', 'หมวดหมู่', 'กลุ่มสินค้า', 'กลุ่ม', 'type', 'category', 'itemtype'];
+        const branchKeys = ['ที่เก็บ', 'สาขา', 'branch', 'location', 'warehouse', 'คลัง'];
+
+        // คำค้นหาสำหรับระบุประเภทอุปกรณ์เสริมอัตโนมัติ
+        const accessoryKeywords = ['เคส', 'ฟิล์ม', 'สายชาร์จ', 'สาย', 'ชาร์จ', 'หัวชาร์จ', 'หูฟัง', 'พาวเวอร์แบงค์', 'แบต', 'adapter', 'case', 'film', 'cable', 'charger', 'powerbank', 'earphone', 'headset', 'glass', 'กระจก'];
 
         // แปลงข้อมูลและจัดกลุ่ม (Group By productCode เพื่อรวมจำนวนถ้ามีแถวซ้ำ)
         const groupedItems = {};
+        let detectedBranch = '';
 
         rawData.forEach(row => {
             const rawCode = getColValue(row, codeKeys);
             const code = rawCode ? String(rawCode).trim() : '';
+            if (!code) return; // ข้ามแถวที่ไม่มีรหัสสินค้า เช่น แถวผลรวมท้ายชีต
+
             const name = getColValue(row, nameKeys) ? String(getColValue(row, nameKeys)).trim() : 'Unknown Product';
             const qtyVal = parseFloat(getColValue(row, qtyKeys)) || 0;
+            const rawUnit = getColValue(row, unitKeys);
+            const rawType = getColValue(row, typeKeys);
+            const rawBranch = getColValue(row, branchKeys);
 
-            if (code) {
-                if (groupedItems[code]) {
-                    groupedItems[code].expectedQty += qtyVal;
+            if (rawBranch && !detectedBranch) {
+                detectedBranch = String(rawBranch).trim();
+            }
+
+            // ตรวจจับประเภทสินค้า (phone vs accessory)
+            let itemType = 'phone';
+            let unit = rawUnit ? String(rawUnit).trim() : '';
+
+            if (unit) {
+                const unitLower = unit.toLowerCase();
+                if (unitLower === 'เครื่อง') {
+                    itemType = 'phone';
                 } else {
-                    groupedItems[code] = {
-                        productCode: code,
-                        productName: name,
-                        expectedQty: qtyVal,
-                        scannedQty: 0,
-                        status: 'missing' // เริ่มต้นคือยังไม่ได้สแกน
-                    };
+                    itemType = 'accessory';
                 }
+            } else if (rawType) {
+                const typeStr = String(rawType).toLowerCase().trim();
+                if (typeStr.includes('acc') || typeStr.includes('อุปกรณ์') || typeStr.includes('เคส') || typeStr.includes('ฟิล์ม') || typeStr.includes('อะไหล่')) {
+                    itemType = 'accessory';
+                } else if (typeStr.includes('phone') || typeStr.includes('เครื่อง') || typeStr.includes('มือถือ') || typeStr.includes('โทรศัพท์')) {
+                    itemType = 'phone';
+                }
+            } else {
+                // หากไม่มีคอลัมน์ประเภท ใช้ Heuristic จากชื่อและจำนวน
+                const lowerName = name.toLowerCase();
+                const isAccessoryByName = accessoryKeywords.some(kw => lowerName.includes(kw));
+                if (isAccessoryByName || qtyVal > 1) {
+                    itemType = 'accessory';
+                }
+            }
+
+            if (groupedItems[code]) {
+                groupedItems[code].expectedQty += qtyVal;
+                if (itemType === 'accessory') {
+                    groupedItems[code].itemType = 'accessory';
+                }
+            } else {
+                groupedItems[code] = {
+                    productCode: code,
+                    productName: name,
+                    expectedQty: qtyVal,
+                    scannedQty: 0,
+                    itemType: itemType,
+                    unit: unit,
+                    status: 'missing' // เริ่มต้นคือยังไม่ได้สแกน
+                };
             }
         });
 
@@ -137,6 +183,12 @@ exports.saveAuditResult = async (req, res) => {
                 if (dbItem) {
                     const scanned = parseInt(updateItem.scannedQty) || 0;
                     dbItem.scannedQty = scanned;
+                    if (updateItem.itemType) {
+                        dbItem.itemType = updateItem.itemType;
+                    }
+                    if (updateItem.unit) {
+                        dbItem.unit = updateItem.unit;
+                    }
                     
                     // คำนวณสถานะส่วนต่าง
                     if (dbItem.status === 'in_transit' || (dbItem.inTransitQty && dbItem.inTransitQty > 0)) {
@@ -213,12 +265,29 @@ exports.getAuditHistory = async (req, res) => {
         const userRole = req.user.role;
         const userDept = (req.user.department || '').toLowerCase();
         const isStockTeam = userDept.includes('store') || userDept.includes('stock') || userDept.includes('สต๊อก');
+        const { branch, startDate, endDate } = req.query;
 
         let query = {};
         // พนักงานปกติ (ที่ไม่ใช่ฝ่ายคลัง/สต็อก หรือ แอดมิน/ผู้จัดการ) เห็นเฉพาะสาขาของตัวเอง
         if (userRole === 'staff' && !isStockTeam) {
             if (req.user.branch) {
                 query.branch = req.user.branch;
+            }
+        } else if (branch && branch !== 'all') {
+            query.branch = branch;
+        }
+
+        if (startDate || endDate) {
+            query.auditDate = {};
+            if (startDate) {
+                const s = new Date(startDate);
+                s.setHours(0, 0, 0, 0);
+                query.auditDate.$gte = s;
+            }
+            if (endDate) {
+                const e = new Date(endDate);
+                e.setHours(23, 59, 59, 999);
+                query.auditDate.$lte = e;
             }
         }
 
