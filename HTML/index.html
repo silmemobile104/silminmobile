@@ -724,19 +724,20 @@
                                     <th rowspan="2">เบอร์โทร</th>
                                     <th rowspan="2" class="bg-red-50 text-red-700 border-red-100">ยอดมัดจำ</th>
                                     <th rowspan="2">นัดรับ</th>
-                                    <th colspan="9" class="bg-slate-100 text-slate-600 border-b border-slate-200">
+                                    <th colspan="10" class="bg-slate-100 text-slate-600 border-b border-slate-200">
                                         ข้อมูลรับเครื่อง</th>
                                 </tr>
                                 <tr>
                                     <th>เลขที่บิล</th>
                                     <th>IMEI</th>
                                     <th>สินค้า</th>
+                                    <th>สี</th>
                                     <th>ราคาเต็ม</th>
                                     <th class="bg-blue-50 text-blue-700">ค้างชำระ</th>
                                     <th>สถานะ</th>
                                     <th>ผู้ทำรายการ</th>
                                     <th>สาขา</th>
-                                    <th rowspan="2">พิมพ์</th>
+                                    <th>พิมพ์</th>
                                 </tr>
                             </thead>
                             <tbody id="deposit-table-body" class="text-slate-600 bg-white">
@@ -2257,12 +2258,67 @@
                                 </div>
                                 <div><label
                                         class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">สินค้า
-                                        (รุ่น/สี/ความจุ)</label><select id="dep-product" class="form-select-theme"
+                                        (รุ่น/ความจุ) <span class="text-red-500">*</span></label><select id="dep-product" class="form-select-theme"
                                         placeholder="เลือกหรือพิมพ์เพิ่ม..."></select>
                                 </div>
                                 <div><label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">สีของสินค้า (Color)</label>
+                                    <input type="text" id="dep-color" list="color-suggestions" class="form-input-theme" placeholder="เช่น Burgundy, Glacier, Desert Titanium, ดำ...">
+                                    <datalist id="color-suggestions">
+                                        <!-- iPhone 18 / 18 Pro / 18 Pro Max & iPhone Duo (สีใหม่ล่าสุด 2026) -->
+                                        <option value="Burgundy (เบอร์กันดี)">
+                                        <option value="Glacier (กลาเซียร์ / ธารน้ำแข็ง)">
+                                        <option value="Star White (สตาร์ไวท์)">
+                                        <option value="Night Sky (ไนท์สกาย)">
+                                        <option value="Deep Black (ดำเข้ม)">
+
+                                        <!-- Titanium Series (iPhone Pro) -->
+                                        <option value="Desert Titanium (ไทเทเนียมทะเลทราย)">
+                                        <option value="Natural Titanium (ไทเทเนียมธรรมชาติ)">
+                                        <option value="Black Titanium (ไทเทเนียมดำ)">
+                                        <option value="White Titanium (ไทเทเนียมขาว)">
+                                        <option value="Blue Titanium (ไทเทเนียมน้ำเงิน)">
+
+                                        <!-- iPhone 16 Series Colors -->
+                                        <option value="Ultramarine (อุลตร้ามารีน)">
+                                        <option value="Teal (ทีล / เขียวอมฟ้า)">
+
+                                        <!-- Signature Pro Colors -->
+                                        <option value="Deep Purple (ดีพเพอร์เพิล)">
+                                        <option value="Space Black (สเปซแบล็ค)">
+                                        <option value="Space Gray (สเปซเกรย์)">
+                                        <option value="Sierra Blue (เซียร์ราบลู)">
+                                        <option value="Alpine Green (อัลไพน์กรีน)">
+                                        <option value="Pacific Blue (แปซิฟิกบลู)">
+                                        <option value="Midnight Green (มิดไนท์กรีน)">
+                                        <option value="Graphite (กราไฟต์)">
+
+                                        <!-- Standard Apple Colors (ทุกเฉดสีของ Apple) -->
+                                        <option value="ดำ (Black)">
+                                        <option value="ขาว (White)">
+                                        <option value="สตาร์ไลท์ (Starlight)">
+                                        <option value="Midnight">
+                                        <option value="เงิน (Silver)">
+                                        <option value="ทอง (Gold)">
+                                        <option value="โรสโกลด์ (Rose Gold)">
+                                        <option value="Blue">
+                                        <option value="ชมพู (Pink)">
+                                        <option value="เขียว (Green)">
+                                        <option value="เหลือง (Yellow)">
+                                        <option value="ส้ม (Orange)">
+                                        <option value="ม่วง (Purple)">
+                                        <option value="ลาเวนเดอร์ (Lavender)">
+                                        <option value="สกายบลู (Sky Blue)">
+                                        <option value="คอรัล (Coral)">
+                                        <option value="มิ้นท์ (Mint)">
+                                        <option value="แดง (PRODUCT RED)">
+                                        <option value="เจ็ทแบล็ค (Jet Black)">
+                                        <option value="เทา (Gray)">
+                                    </datalist>
+                                </div>
+                                <div class="col-span-2 md:col-span-1"><label
                                         class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">ราคาเครื่องเต็ม
-                                        (บาท)</label><input type="number" id="dep-price" class="form-input-theme"></div>
+                                        (บาท)</label><input type="number" id="dep-price" class="form-input-theme" placeholder="ระบุราคาเต็ม"></div>
                             </div>
 
                             <!-- ส่วนขั้นตอนการดำเนินการ (New) -->
@@ -4556,7 +4612,7 @@
                 tbody.innerHTML = '';
 
                 if (deposits.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="12" class="text-center py-6 text-slate-500">ไม่พบข้อมูลในสาขานี้</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="15" class="text-center py-6 text-slate-500">ไม่พบข้อมูลในสาขานี้</td></tr>`;
                     return;
                 }
 
@@ -4578,7 +4634,10 @@
                                 
                         <td class="text-center border p-2 text-xs">${d.billNo || '-'}</td>
                         <td class="text-center border p-2 text-xs font-mono text-gray-500">${d.imei || '-'}</td>
-                        <td class="text-xs border p-2">${d.product || '-'}</td>
+                        <td class="text-xs border p-2 font-medium text-slate-800">${d.product || '-'}</td>
+                        <td class="text-center border p-2 text-xs">
+                            ${d.color ? `<span class="inline-flex items-center font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${d.color}</span>` : '<span class="text-slate-400">-</span>'}
+                        </td>
                         <td class="text-right border p-2 bg-red-50 text-xs">${price ? price.toLocaleString() : '-'}</td>
                         <td class="text-right border p-2 font-bold bg-blue-50 text-blue-800">${price ? balance.toLocaleString() : '-'}</td>
                         
@@ -4609,7 +4668,7 @@
                 console.error("Error fetching deposits:", e);
                 // อาจจะแสดง Error บนหน้าจอด้วยก็ได้ถ้าต้องการ
                 const tbody = document.getElementById('deposit-table-body');
-                if (tbody) tbody.innerHTML = `<tr><td colspan="12" class="text-center py-6 text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="15" class="text-center py-6 text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
             }
         }
 
@@ -4696,6 +4755,7 @@
                         'เลขที่บิล': d.billNo || '-',
                         'IMEI': d.imei || '-',
                         'สินค้า': d.product || '-',
+                        'สี': d.color || '-',
                         'ราคาเต็ม (บาท)': price || '-',
                         'ยอดค้างชำระ (บาท)': price > 0 ? balance : '-',
                         'สถานะ': status,
@@ -4803,9 +4863,10 @@
     td.center { text-align: center; }
     td.right { text-align: right; }
     tr:nth-child(even) td { background: #fafaf8; }
-    .col-no { width: 60px; }
+    .col-no { width: 50px; }
     .col-item { width: auto; }
-    .col-amount { width: 150px; }
+    .col-color { width: 130px; }
+    .col-amount { width: 140px; }
     tbody tr td { height: 36px; }
     
     .bottom { display: flex; gap: 2rem; padding-top: 1rem; border-top: 1px solid #ccc; margin-top: 0; }
@@ -4819,11 +4880,66 @@
     .sum-row.total-row { border-bottom: none; border-top: 2px solid #111; margin-top: 4px; padding-top: 10px; font-weight: 700; font-size: 14px; }
     .sum-row.total-row .sl { color: #111; }
     
-    .signature-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #ccc; }
+    .terms-box {
+      margin-top: 1.25rem;
+      padding: 0.85rem 1.15rem;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      background: #ffffff;
+    }
+    .terms-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #111;
+    }
+    .terms-icon {
+      width: 20px;
+      height: 20px;
+      color: #111;
+      flex-shrink: 0;
+    }
+    .terms-divider {
+      height: 1px;
+      background: #e5e7eb;
+      margin: 8px 0 10px 0;
+    }
+    .terms-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .terms-item {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      color: #222;
+      line-height: 1.5;
+    }
+    .terms-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 17px;
+      height: 17px;
+      background: #000;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 10.5px;
+      font-weight: 700;
+      margin-right: 10px;
+      flex-shrink: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    .signature-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-top: 1.75rem; }
     .sig-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .sig-role { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; }
-    .sig-line { width: 100%; border-bottom: 1px solid #666; height: 44px; }
-    .sig-name { font-size: 12px; color: #888; margin-top: 4px; }
+    .sig-line { width: 100%; border-bottom: 1px solid #666; height: 40px; }
+    .sig-name { font-size: 12px; color: #555; margin-top: 4px; }
     
     @media print {
       body { background: #fff; padding: 0; }
@@ -4836,7 +4952,7 @@
 <div class="page">
   <div class="header">
     <div class="doc-title-row">
-      <div class="doc-title">ใบรับเงินมัดจำ</div>
+      <div class="doc-title">ใบสั่งจองสินค้า / ใบรับเงินมัดจำ</div>
     </div>
     <div class="header-info-row">
       <div>
@@ -4879,15 +4995,21 @@
         <tr>
           <th class="col-no">ลำดับ</th>
           <th class="col-item">รายการ</th>
+          <th class="col-color">สี</th>
           <th class="col-amount">จำนวนเงิน (บาท)</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td class="center">1</td><td>ชำระเงินมัดจำ ${deposit.product || '-'}${deposit.imei ? '<br><small>IMEI: ' + deposit.imei + '</small>' : ''}</td><td class="right">${depAmount.toLocaleString()}</td></tr>
-        <tr><td class="center"></td><td></td><td class="right"></td></tr>
-        <tr><td class="center"></td><td></td><td class="right"></td></tr>
-        <tr><td class="center"></td><td></td><td class="right"></td></tr>
-        <tr><td class="center"></td><td></td><td class="right"></td></tr>
+        <tr>
+          <td class="center">1</td>
+          <td>ชำระเงินมัดจำ ${deposit.product || '-'}${deposit.imei ? '<br><small>IMEI: ' + deposit.imei + '</small>' : ''}</td>
+          <td class="center font-medium">${deposit.color || '-'}</td>
+          <td class="right">${depAmount.toLocaleString()}</td>
+        </tr>
+        <tr><td class="center"></td><td></td><td class="center"></td><td class="right"></td></tr>
+        <tr><td class="center"></td><td></td><td class="center"></td><td class="right"></td></tr>
+        <tr><td class="center"></td><td></td><td class="center"></td><td class="right"></td></tr>
+        <tr><td class="center"></td><td></td><td class="center"></td><td class="right"></td></tr>
       </tbody>
     </table>
   </div>
@@ -4913,9 +5035,34 @@
     </div>
   </div>
 
+  <!-- เงื่อนไขการมัดจำ -->
+    <div class="terms-box">
+        <div class="terms-header">
+          <svg class="terms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          <span>เงื่อนไขการมัดจำ</span>
+        </div>
+        <div class="terms-divider"></div>
+        <div class="terms-list">
+          <div class="terms-item">
+            <span class="terms-num">1</span>
+            <span><strong>การยกเลิกคำสั่งซื้อ:</strong> หากลูกค้ายกเลิกคำสั่งซื้อ ทางร้านขอสงวนสิทธิ์ไม่คืนเงินมัดจำในทุกกรณี</span>
+          </div>
+          <div class="terms-item">
+            <span class="terms-num">2</span>
+            <span><strong>การโอนสิทธิ์และการเปลี่ยนสินค้า:</strong> เงินมัดจำนี้มีผลสมบูรณ์เฉพาะกับสินค้าและผู้สั่งซื้อที่ระบุไว้ในเอกสารเท่านั้น ไม่สามารถโอนสิทธิ์ให้บุคคลอื่น หรือนำไปใช้เป็นส่วนลดในการซื้อสินค้ารายการอื่นแทนได้</span>
+          </div>
+          <div class="terms-item">
+            <span class="terms-num">3</span>
+            <span><strong>การผิดนัดหมายรับสินค้า:</strong> กรณีลูกค้าไม่มารับสินค้าตามวันและเวลาที่กำหนด ทางร้านขอสงวนสิทธิ์ไม่คืนเงินมัดจำ และอาจมีการเรียกเก็บค่าดำเนินการเพิ่มเติมตามความเหมาะสม</span>
+          </div>
+        </div>
+    </div>
+
   <div class="signature-section">
     <div class="sig-block">
-      <div class="sig-role">ผู้จ่ายเงิน</div>
+      <div class="sig-role">ผู้ชำระเงิน</div>
       <div class="sig-line"></div>
       <div class="sig-name">( ${deposit.customerName || 'ชื่อผู้จ่ายเงิน'} )</div>
     </div>
@@ -4925,7 +5072,7 @@
       <div class="sig-name">( ${receiverName} )</div>
     </div>
     <div class="sig-block">
-      <div class="sig-role">ผู้มีอำนาจลงนาม</div>
+      <div class="sig-role">ผู้บันทึกข้อมูล</div>
       <div class="sig-line"></div>
       <div class="sig-name">( ผู้บริหาร )</div>
     </div>
@@ -5057,6 +5204,7 @@
                     const searchMatch = (d.customerName || '').toLowerCase().includes(searchText) ||
                         (d.phoneNumber || '').toLowerCase().includes(searchText) ||
                         (d.product || '').toLowerCase().includes(searchText) ||
+                        (d.color || '').toLowerCase().includes(searchText) ||
                         (d.branch || '').toLowerCase().includes(searchText);
                     if (!searchMatch) return false;
                 }
@@ -5116,7 +5264,7 @@
                             <span class="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded-md font-medium mb-2 inline-block">
                                 <ion-icon name="storefront-outline" class="align-middle mr-1"></ion-icon>${d.branch || '-'}
                             </span>
-                            <h4 class="font-bold text-slate-800 text-lg leading-tight line-clamp-2" title="${d.product || 'ไม่ระบุสินค้า'}">${d.product || 'ไม่ระบุสินค้า'}</h4>
+                            <h4 class="font-bold text-slate-800 text-lg leading-tight line-clamp-2" title="${d.product || 'ไม่ระบุสินค้า'}${d.color ? ' (สี: ' + d.color + ')' : ''}">${d.product || 'ไม่ระบุสินค้า'}${d.color ? ` <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">สี: ${d.color}</span>` : ''}</h4>
                         </div>
                         <div class="flex flex-col items-end gap-1">
                             <span class="${statusConfig.color} px-2.5 py-1 rounded-full text-xs font-bold border flex items-center gap-1 shadow-sm">
@@ -5296,7 +5444,7 @@
         // 2. ฟังก์ชันเปิด Modal อัปเดตสถานะ
         function openPurchasingModal(data) {
             document.getElementById('pur-id').value = data._id;
-            document.getElementById('pur-product-display').textContent = data.product || 'ไม่ระบุสินค้า';
+            document.getElementById('pur-product-display').textContent = data.product ? `${data.product}${data.color ? ' (สี: ' + data.color + ')' : ''}` : 'ไม่ระบุสินค้า';
             document.getElementById('pur-customer-display').textContent = `${data.customerName} (โทร: ${data.phoneNumber})`;
             document.getElementById('pur-status').value = data.orderStatus || 'pending';
             document.getElementById('pur-note').value = data.orderNote || '';
@@ -5389,6 +5537,27 @@
                 "17 Pro Max 256 Orange",
                 "17 Pro Max 256 White",
 
+                // iPhone 18
+                "iPhone 18 256 New",
+                "iPhone 18 512 New",
+                "iPhone 18 1TB New",
+
+                // iPhone 18 Pro
+                "iPhone 18 Pro 256 New",
+                "iPhone 18 Pro 512 New",
+                "iPhone 18 Pro 1TB New",
+
+
+                // iPhone 18 Pro Max
+                "iPhone 18 Pro Max 256 New",
+                "iPhone 18 Pro Max 512 New",
+                "iPhone 18 Pro Max 1TB New",
+
+                // iPhone Duo
+                "iPhone Duo 256 New",
+                "iPhone Duo 512 New",
+                "iPhone Duo 1TB New",
+
                 // iPad Gen 11
                 "iPad Gen11 128 ขาว New",
                 "iPad Gen11 128 บลู New",
@@ -5445,6 +5614,7 @@
                     productTomSelect.addOption({ text: data.product }); // Ensure option exists
                     productTomSelect.setValue(data.product);
                 }
+                document.getElementById('dep-color').value = data.color || '';
                 document.getElementById('dep-price').value = data.price || '';
                 document.getElementById('dep-bill').value = data.billNo || '';
                 document.getElementById('dep-imei').value = data.imei || '';
@@ -5452,6 +5622,7 @@
                 document.getElementById('dep-canceled').checked = !!data.isCanceled;
             } else {
                 document.getElementById('dep-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('dep-color').value = '';
                 document.getElementById('dep-operation-step').value = '';
                 toggleArrivalDate('');
             }
@@ -5525,6 +5696,7 @@
                 expectedArrivalDate: document.getElementById('dep-arrival-date').value,
 
                 product: document.getElementById('dep-product').value,
+                color: document.getElementById('dep-color').value.trim(),
                 price: document.getElementById('dep-price').value,
                 billNo: document.getElementById('dep-bill').value,
                 imei: document.getElementById('dep-imei').value,

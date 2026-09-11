@@ -22,6 +22,7 @@ const DepositSchema = new Schema({
     billNo: { type: String, default: '' },
     imei: { type: String, default: '' },
     product: { type: String, default: '' },
+    color: { type: String, default: '' },
     price: { type: Number, default: 0 },
 
     isSuccess: { type: Boolean, default: false },

@@ -70,7 +70,7 @@ exports.saveDeposit = async (req, res) => {
     try {
         const {
             id, depositDate, customerName, phoneNumber, depositAmount, pickupDueDate,
-            billNo, imei, product, price, isSuccess, isCanceled,
+            billNo, imei, product, color, price, isSuccess, isCanceled,
             // รับค่าใหม่
             orderStatus, orderNote, expectedArrivalDate,
             operationStep
@@ -91,6 +91,7 @@ exports.saveDeposit = async (req, res) => {
             deposit.billNo = billNo;
             deposit.imei = imei;
             deposit.product = product;
+            if (color !== undefined) deposit.color = color;
             deposit.price = price;
             deposit.isCanceled = !!isCanceled;
             deposit.isSuccess = deposit.isCanceled ? false : !!isSuccess;
@@ -104,7 +105,7 @@ exports.saveDeposit = async (req, res) => {
             if (deposit.isSuccess && !deposit.signName) deposit.signName = req.user.name;
 
             await deposit.save();
-            await logActivity(req, 'UPDATE', 'Deposit', `แก้ไขข้อมูลมัดจำ: ${deposit.customerName} (${deposit.product})`, { id: deposit._id, product: deposit.product, customerName: deposit.customerName });
+            await logActivity(req, 'UPDATE', 'Deposit', `แก้ไขข้อมูลมัดจำ: ${deposit.customerName} (${deposit.product}${deposit.color ? ' สี ' + deposit.color : ''})`, { id: deposit._id, product: deposit.product, color: deposit.color, customerName: deposit.customerName });
             return res.status(200).json(deposit);
         } else {
             // --- สร้างใหม่ ---
@@ -114,7 +115,9 @@ exports.saveDeposit = async (req, res) => {
                 branch: req.user.branch || req.user.department,
                 depositDate, customerName, phoneNumber, depositAmount, pickupDueDate,
                 operationStep: isSuccessVal ? 'สำเร็จ' : (!!isCanceled ? 'ยกเลิก' : operationStep),
-                billNo, imei, product, price,
+                billNo, imei, product,
+                color: color || '',
+                price,
                 isCanceled: !!isCanceled,
                 isSuccess: isSuccessVal,
                 signName: '',
@@ -124,7 +127,7 @@ exports.saveDeposit = async (req, res) => {
                 expectedArrivalDate: expectedArrivalDate || null
             });
             await newDeposit.save();
-            await logActivity(req, 'CREATE', 'Deposit', `บันทึกมัดจำใหม่: ${newDeposit.customerName} (${newDeposit.product})`, { id: newDeposit._id, product: newDeposit.product, customerName: newDeposit.customerName, depositAmount: newDeposit.depositAmount });
+            await logActivity(req, 'CREATE', 'Deposit', `บันทึกมัดจำใหม่: ${newDeposit.customerName} (${newDeposit.product}${newDeposit.color ? ' สี ' + newDeposit.color : ''})`, { id: newDeposit._id, product: newDeposit.product, color: newDeposit.color, customerName: newDeposit.customerName, depositAmount: newDeposit.depositAmount });
             return res.status(201).json(newDeposit);
         }
     } catch (error) {
@@ -139,7 +142,7 @@ exports.deleteDeposit = async (req, res) => {
         const deposit = await Deposit.findById(req.params.id);
         if (deposit) {
             await Deposit.findByIdAndDelete(req.params.id);
-            await logActivity(req, 'DELETE', 'Deposit', `ลบข้อมูลมัดจำ: ${deposit.customerName} (${deposit.product})`, { id: req.params.id });
+            await logActivity(req, 'DELETE', 'Deposit', `ลบข้อมูลมัดจำ: ${deposit.customerName} (${deposit.product}${deposit.color ? ' สี ' + deposit.color : ''})`, { id: req.params.id, product: deposit.product, color: deposit.color });
         }
         res.status(200).json({ message: 'Deleted' });
     } catch (e) { res.status(500).json({ message: 'Error' }); }
