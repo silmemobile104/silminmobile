@@ -695,8 +695,8 @@
                                 </div>
                             </div>
                             <div id="search-container">
-                                <input type="text" id="deposit-search-input" placeholder="ค้นหาลูกค้า/เบอร์โทร..."
-                                    class="form-input-theme py-2 pl-3 text-sm w-48">
+                                <input type="text" id="deposit-search-input" placeholder="ค้นหาลูกค้า, เบอร์โทร, สินค้า..."
+                                    class="form-input-theme py-2 pl-3 text-sm w-56">
                             </div>
                             <button id="btn-filter-due-today"
                                 class="relative bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 p-2 rounded-xl transition-all border border-slate-200 hover:border-red-200 group"
@@ -4593,13 +4593,22 @@
 
                 // 2. (Depreacted Logic: Date logic moved above to handle priority)
 
-                // 3. Filter by Search (Name/Phone)
+                // 3. Filter by Search (Name/Phone/Product/Color/IMEI/BillNo)
                 if (searchInputElem && searchInputElem.value) {
                     const searchText = searchInputElem.value.toLowerCase().trim();
                     deposits = deposits.filter(d => {
                         const name = (d.customerName || '').toLowerCase();
                         const phone = (d.phoneNumber || '').toLowerCase();
-                        return name.includes(searchText) || phone.includes(searchText);
+                        const product = (d.product || '').toLowerCase();
+                        const color = (d.color || '').toLowerCase();
+                        const imei = (d.imei || '').toLowerCase();
+                        const billNo = (d.billNo || '').toLowerCase();
+                        return name.includes(searchText) ||
+                            phone.includes(searchText) ||
+                            product.includes(searchText) ||
+                            color.includes(searchText) ||
+                            imei.includes(searchText) ||
+                            billNo.includes(searchText);
                     });
                 }
 
@@ -4720,7 +4729,11 @@
                     const q = searchInputElem.value.toLowerCase().trim();
                     deposits = deposits.filter(d =>
                         (d.customerName || '').toLowerCase().includes(q) ||
-                        (d.phoneNumber || '').toLowerCase().includes(q)
+                        (d.phoneNumber || '').toLowerCase().includes(q) ||
+                        (d.product || '').toLowerCase().includes(q) ||
+                        (d.color || '').toLowerCase().includes(q) ||
+                        (d.imei || '').toLowerCase().includes(q) ||
+                        (d.billNo || '').toLowerCase().includes(q)
                     );
                 }
 

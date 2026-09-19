@@ -56,6 +56,20 @@ exports.getDeposits = async (req, res) => {
             }
         }
 
+        // 4. Logic การค้นหา (search)
+        const { search } = req.query;
+        if (search && search.trim()) {
+            const regex = new RegExp(search.trim(), 'i');
+            query.$or = [
+                { customerName: regex },
+                { phoneNumber: regex },
+                { product: regex },
+                { color: regex },
+                { imei: regex },
+                { billNo: regex }
+            ];
+        }
+
         const deposits = await Deposit.find(query).sort({ depositDate: -1 });
         res.status(200).json(deposits);
 
