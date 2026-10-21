@@ -193,8 +193,8 @@
     <!-- Scan Modal -->
     <div id="scanModal"
         class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-        <div class="modal-content bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div class="modal-content bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[92vh]">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 flex-shrink-0">
                 <h3 class="text-xl font-bold text-slate-800 flex items-center">
                     <ion-icon name="checkmark-circle" class="text-green-500 mr-2 text-2xl"></ion-icon>
                     พบสินค้าในระบบ
@@ -204,28 +204,95 @@
                 </button>
             </div>
 
-            <div class="p-6">
+            <div class="p-6 overflow-y-auto">
                 <div class="mb-4 text-center">
                     <p class="text-slate-500 text-sm mb-1">รหัสที่สแกน</p>
                     <p class="text-2xl font-bold text-slate-800 font-mono tracking-wider bg-slate-100 inline-block px-4 py-1 rounded-lg"
                         id="modalProductCode"></p>
+                    <div class="mt-2">
+                        <p class="text-slate-500 text-xs mb-0.5">ชื่อสินค้า</p>
+                        <p class="text-sm font-bold text-yellow-800 bg-yellow-50 border border-yellow-200 px-3 py-1.5 rounded-lg inline-block max-w-full break-words"
+                            id="modalProductName">-</p>
+                    </div>
+                </div>
+
+                <!-- แถบแสดงสถานะพิกัดและวันเวลาปัจจุบันที่จะประทับลงในภาพ -->
+                <div class="mb-4 bg-slate-900 text-white rounded-xl p-3 text-xs space-y-1.5 border border-slate-700 shadow-inner">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-yellow-400 flex items-center gap-1.5">
+                            <ion-icon name="time-outline" class="text-sm"></ion-icon>
+                            <span id="liveDateTimeText">กำลังโหลดวันเวลา...</span>
+                        </span>
+                        <button type="button" onclick="requestCurrentLocation(true)"
+                            class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 py-0.5 rounded-md border border-slate-600 flex items-center gap-1 transition-colors">
+                            <ion-icon name="locate-outline"></ion-icon> อัปเดตพิกัด
+                        </button>
+                    </div>
+                    <div class="flex items-start gap-1.5 text-slate-200">
+                        <ion-icon name="location" class="text-red-400 text-sm flex-shrink-0 mt-0.5"></ion-icon>
+                        <div class="leading-relaxed">
+                            <div id="gpsCoordText" class="font-mono text-[11px] text-cyan-300">กำลังค้นหาพิกัด GPS ปัจจุบัน...</div>
+                            <div id="gpsAddressText" class="text-[11px] text-slate-300">กำลังระบุตำแหน่งสถานที่...</div>
+                        </div>
+                    </div>
                 </div>
 
                 <form id="scanForm" class="space-y-4">
                     <!-- ถ่ายรูปหลักฐาน -->
                     <div class="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center">
                         <label class="block text-sm font-semibold text-slate-700 mb-2 font-bold text-red-600">
-                            * ถ่ายภาพ/อัปโหลดภาพหลักฐาน
+                            * ถ่ายภาพหลักฐาน (ฝังพิกัด วันที่ และเวลาอัตโนมัติ)
                         </label>
                         <input type="file" id="evidenceImage" name="evidenceImage" accept="image/*"
                             capture="environment" class="hidden">
-                        <button type="button" onclick="document.getElementById('evidenceImage').click()"
-                            class="bg-slate-100 hover:bg-slate-200 text-slate-700 w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center">
-                            <ion-icon name="camera" class="mr-2 text-lg"></ion-icon> เปิดกล้อง / เลือกรูป
-                        </button>
+
+                        <!-- ปุ่มเปิดกล้องถ่ายภาพ -->
+                        <div>
+                            <button type="button" onclick="startLiveCamera()"
+                                class="bg-yellow-500 hover:bg-yellow-600 text-white w-full py-3 px-4 rounded-lg font-bold transition-colors flex items-center justify-center shadow-sm text-sm">
+                                <ion-icon name="camera" class="mr-2 text-lg"></ion-icon> เปิดกล้องถ่ายภาพ
+                            </button>
+                        </div>
+
+                        <!-- หน้าจอกล้องสดพร้อม Overlay พิกัดและเวลา -->
+                        <div id="liveCameraContainer" class="mt-4 hidden relative rounded-xl overflow-hidden bg-black border border-slate-800 shadow-lg">
+                            <video id="cameraVideo" autoplay playsinline muted class="w-full max-h-72 object-contain bg-black"></video>
+                            
+                            <!-- Live Overlay บนหน้าจอกล้อง -->
+                            <div class="absolute bottom-14 left-0 right-0 bg-slate-900/75 backdrop-blur-xs text-left px-3 py-2 text-[11px] text-white border-l-4 border-yellow-400 pointer-events-none">
+                                <div class="font-bold text-yellow-300" id="cameraOverlayTime">-</div>
+                                <div class="font-semibold text-white truncate" id="cameraOverlayBranch">-</div>
+                                <div class="font-semibold text-amber-200 truncate" id="cameraOverlayProduct">-</div>
+                                <div class="text-cyan-300 font-mono text-[10px] truncate" id="cameraOverlayGps">-</div>
+                                <div class="text-slate-200 text-[10px] truncate" id="cameraOverlayAddress">-</div>
+                            </div>
+
+                            <!-- ปุ่มควบคุมกล้อง -->
+                            <div class="bg-slate-900 p-2.5 flex items-center justify-between gap-2">
+                                <button type="button" onclick="switchCameraFacing()"
+                                    class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1">
+                                    <ion-icon name="camera-reverse-outline" class="text-base"></ion-icon> สลับกล้อง
+                                </button>
+                                <button type="button" onclick="captureFromLiveCamera()"
+                                    class="flex-1 py-2 px-4 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-1.5 shadow">
+                                    <ion-icon name="radio-button-on" class="text-lg"></ion-icon> กดถ่ายภาพ
+                                </button>
+                                <button type="button" onclick="stopLiveCamera()"
+                                    class="px-3 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-medium flex items-center gap-1">
+                                    <ion-icon name="close-outline" class="text-base"></ion-icon> ปิด
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- แสดงภาพตัวอย่างที่ประทับลายน้ำแล้ว -->
                         <div id="imagePreviewContainer" class="mt-4 hidden relative">
+                            <div class="text-xs text-emerald-600 font-bold mb-1.5 flex items-center justify-center gap-1">
+                                <ion-icon name="checkmark-done-circle" class="text-base"></ion-icon>
+                                ประทับตำแหน่ง วันที่ และเวลาลงในภาพเรียบร้อย (แตะที่รูปเพื่อขยาย)
+                            </div>
                             <img id="imagePreview" src="" alt="Preview"
-                                class="w-full h-auto rounded-lg max-h-48 object-cover">
+                                onclick="viewImage(this.src)"
+                                class="w-full h-auto rounded-lg max-h-64 object-contain bg-slate-900 mx-auto cursor-pointer border border-slate-300 shadow-sm">
                         </div>
                     </div>
 
@@ -275,6 +342,11 @@
                     <p class="text-slate-500 text-sm mb-1">รหัสที่แจ้งปัญหา</p>
                     <p class="text-2xl font-bold text-slate-800 font-mono tracking-wider bg-slate-100 inline-block px-4 py-1 rounded-lg"
                         id="issueModalProductCode"></p>
+                    <div class="mt-2">
+                        <p class="text-slate-500 text-xs mb-0.5">ชื่อสินค้า</p>
+                        <p class="text-sm font-bold text-red-800 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg inline-block max-w-full break-words"
+                            id="issueModalProductName">-</p>
+                    </div>
                 </div>
                 <form id="issueForm" class="space-y-4">
                     <input type="hidden" id="issueProductCode">
@@ -519,44 +591,478 @@
             }
         });
 
+        let curScannedProductName = '';
+
+        function findProductNameByCode(code) {
+            if (!code || !Array.isArray(allStockData)) return '-';
+            const cleanCode = String(code).trim().toLowerCase();
+            const matched = allStockData.find(i => String(i.productCode || '').trim().toLowerCase() === cleanCode);
+            return (matched && matched.productName) ? matched.productName : 'ไม่พบชื่อสินค้าในรายการสาขาวันนี้';
+        }
+
         function handleScanSubmit() {
             const code = document.getElementById('barcodeInput').value.trim();
             if (!code) return;
 
             // Check if code exists in pending setup
             curScannedCode = code;
+            curScannedProductName = findProductNameByCode(code);
 
             // Clear input so scanner is ready for next time
             document.getElementById('barcodeInput').value = '';
 
             // Open Modal 
             document.getElementById('modalProductCode').textContent = code;
+            const modalNameEl = document.getElementById('modalProductName');
+            if (modalNameEl) modalNameEl.textContent = curScannedProductName;
             openModal();
+        }
+
+        // --- ระบบดึงพิกัดอัตโนมัติ 3 ชั้น (1. GPS ความแม่นยำสูง -> 2. Wi-Fi เบราว์เซอร์ -> 3. พิกัดเครือข่าย IP) ---
+        let currentGeo = {
+            lat: null,
+            lng: null,
+            accuracy: null,
+            source: '', // 'gps' | 'network'
+            address: '',
+            status: 'idle' // 'idle' | 'loading' | 'ready' | 'error'
+        };
+        let liveClockTimer = null;
+        let cameraStream = null;
+        let currentFacingMode = 'environment';
+        let stampedEvidenceFile = null;
+        let lastRawImageCanvas = null;
+
+        function formatThaiDateTime(dateObj = new Date()) {
+            const dateStr = dateObj.toLocaleDateString('th-TH', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            const timeStr = dateObj.toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            return { dateStr, timeStr, full: `วันที่ ${dateStr} เวลา ${timeStr} น.` };
+        }
+
+        function getFormattedCoordText() {
+            if (currentGeo.lat !== null && currentGeo.lng !== null) {
+                const accText = currentGeo.accuracy
+                    ? ` (±${Math.round(currentGeo.accuracy)}m)`
+                    : (currentGeo.source === 'network' ? ' (พิกัดเครือข่าย)' : '');
+                return `${currentGeo.lat.toFixed(6)}, ${currentGeo.lng.toFixed(6)}${accText}`;
+            }
+            if (currentGeo.status === 'loading') {
+                return 'กำลังค้นหาตำแหน่งปัจจุบัน...';
+            }
+            return `สาขา: ${userBranch || '-'}`;
+        }
+
+        function updateLiveOverlayUI() {
+            const { full } = formatThaiDateTime(new Date());
+            const liveDtEl = document.getElementById('liveDateTimeText');
+            if (liveDtEl) liveDtEl.textContent = full;
+
+            const camTimeEl = document.getElementById('cameraOverlayTime');
+            if (camTimeEl) camTimeEl.textContent = `📅 ${full}`;
+
+            const camBranchEl = document.getElementById('cameraOverlayBranch');
+            if (camBranchEl) camBranchEl.textContent = `📍 สาขา: ${userBranch || '-'} | รหัส: ${curScannedCode || '-'}`;
+
+            const camProdEl = document.getElementById('cameraOverlayProduct');
+            if (camProdEl) camProdEl.textContent = `📦 สินค้า: ${curScannedProductName || '-'}`;
+
+            const coordStr = getFormattedCoordText();
+            const addrStr = currentGeo.address || (currentGeo.status === 'loading' ? 'กำลังระบุชื่อสถานที่...' : `สาขา: ${userBranch || '-'}`);
+
+            const gpsCoordEl = document.getElementById('gpsCoordText');
+            if (gpsCoordEl) {
+                gpsCoordEl.textContent = `พิกัด: ${coordStr}`;
+                gpsCoordEl.className = 'font-mono text-[11px] text-cyan-300';
+            }
+
+            const gpsAddrEl = document.getElementById('gpsAddressText');
+            if (gpsAddrEl) gpsAddrEl.textContent = `สถานที่: ${addrStr}`;
+
+            const camGpsEl = document.getElementById('cameraOverlayGps');
+            if (camGpsEl) camGpsEl.textContent = `🌐 พิกัด: ${coordStr}`;
+
+            const camAddrEl = document.getElementById('cameraOverlayAddress');
+            if (camAddrEl) camAddrEl.textContent = `📌 ${addrStr}`;
+        }
+
+        async function fetchThaiAddressFromCoords(lat, lng, fallbackRegion = '') {
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=th`,
+                    { headers: { 'Accept': 'application/json' } }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.display_name) {
+                        const a = data.address || {};
+                        const shortParts = [
+                            a.amenity || a.shop || a.building || a.road || a.neighbourhood,
+                            a.suburb || a.village || a.tambon || a.quarter || a.hamlet,
+                            a.municipality || a.city_district || a.district || a.county || a.city || a.town,
+                            a.state || a.province
+                        ].filter(Boolean);
+                        const uniqueParts = [...new Set(shortParts)];
+                        return uniqueParts.length >= 2 ? uniqueParts.join(' ') : data.display_name;
+                    }
+                }
+            } catch (geoErr) {
+                console.warn('Nominatim reverse geocode fallback:', geoErr);
+            }
+            return fallbackRegion || `สาขา: ${userBranch || '-'} (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+        }
+
+        async function refreshStampedPreviewIfPresent() {
+            if (lastRawImageCanvas && !document.getElementById('imagePreviewContainer').classList.contains('hidden')) {
+                const dataUrl = await stampWatermarkOnImage(lastRawImageCanvas, lastRawImageCanvas.width, lastRawImageCanvas.height, false);
+                document.getElementById('imagePreview').src = dataUrl;
+            }
+        }
+
+        async function fallbackToNetworkLocation() {
+            try {
+                const res = await fetch('https://ipwho.is/');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.success && data.latitude && data.longitude) {
+                        currentGeo.lat = Number(data.latitude);
+                        currentGeo.lng = Number(data.longitude);
+                        currentGeo.accuracy = null;
+                        currentGeo.source = 'network';
+                        currentGeo.status = 'ready';
+                        updateLiveOverlayUI();
+
+                        const fallbackAddr = [data.city, data.region].filter(Boolean).join(' ');
+                        currentGeo.address = await fetchThaiAddressFromCoords(currentGeo.lat, currentGeo.lng, fallbackAddr);
+                        updateLiveOverlayUI();
+                        await refreshStampedPreviewIfPresent();
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.warn('ipwho.is fallback failed:', e);
+            }
+
+            try {
+                const res2 = await fetch('https://get.geojs.io/v1/ip/geo.json');
+                if (res2.ok) {
+                    const data2 = await res2.json();
+                    if (data2 && data2.latitude && data2.longitude) {
+                        currentGeo.lat = Number(data2.latitude);
+                        currentGeo.lng = Number(data2.longitude);
+                        currentGeo.accuracy = null;
+                        currentGeo.source = 'network';
+                        currentGeo.status = 'ready';
+                        updateLiveOverlayUI();
+
+                        const fallbackAddr = [data2.city, data2.region].filter(Boolean).join(' ');
+                        currentGeo.address = await fetchThaiAddressFromCoords(currentGeo.lat, currentGeo.lng, fallbackAddr);
+                        updateLiveOverlayUI();
+                        await refreshStampedPreviewIfPresent();
+                        return true;
+                    }
+                }
+            } catch (e2) {
+                console.warn('geojs fallback failed:', e2);
+            }
+
+            currentGeo.status = 'error';
+            if (!currentGeo.address) {
+                currentGeo.address = `สาขา: ${userBranch || '-'}`;
+            }
+            updateLiveOverlayUI();
+            return false;
+        }
+
+        function getBrowserPositionPromise(options) {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation not supported'));
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(resolve, reject, options);
+            });
+        }
+
+        async function requestCurrentLocation(forceRefresh = false) {
+            if (currentGeo.status === 'ready' && !forceRefresh && currentGeo.lat !== null) {
+                updateLiveOverlayUI();
+                return;
+            }
+
+            currentGeo.status = 'loading';
+            updateLiveOverlayUI();
+
+            // ขั้นที่ 1: ลองดึงจากชิป GPS ความแม่นยำสูงของอุปกรณ์ก่อน
+            let pos = null;
+            try {
+                pos = await getBrowserPositionPromise({
+                    enableHighAccuracy: true,
+                    timeout: 4500,
+                    maximumAge: forceRefresh ? 0 : 30000
+                });
+            } catch (errHigh) {
+                // ขั้นที่ 2: หากขั้นที่ 1 ค้นหาไม่เจอ (และไม่ได้ถูกปฏิเสธสิทธิ์) ให้สลับไปดึงตำแหน่งผ่านโหมด Wi-Fi ของเบราว์เซอร์อัตโนมัติ
+                if (errHigh && errHigh.code !== 1) {
+                    try {
+                        pos = await getBrowserPositionPromise({
+                            enableHighAccuracy: false,
+                            timeout: 4500,
+                            maximumAge: forceRefresh ? 0 : 60000
+                        });
+                    } catch (errLow) {
+                        pos = null;
+                    }
+                }
+            }
+
+            if (pos && pos.coords) {
+                currentGeo.lat = pos.coords.latitude;
+                currentGeo.lng = pos.coords.longitude;
+                currentGeo.accuracy = pos.coords.accuracy;
+                currentGeo.source = 'gps';
+                currentGeo.status = 'ready';
+                updateLiveOverlayUI();
+
+                currentGeo.address = await fetchThaiAddressFromCoords(currentGeo.lat, currentGeo.lng);
+                updateLiveOverlayUI();
+                await refreshStampedPreviewIfPresent();
+                return;
+            }
+
+            // ขั้นที่ 3: ดึงพิกัดละติจูด/ลองจิจูดจากเครือข่ายอินเทอร์เน็ต (Network/IP Geolocation) พร้อมแปลงเป็นชื่อสถานที่ภาษาไทยอัตโนมัติ
+            await fallbackToNetworkLocation();
+        }
+
+        async function startLiveCamera() {
+            const container = document.getElementById('liveCameraContainer');
+            const video = document.getElementById('cameraVideo');
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                // หากอุปกรณ์ไม่รองรับกล้องบนเว็บ ให้เปิดกล้องมือถือ/ตัวเลือกไฟล์แทนอัตโนมัติ
+                document.getElementById('evidenceImage').click();
+                return;
+            }
+
+            try {
+                stopLiveCamera();
+                const constraints = {
+                    video: {
+                        facingMode: { ideal: currentFacingMode },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                };
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = cameraStream;
+                container.classList.remove('hidden');
+                updateLiveOverlayUI();
+            } catch (err) {
+                console.warn('Cannot open WebRTC camera, falling back to file input:', err);
+                document.getElementById('evidenceImage').click();
+            }
+        }
+
+        function stopLiveCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            const video = document.getElementById('cameraVideo');
+            if (video) video.srcObject = null;
+            const container = document.getElementById('liveCameraContainer');
+            if (container) container.classList.add('hidden');
+        }
+
+        function switchCameraFacing() {
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            startLiveCamera();
+        }
+
+        function wrapCanvasText(ctx, text, maxWidth) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+
+            for (let i = 0; i < words.length; i++) {
+                const testLine = currentLine ? currentLine + ' ' + words[i] : words[i];
+                if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            if (currentLine) lines.push(currentLine);
+            return lines.slice(0, 2); // สูงสุดไม่เกิน 2 บรรทัดสำหรับชื่อสถานที่
+        }
+
+        function stampWatermarkOnImage(imgSource, rawWidth, rawHeight, saveRawCopy = true) {
+            return new Promise((resolve) => {
+                const maxDim = 1600;
+                let targetW = rawWidth;
+                let targetH = rawHeight;
+
+                if (targetW > maxDim || targetH > maxDim) {
+                    if (targetW >= targetH) {
+                        targetH = Math.round((targetH * maxDim) / targetW);
+                        targetW = maxDim;
+                    } else {
+                        targetW = Math.round((targetW * maxDim) / targetH);
+                        targetH = maxDim;
+                    }
+                } else if (targetW < 800 && targetH < 800) {
+                    const scale = 800 / Math.max(targetW, targetH);
+                    targetW = Math.round(targetW * scale);
+                    targetH = Math.round(targetH * scale);
+                }
+
+                // เก็บสำเนาภาพต้นฉบับไว้ เผื่อกรณีพิกัดหรือชื่อสถานที่โหลดเสร็จตามหลัง จะได้ประทับลายน้ำอัปเดตให้อัตโนมัติ
+                if (saveRawCopy) {
+                    const rawCanvas = document.createElement('canvas');
+                    rawCanvas.width = targetW;
+                    rawCanvas.height = targetH;
+                    rawCanvas.getContext('2d').drawImage(imgSource, 0, 0, targetW, targetH);
+                    lastRawImageCanvas = rawCanvas;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = targetW;
+                canvas.height = targetH;
+                const ctx = canvas.getContext('2d');
+
+                // 1. วาดภาพต้นฉบับลงใน Canvas
+                ctx.drawImage(imgSource, 0, 0, targetW, targetH);
+
+                // 2. เตรียมข้อมูลวันเวลา และตำแหน่งปัจจุบัน
+                const { dateStr, timeStr } = formatThaiDateTime(new Date());
+                const coordStr = getFormattedCoordText();
+                const addrStr = currentGeo.address || `สาขา: ${userBranch || '-'}`;
+
+                const fontSize = Math.max(18, Math.round(targetW * 0.023));
+                const lineHeight = Math.round(fontSize * 1.45);
+                const padX = Math.round(targetW * 0.03);
+                const padY = Math.round(fontSize * 0.8);
+
+                ctx.font = `600 ${fontSize}px "Noto Sans Thai", "Inter", sans-serif`;
+                const prodLines = wrapCanvasText(ctx, `📦 สินค้า: ${curScannedProductName || '-'}`, targetW - (padX * 2.5));
+                const addrLines = wrapCanvasText(ctx, `📌 สถานที่: ${addrStr}`, targetW - (padX * 2.5));
+
+                const infoLines = [
+                    { text: `📅 วันที่: ${dateStr}   ⏰ เวลา: ${timeStr} น.`, color: '#facc15', bold: true },
+                    { text: `📍 สาขา: ${userBranch || '-'}   |   รหัส: ${curScannedCode || '-'}`, color: '#ffffff', bold: true },
+                    ...prodLines.map(line => ({ text: line, color: '#fde68a', bold: true })),
+                    { text: `🌐 พิกัด: ${coordStr}`, color: '#67e8f9', bold: false },
+                    ...addrLines.map(line => ({ text: line, color: '#e2e8f0', bold: false }))
+                ];
+
+                const boxHeight = (infoLines.length * lineHeight) + (padY * 2);
+                const boxY = targetH - boxHeight;
+
+                // 3. วาดพื้นหลังโปร่งแสงด้านล่างภาพ
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+                ctx.fillRect(0, boxY, targetW, boxHeight);
+
+                // แถบสีเหลืองด้านซ้าย
+                const barWidth = Math.max(5, Math.round(targetW * 0.007));
+                ctx.fillStyle = '#eab308';
+                ctx.fillRect(padX * 0.5, boxY + padY * 0.7, barWidth, boxHeight - (padY * 1.4));
+
+                // 4. วาดข้อความลายน้ำแต่ละบรรทัด
+                ctx.textBaseline = 'top';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+                ctx.shadowBlur = 3;
+
+                infoLines.forEach((lineObj, idx) => {
+                    ctx.font = `${lineObj.bold ? '700' : '500'} ${fontSize}px "Noto Sans Thai", "Inter", sans-serif`;
+                    ctx.fillStyle = lineObj.color;
+                    ctx.fillText(lineObj.text, padX, boxY + padY + (idx * lineHeight));
+                });
+
+                ctx.shadowBlur = 0;
+
+                // 5. แปลงเป็น DataURL และ Blob/File สำหรับส่งไป Backend
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        stampedEvidenceFile = new File(
+                            [blob],
+                            `stock_${curScannedCode || 'scan'}_${Date.now()}.jpg`,
+                            { type: 'image/jpeg' }
+                        );
+                    }
+                    resolve(dataUrl);
+                }, 'image/jpeg', 0.92);
+            });
+        }
+
+        async function captureFromLiveCamera() {
+            const video = document.getElementById('cameraVideo');
+            if (!video || !video.videoWidth) return;
+
+            const dataUrl = await stampWatermarkOnImage(video, video.videoWidth, video.videoHeight, true);
+            stopLiveCamera();
+
+            document.getElementById('imagePreview').src = dataUrl;
+            document.getElementById('imagePreviewContainer').classList.remove('hidden');
         }
 
         function openModal() {
             // Reset Form and preview first
             document.getElementById('scanForm').reset();
+            stampedEvidenceFile = null;
+            lastRawImageCanvas = null;
+            stopLiveCamera();
             document.getElementById('imagePreviewContainer').classList.add('hidden');
             document.getElementById('imagePreview').src = '';
             document.getElementById('scanModal').classList.add('active');
+
+            // เริ่มอัปเดตเวลาสดและดึงพิกัดปัจจุบันอัตโนมัติ 3 ชั้น
+            requestCurrentLocation(false);
+            updateLiveOverlayUI();
+            if (liveClockTimer) clearInterval(liveClockTimer);
+            liveClockTimer = setInterval(updateLiveOverlayUI, 1000);
         }
 
         function closeModal() {
+            stopLiveCamera();
+            if (liveClockTimer) {
+                clearInterval(liveClockTimer);
+                liveClockTimer = null;
+            }
             document.getElementById('scanModal').classList.remove('active');
             curScannedCode = '';
+            curScannedProductName = '';
+            stampedEvidenceFile = null;
+            lastRawImageCanvas = null;
             document.getElementById('barcodeInput').focus();
         }
 
-        // Preview Image
+        // Preview Image & Stamp Watermark when selecting file / taking native camera photo
         document.getElementById('evidenceImage').addEventListener('change', function (e) {
             if (this.files && this.files[0]) {
+                const file = this.files[0];
                 const reader = new FileReader();
                 reader.onload = function (evt) {
-                    document.getElementById('imagePreview').src = evt.target.result;
-                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
-                }
-                reader.readAsDataURL(this.files[0]);
+                    const img = new Image();
+                    img.onload = async function () {
+                        const stampedDataUrl = await stampWatermarkOnImage(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
+                        stopLiveCamera();
+                        document.getElementById('imagePreview').src = stampedDataUrl;
+                        document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                    };
+                    img.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
             }
         });
 
@@ -565,7 +1071,9 @@
             e.preventDefault();
 
             const fileInput = document.getElementById('evidenceImage');
-            if (!fileInput.files[0]) {
+            const finalImageFile = stampedEvidenceFile || (fileInput.files && fileInput.files[0] ? fileInput.files[0] : null);
+
+            if (!finalImageFile) {
                 const result = await Swal.fire({
                     title: 'คำเตือน: ไม่ได้แนบรูปหลักฐาน',
                     text: 'คุณแน่ใจหรือไม่ว่าต้องการยืนยันส่งข้อมูลโดยไม่แนบรูปหลักฐาน?',
@@ -585,7 +1093,9 @@
 
             const formData = new FormData();
             formData.append('productCode', curScannedCode);
-            formData.append('evidenceImage', fileInput.files[0]);
+            if (finalImageFile) {
+                formData.append('evidenceImage', finalImageFile);
+            }
             formData.append('note', document.getElementById('scanNote').value);
 
             const submitBtn = document.getElementById('submitScanBtn');
@@ -635,6 +1145,8 @@
             document.getElementById('issueForm').reset();
             document.getElementById('customIssueNoteContainer').classList.add('hidden');
             document.getElementById('issueModalProductCode').textContent = code;
+            const issueNameEl = document.getElementById('issueModalProductName');
+            if (issueNameEl) issueNameEl.textContent = findProductNameByCode(code);
             document.getElementById('issueProductCode').value = code;
             document.getElementById('issueModal').classList.add('active');
         }
@@ -706,6 +1218,7 @@
         // Initialize Fetch
         fetchUser();
         fetchStock();
+        requestCurrentLocation(false);
     </script>
 </body>
 </html>
