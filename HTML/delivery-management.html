@@ -1,0 +1,2968 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>งานจัดส่ง - SILMIN</title>
+    <link rel="icon" type="image/png" href="/image/icon_silme.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Toastify & AppToast -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="/js/toast.js"></script>
+
+    <!-- SweetAlert2 & AppConfirm -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/alert.js"></script>
+
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', '"Noto Sans Thai"', 'sans-serif'],
+                        display: ['"Outfit"', '"Noto Sans Thai"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #f59e0b;
+        }
+
+        .tab-btn.active {
+            color: #d97706;
+            border-bottom: 2px solid #d97706;
+            background-color: #fffbeb;
+            font-weight: 700;
+        }
+
+        .stat-card.active {
+            border-color: #f59e0b;
+            box-shadow: 0 4px 14px -2px rgba(245, 158, 11, 0.18);
+            background-color: #fffef7;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col md:flex-row relative">
+
+    <!-- Mobile Header -->
+    <div
+        class="md:hidden bg-white/90 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-40 flex justify-between items-center w-full shadow-sm">
+        <button onclick="toggleSidebar()"
+            class="text-slate-600 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+            <ion-icon name="menu-outline" class="text-2xl"></ion-icon>
+        </button>
+        <span class="text-base font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+            งานจัดส่ง
+        </span>
+        <div class="flex items-center gap-1">
+            <button onclick="openCreateModal()" class="p-1.5 bg-amber-500 text-white rounded-lg shadow-sm">
+                <ion-icon name="add-outline" class="text-xl"></ion-icon>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()"
+        class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="w-64 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col shadow-xl md:shadow-sm h-screen fixed md:sticky top-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+        <!-- Logo Area -->
+        <div class="h-20 flex items-center px-6 border-b border-slate-100 flex-shrink-0 justify-between">
+            <div class="flex items-center">
+                <img src="/image/icon_silme.png" alt="Icon" class="w-8 h-8 mr-3 rounded-lg shadow-sm" />
+                <div>
+                    <h1 class="text-lg font-bold text-slate-800 tracking-tight leading-none">SILMIN</h1>
+                    <span class="text-[10px] text-amber-600 font-semibold tracking-wider">ระบบงานจัดส่งสินค้า</span>
+                </div>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-slate-600">
+                <ion-icon name="close" class="text-2xl"></ion-icon>
+            </button>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">ระบบจัดส่งเครื่อง</div>
+
+            <a href="/delivery-management.html"
+                class="flex items-center px-4 py-3 bg-amber-50 text-amber-800 rounded-xl transition-all font-semibold border border-amber-200/70 shadow-sm">
+                <ion-icon name="paper-plane-outline" class="w-5 h-5 mr-3 text-amber-600"></ion-icon>
+                <span>งานจัดส่ง</span>
+            </a>
+
+            <a href="/dashboard"
+                class="flex items-center px-4 py-2.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl transition-all font-medium">
+                <ion-icon name="home-outline" class="w-5 h-5 mr-3 text-slate-400"></ion-icon>
+                <span>กลับหน้าหลัก</span>
+            </a>
+        </nav>
+
+        <!-- User Profile Card -->
+        <div class="p-4 border-t border-slate-100 bg-slate-50/70">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                    <span id="user-avatar-initial">U</span>
+                </div>
+                <div class="overflow-hidden flex-1">
+                    <div id="user-display-name" class="font-bold text-sm text-slate-800 truncate">พนักงาน</div>
+                    <div id="user-display-role" class="text-xs text-slate-500 truncate">สาขา: กำลังโหลด...</div>
+                </div>
+                <button onclick="handleLogout()" title="ออกจากระบบ"
+                    class="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-white transition-colors">
+                    <ion-icon name="log-out-outline" class="text-xl"></ion-icon>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 md:p-8 w-full overflow-x-hidden min-h-screen">
+        <div class="max-w-6xl mx-auto space-y-6">
+
+            <!-- Top Header & Action Banner -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                        <span class="p-2 bg-amber-500 text-white rounded-xl shadow-md shadow-amber-500/20">
+                            <ion-icon name="airplane-outline" class="text-2xl"></ion-icon>
+                        </span>
+                        งานจัดส่ง
+                    </h2>
+                    <p class="text-slate-500 text-sm mt-1">
+                        จัดการส่งมอบสินค้าระหว่างสาขา พร้อมระบบบันทึกรอยเซ็นและหลักฐานการลงชื่อของพนักงานทุกขั้นตอน
+                    </p>
+                </div>
+
+                <!-- Create Transfer Button -->
+                <button onclick="openCreateModal()"
+                    class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-2xl shadow-lg shadow-amber-500/30 transition-all active:scale-95 text-sm">
+                    <ion-icon name="add-circle-outline" class="text-xl"></ion-icon>
+                    <span>+ ขอโอนย้ายเครื่อง</span>
+                </button>
+            </div>
+
+            <!-- Fast Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+                <!-- Card 1: To Prepare -->
+                <div onclick="switchTab('to_prepare')" id="stat-card-to_prepare"
+                    class="stat-card active bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:border-amber-400 hover:shadow-md transition-all cursor-pointer group">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-slate-500">งานที่ต้องจัดเตรียมส่ง</span>
+                        <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <ion-icon name="cube-outline" class="text-lg"></ion-icon>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-black text-slate-800" id="stat-count-prepare">0</div>
+                    <div class="text-[11px] text-amber-600 font-medium mt-1">รอสาขาเราเตรียมของส่ง</div>
+                </div>
+
+                <!-- Card 2: Waiting for Source Branch -->
+                <div onclick="switchTab('waiting_source')" id="stat-card-waiting_source"
+                    class="stat-card bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:border-orange-400 hover:shadow-md transition-all cursor-pointer group">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-slate-500">รอสาขาต้นทางตอบรับ</span>
+                        <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                            <ion-icon name="time-outline" class="text-lg"></ion-icon>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-black text-slate-800" id="stat-count-waiting_source">0</div>
+                    <div class="text-[11px] text-orange-600 font-medium mt-1">ขอเครื่องแล้ว รอต้นทางเตรียมของ</div>
+                </div>
+
+                <!-- Card 3: Logistics -->
+                <div onclick="switchTab('logistics')" id="stat-card-logistics"
+                    class="stat-card bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-slate-500">งานฝ่ายจัดส่ง / ขนส่ง</span>
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <ion-icon name="bicycle-outline" class="text-lg"></ion-icon>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-black text-slate-800" id="stat-count-logistics">0</div>
+                    <div class="text-[11px] text-blue-600 font-medium mt-1">รอรับของ / กำลังนำส่ง</div>
+                </div>
+
+                <!-- Card 4: Receiving -->
+                <div onclick="switchTab('receiving')" id="stat-card-receiving"
+                    class="stat-card bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:border-purple-400 hover:shadow-md transition-all cursor-pointer group">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-slate-500">งานรอตรวจรับเข้าสาขา</span>
+                        <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                            <ion-icon name="download-outline" class="text-lg"></ion-icon>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-black text-slate-800" id="stat-count-receiving">0</div>
+                    <div class="text-[11px] text-purple-600 font-medium mt-1">ของอยู่ระหว่างเดินทาง</div>
+                </div>
+
+                <!-- Card 5: Completed -->
+                <div onclick="switchTab('completed')" id="stat-card-completed"
+                    class="stat-card col-span-2 md:col-span-1 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer group">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-slate-500">จัดส่งสำเร็จแล้ว</span>
+                        <div
+                            class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <ion-icon name="checkmark-done-circle-outline" class="text-lg"></ion-icon>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-black text-slate-800" id="stat-count-completed">0</div>
+                    <div class="text-[11px] text-emerald-600 font-medium mt-1">รับเครื่องเข้าสาขาแล้ว</div>
+                </div>
+            </div>
+
+            <!-- Filters & Search Toolbar -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+                <!-- Search Input -->
+                <div class="relative w-full md:w-80">
+                    <ion-icon name="search-outline"
+                        class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></ion-icon>
+                    <input type="text" id="search-input" placeholder="ค้นหาชื่อเครื่อง, เลขพัสดุ, สาขา..."
+                        onkeyup="handleSearch(event)"
+                        class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all">
+                </div>
+
+                <!-- Branch Filter for Management -->
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <div id="branch-filter-container" class="w-full md:w-60 hidden">
+                        <select id="branch-filter" onchange="fetchTransfers()"
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="all">ดูทุกสาขา</option>
+                            <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
+                            <option value="ยะลา">ยะลา</option>
+                            <option value="นราธิวาส">นราธิวาส</option>
+                            <option value="หาดใหญ่">หาดใหญ่</option>
+                            <option value="บิ๊กซี (หาดใหญ่)">บิ๊กซี (หาดใหญ่)</option>
+                            <option value="ปัตตานี">ปัตตานี</option>
+                            <option value="โคลีเซี่ยม">โคลีเซี่ยม</option>
+                            <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                            <option value="ปากแมว">ปากแมว</option>
+                            <option value="ภูเก็ต">ภูเก็ต</option>
+                            <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                            <option value="กระบี่">กระบี่</option>
+                            <option value="เหนือคลอง">เหนือคลอง</option>
+                            <option value="กะทู้">กะทู้</option>
+                            <option value="ตรัง">ตรัง</option>
+                            <option value="คุรุ">คุรุ</option>
+                            <option value="ชุมพร">ชุมพร</option>
+                            <option value="สตูล">สตูล</option>
+                            <option value="พัทลุง">พัทลุง</option>
+                            <option value="สงขลา">สงขลา</option>
+                            <option value="เบตง">เบตง</option>
+                            <option value="พังงา">พังงา</option>
+                            <option value="จะบังติกอ">จะบังติกอ</option>
+                            <option value="BW Phone">BW Phone</option>
+                            <option value="ฝ่ายเทคนิค สนง.">ฝ่ายเทคนิค สนง.</option>
+                        </select>
+                    </div>
+
+                    <button onclick="fetchTransfers()"
+                        class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm flex items-center gap-1.5 transition-colors">
+                        <ion-icon name="refresh-outline" class="text-base"></ion-icon>
+                        <span>รีเฟรช</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="flex border-b border-slate-200 overflow-x-auto scrollbar-none text-sm">
+                    <button onclick="switchTab('to_prepare')" id="tab-btn-to_prepare"
+                        class="tab-btn active px-5 py-3.5 flex items-center gap-2 whitespace-nowrap text-slate-600 hover:text-amber-700 transition-colors">
+                        <ion-icon name="cube-outline" class="text-base"></ion-icon>
+                        <span>งานที่ต้องจัดเตรียมส่ง</span>
+                        <span id="badge-to_prepare"
+                            class="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800 font-bold">0</span>
+                    </button>
+
+                    <button onclick="switchTab('waiting_source')" id="tab-btn-waiting_source"
+                        class="tab-btn px-5 py-3.5 flex items-center gap-2 whitespace-nowrap text-slate-600 hover:text-amber-700 transition-colors">
+                        <ion-icon name="time-outline" class="text-base"></ion-icon>
+                        <span>รอสาขาต้นทางตอบรับ</span>
+                        <span id="badge-waiting_source"
+                            class="px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-800 font-bold">0</span>
+                    </button>
+
+                    <button onclick="switchTab('logistics')" id="tab-btn-logistics"
+                        class="tab-btn px-5 py-3.5 flex items-center gap-2 whitespace-nowrap text-slate-600 hover:text-amber-700 transition-colors">
+                        <ion-icon name="bicycle-outline" class="text-base"></ion-icon>
+                        <span>งานของฝ่ายจัดส่ง</span>
+                        <span id="badge-logistics"
+                            class="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800 font-bold">0</span>
+                    </button>
+
+                    <button onclick="switchTab('receiving')" id="tab-btn-receiving"
+                        class="tab-btn px-5 py-3.5 flex items-center gap-2 whitespace-nowrap text-slate-600 hover:text-amber-700 transition-colors">
+                        <ion-icon name="download-outline" class="text-base"></ion-icon>
+                        <span>งานรอตรวจรับเข้าสาขา</span>
+                        <span id="badge-receiving"
+                            class="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-800 font-bold">0</span>
+                    </button>
+
+                    <button onclick="switchTab('completed')" id="tab-btn-completed"
+                        class="tab-btn px-5 py-3.5 flex items-center gap-2 whitespace-nowrap text-slate-600 hover:text-amber-700 transition-colors">
+                        <ion-icon name="checkmark-done-circle-outline" class="text-base"></ion-icon>
+                        <span>ประวัติเสร็จสิ้น</span>
+                        <span id="badge-completed"
+                            class="px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-800 font-bold">0</span>
+                    </button>
+
+                    <button onclick="switchTab('all')" id="tab-btn-all"
+                        class="tab-btn px-5 py-3.5 flex items-center gap-2 whitespace-nowrap text-slate-600 hover:text-amber-700 transition-colors">
+                        <ion-icon name="layers-outline" class="text-base"></ion-icon>
+                        <span>รายการทั้งหมด</span>
+                    </button>
+                </div>
+
+                <!-- Transfer Items Container -->
+                <div id="transfers-container">
+                    <div class="py-16 text-center text-slate-400">
+                        <ion-icon name="hourglass-outline" class="text-4xl animate-spin mb-2"></ion-icon>
+                        <div>กำลังโหลดข้อมูลรายการจัดส่ง...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 1: Create Transfer Modal -->
+    <!-- ============================================================== -->
+    <div id="modal-create" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[92vh] overflow-hidden flex flex-col border border-slate-100 animate-fade-in-up">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold">
+                        <ion-icon name="add" class="text-xl"></ion-icon>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base leading-tight">สร้างรายการขอโอนย้ายเครื่อง</h3>
+                        <p class="text-xs text-slate-500">สาขาของคุณเป็นผู้ขอรับเครื่อง (สาขาปลายทาง)</p>
+                    </div>
+                </div>
+                <button onclick="closeCreateModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <ion-icon name="close-outline" class="text-2xl"></ion-icon>
+                </button>
+            </div>
+
+            <form id="create-transfer-form" onsubmit="handleCreateTransfer(event)" class="p-6 space-y-4 overflow-y-auto flex-1">
+                <!-- Info Banner -->
+                <div class="p-3 bg-amber-50 border border-amber-200/80 rounded-2xl text-xs text-amber-900 flex items-start gap-2.5">
+                    <ion-icon name="storefront-outline" class="text-lg text-amber-600 shrink-0 mt-0.5"></ion-icon>
+                    <div>
+                        <div><b>สาขาผู้ขอ (สาขาปลายทาง):</b> <span id="requester-branch-badge" class="font-bold text-amber-800 underline">กำลังโหลด...</span></div>
+                        <div class="text-[11px] text-amber-700 mt-0.5">รายการจะถูกส่งไปยังสาขาต้นทางที่คุณเลือก เพื่อให้ทางนั้นจัดเตรียมเครื่องและส่งมาให้คุณ</div>
+                    </div>
+                </div>
+
+                <!-- Source & Target Branches -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ต้องการขอเครื่องจากสาขา (สาขาต้นทาง) *</label>
+                        <select id="create-source-branch" required onchange="onSourceBranchChange()"
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="">-- เลือกสาขาที่ต้องการขอของ --</option>
+                            <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
+                            <option value="ยะลา">ยะลา</option>
+                            <option value="นราธิวาส">นราธิวาส</option>
+                            <option value="หาดใหญ่">หาดใหญ่</option>
+                            <option value="บิ๊กซี (หาดใหญ่)">บิ๊กซี (หาดใหญ่)</option>
+                            <option value="ปัตตานี">ปัตตานี</option>
+                            <option value="โคลีเซี่ยม">โคลีเซี่ยม</option>
+                            <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                            <option value="ปากแมว">ปากแมว</option>
+                            <option value="ภูเก็ต">ภูเก็ต</option>
+                            <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                            <option value="กระบี่">กระบี่</option>
+                            <option value="เหนือคลอง">เหนือคลอง</option>
+                            <option value="กะทู้">กะทู้</option>
+                            <option value="ตรัง">ตรัง</option>
+                            <option value="คุรุ">คุรุ</option>
+                            <option value="ชุมพร">ชุมพร</option>
+                            <option value="สตูล">สตูล</option>
+                            <option value="พัทลุง">พัทลุง</option>
+                            <option value="สงขลา">สงขลา</option>
+                            <option value="เบตง">เบตง</option>
+                            <option value="พังงา">พังงา</option>
+                            <option value="จะบังติกอ">จะบังติกอ</option>
+                            <option value="BW Phone">BW Phone</option>
+                            <option value="ฝ่ายเทคนิค สนง.">ฝ่ายเทคนิค สนง.</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">สาขาผู้ขอรับเครื่อง (สาขาปลายทาง) *</label>
+                        <select id="create-target-branch" required onchange="onSourceBranchChange()"
+                            class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-semibold">
+                            <option value="">-- เลือกสาขาปลายทาง --</option>
+                            <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
+                            <option value="ยะลา">ยะลา</option>
+                            <option value="นราธิวาส">นราธิวาส</option>
+                            <option value="หาดใหญ่">หาดใหญ่</option>
+                            <option value="บิ๊กซี (หาดใหญ่)">บิ๊กซี (หาดใหญ่)</option>
+                            <option value="ปัตตานี">ปัตตานี</option>
+                            <option value="โคลีเซี่ยม">โคลีเซี่ยม</option>
+                            <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                            <option value="ปากแมว">ปากแมว</option>
+                            <option value="ภูเก็ต">ภูเก็ต</option>
+                            <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                            <option value="กระบี่">กระบี่</option>
+                            <option value="เหนือคลอง">เหนือคลอง</option>
+                            <option value="กะทู้">กะทู้</option>
+                            <option value="ตรัง">ตรัง</option>
+                            <option value="คุรุ">คุรุ</option>
+                            <option value="ชุมพร">ชุมพร</option>
+                            <option value="สตูล">สตูล</option>
+                            <option value="พัทลุง">พัทลุง</option>
+                            <option value="สงขลา">สงขลา</option>
+                            <option value="เบตง">เบตง</option>
+                            <option value="พังงา">พังงา</option>
+                            <option value="จะบังติกอ">จะบังติกอ</option>
+                            <option value="BW Phone">BW Phone</option>
+                            <option value="ฝ่ายเทคนิค สนง.">ฝ่ายเทคนิค สนง.</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Title -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">หัวข้อรายการ *</label>
+                    <input type="text" id="create-title" placeholder="เช่น ขอโอนย้าย iPhone 15 ให้ลูกค้าหน้าร้าน" required
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <!-- Products Items -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-700">รายการสินค้า / เครื่อง *</label>
+                        <button type="button" onclick="addProductRow()"
+                            class="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1">
+                            <ion-icon name="add-circle-outline"></ion-icon>
+                            <span>เพิ่มรายการ</span>
+                        </button>
+                    </div>
+                    <div id="product-rows-container" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        <!-- Default row -->
+                        <div class="flex items-center gap-2 product-row">
+                            <input type="text" placeholder="ชื่อสินค้า / รุ่นเครื่องที่ต้องการขอ *" required
+                                class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 item-name">
+                            <input type="number" min="1" value="1" required
+                                class="w-16 sm:w-20 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-center item-qty">
+                            <button type="button" onclick="removeProductRow(this)"
+                                class="text-slate-300 hover:text-red-500 p-1.5 transition-colors">
+                                <ion-icon name="trash-outline" class="text-lg"></ion-icon>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Note -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">หมายเหตุ (ถ้ามี)</label>
+                    <textarea id="create-note" rows="2" placeholder="เช่น เครื่องโควต้าลูกค้าชื่อ... ติดต่อเบอร์..."
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeCreateModal()"
+                        class="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" id="btn-submit-create"
+                        class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-sm shadow-md shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-1.5">
+                        <ion-icon name="send-outline"></ion-icon>
+                        <span>ลงชื่อและส่งคำขอโอนย้าย</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 2: แนบหลักฐานการจัดส่ง -->
+    <!-- ============================================================== -->
+    <div id="modal-proof" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-fade-in-up">
+            <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
+                        <ion-icon name="camera" class="text-xl"></ion-icon>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base leading-tight">แนบหลักฐานการจัดส่ง</h3>
+                        <p class="text-xs text-slate-500">บันทึกภาพและเลขติดตามพัสดุ</p>
+                    </div>
+                </div>
+                <button onclick="closeProofModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <ion-icon name="close-outline" class="text-2xl"></ion-icon>
+                </button>
+            </div>
+
+            <form id="proof-form" onsubmit="handleUploadProof(event)" class="p-6 space-y-4">
+                <input type="hidden" id="proof-transfer-id" value="">
+
+                <!-- Tracking Number -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">เลขพัสดุ / ทะเบียนรถขนส่ง</label>
+                    <input type="text" id="proof-tracking-number" placeholder="เช่น TH0123456789 หรือ ทะเบียนรถขนส่ง"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Proof Image Upload / Camera -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">ถ่ายภาพ / เลือกภาพถ่ายหลักฐานการจัดส่ง</label>
+                    <div class="border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-2xl p-4 text-center cursor-pointer transition-colors"
+                        onclick="document.getElementById('proof-image-input').click()">
+                        <input type="file" id="proof-image-input" accept="image/*" class="hidden"
+                            onchange="previewProofImage(this)">
+                        <div id="proof-upload-placeholder" class="space-y-1">
+                            <ion-icon name="cloud-upload-outline" class="text-3xl text-slate-400"></ion-icon>
+                            <div class="text-xs font-bold text-slate-600">กดเพื่อถ่ายภาพ หรือเลือกรูปภาพ</div>
+                            <div class="text-[11px] text-slate-400">รองรับรูปถ่ายพัสดุ / ใบเสร็จ / จุดรับส่ง</div>
+                        </div>
+                        <img id="proof-image-preview" src="" alt="Proof Preview"
+                            class="max-h-48 mx-auto rounded-xl object-contain hidden mt-2 shadow-sm">
+                    </div>
+                </div>
+
+                <!-- Note -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">หมายเหตุเพิ่มเติม</label>
+                    <input type="text" id="proof-note" placeholder="เช่น ฝากไว้กับคุณ... หรือ ขึ้นรถรอบเช้า"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeProofModal()"
+                        class="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" id="btn-submit-proof"
+                        class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-1.5">
+                        <ion-icon name="cloud-upload-outline"></ion-icon>
+                        <span>อัปโหลดหลักฐาน</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 3: Digital Footprint & Timeline Details Modal -->
+    <!-- ============================================================== -->
+    <div id="modal-timeline" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-100 max-h-[90vh] flex flex-col animate-fade-in-up">
+            <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold">
+                        <ion-icon name="finger-print-outline" class="text-xl"></ion-icon>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base leading-tight">ประวัติและหลักฐานการลงชื่อส่งมอบ</h3>
+                        <p class="text-xs text-slate-500" id="timeline-modal-subtitle">ลำดับขั้นตอนและรอยเซ็นพนักงานผู้เกี่ยวข้อง</p>
+                    </div>
+                </div>
+                <button onclick="closeTimelineModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <ion-icon name="close-outline" class="text-2xl"></ion-icon>
+                </button>
+            </div>
+
+            <div id="timeline-modal-content" class="p-6 overflow-y-auto space-y-6">
+                <!-- Content injected dynamically -->
+            </div>
+
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end shrink-0">
+                <button onclick="closeTimelineModal()"
+                    class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-sm transition-colors">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 4: แก้ไขรายการจัดส่ง (ทุกขั้นตอน สาขาที่เกี่ยวข้องแก้ไขได้) -->
+    <!-- ============================================================== -->
+    <div id="modal-edit" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full max-h-[92vh] overflow-hidden flex flex-col border border-slate-100 animate-fade-in-up">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/70 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold">
+                        <ion-icon name="create-outline" class="text-xl"></ion-icon>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base leading-tight">แก้ไขข้อมูลรายการจัดส่ง</h3>
+                        <p class="text-xs text-slate-500" id="edit-modal-subtitle">เลขที่รายการ: -</p>
+                    </div>
+                </div>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <ion-icon name="close-outline" class="text-2xl"></ion-icon>
+                </button>
+            </div>
+
+            <!-- Edit Form -->
+            <form id="edit-transfer-form" onsubmit="handleSaveEditTransfer(event)" class="p-6 space-y-4 overflow-y-auto flex-1">
+                <input type="hidden" id="edit-transfer-id" value="">
+
+                <!-- Title -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">หัวข้อรายการ *</label>
+                    <input type="text" id="edit-title" required
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold text-slate-800">
+                </div>
+
+                <!-- Source & Destination Branches -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">สาขาต้นทาง (ผู้จัดส่ง) *</label>
+                        <select id="edit-source-branch" required
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium">
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">สาขาปลายทาง (ผู้ขอรับของ) *</label>
+                        <select id="edit-destination-branch" required
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium">
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Status & Delivery Method -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">สถานะรายการ (ขั้นตอน) *</label>
+                        <select id="edit-status" required
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold text-slate-800">
+                            <option value="pending">1. รอดำเนินการ (รอเตรียมของ)</option>
+                            <option value="ready_to_ship">2. เตรียมของแล้ว (รอจัดส่งรับจากสาขาต้นทาง)</option>
+                            <option value="picked_up">3. ฝ่ายจัดส่งรับเครื่องแล้ว (รอนำส่งสาขาปลายทาง)</option>
+                            <option value="in_transit">4. ส่งถึงสาขาปลายทาง / กำลังจัดส่ง (รอตรวจรับ)</option>
+                            <option value="completed">5. สำเร็จ (ตรวจรับเข้าสาขาแล้ว)</option>
+                            <option value="canceled">6. ยกเลิกรายการ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">รูปแบบการจัดส่ง</label>
+                        <select id="edit-delivery-method"
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="">-- ยังไม่ระบุ --</option>
+                            <option value="direct">ส่งตรงระหว่างสาขา (สาขาจัดส่งเอง)</option>
+                            <option value="logistics">ส่งผ่านฝ่ายจัดส่ง (รถขนส่งบริษัท)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tracking Number -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">เลขพัสดุ / ทะเบียนรถขนส่ง</label>
+                    <input type="text" id="edit-tracking-number" placeholder="เช่น Flash, Kerry หรือ ทะเบียนรถขนส่ง"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono">
+                </div>
+
+                <!-- Items List with Product Code & Quantity -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-700">รายการสินค้า / เครื่อง (ระบุรหัสสินค้า / เลข IMEI ตามจำนวนชิ้นได้) *</label>
+                        <button type="button" onclick="addEditProductRow()"
+                            class="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1">
+                            <ion-icon name="add-circle-outline"></ion-icon>
+                            <span>เพิ่มสินค้า</span>
+                        </button>
+                    </div>
+                    <div id="edit-product-rows-container" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        <!-- Injected product rows -->
+                    </div>
+                </div>
+
+                <!-- Condition Status in Edit Modal -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">สภาพความสมบูรณ์ของสินค้า (การตรวจรับ)</label>
+                    <select id="edit-condition-status"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium">
+                        <option value="perfect">สมบูรณ์ 100% (ปกติ)</option>
+                        <option value="minor_defect">มีตำหนิ / กล่องบุบ</option>
+                        <option value="damaged">ชำรุด / แตกหัก</option>
+                        <option value="incomplete">อุปกรณ์ไม่ครบ</option>
+                    </select>
+                </div>
+
+                <!-- Note -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">หมายเหตุเพิ่มเติม</label>
+                    <textarea id="edit-note" rows="2" placeholder="ระบุหมายเหตุหรือบันทึกการแก้ไข..."
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                </div>
+
+                <!-- Proof Image in Edit Modal -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">รูปภาพหลักฐานการจัดส่ง</label>
+                    <div id="edit-current-proof-container" class="hidden mb-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                        <div class="text-[11px] text-slate-500 mb-1 font-semibold">รูปภาพหลักฐานปัจจุบัน:</div>
+                        <a id="edit-current-proof-link" href="#" target="_blank">
+                            <img id="edit-current-proof-img" src="" class="max-h-28 rounded-lg border border-slate-200 object-cover hover:opacity-90 transition-opacity">
+                        </a>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-colors">
+                            <ion-icon name="camera-outline" class="text-base"></ion-icon>
+                            <span>ถ่ายภาพ / อัปโหลดรูปใหม่</span>
+                            <input type="file" id="edit-proof-image-input" accept="image/*" class="hidden" onchange="previewEditProofImage(this)">
+                        </label>
+                        <span id="edit-proof-filename" class="text-xs text-slate-500 truncate max-w-[200px]">ยังไม่ได้เลือกไฟล์ใหม่</span>
+                    </div>
+                    <div id="edit-proof-preview-box" class="hidden mt-2 relative inline-block">
+                        <img id="edit-proof-preview" class="max-h-28 rounded-lg border border-slate-300 object-cover">
+                        <button type="button" onclick="clearEditProofImage()" class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full p-0.5 shadow hover:bg-rose-600">
+                            <ion-icon name="close-outline" class="text-xs block"></ion-icon>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeEditModal()"
+                        class="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" id="btn-submit-edit"
+                        class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-sm shadow-md shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-1.5">
+                        <ion-icon name="save-outline"></ion-icon>
+                        <span>บันทึกการแก้ไข</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Authentication State
+        const token = localStorage.getItem('token');
+        const userString = localStorage.getItem('user');
+
+        if (!token || !userString) {
+            window.location.href = '/login.html';
+        }
+
+        let currentUser = null;
+        try {
+            currentUser = JSON.parse(userString);
+        } catch (e) {
+            window.location.href = '/login.html';
+        }
+
+        // Active View State
+        let currentTab = 'to_prepare';
+        let currentSearch = '';
+        let allTransfers = [];
+
+        // Initialize UI
+        document.addEventListener('DOMContentLoaded', () => {
+            initUserProfile();
+            initRoleBasedUI();
+            fetchTransfers();
+        });
+
+        // ตรวจสอบสิทธิ์ฝ่ายจัดส่ง (รวมถึง แผนก/สาขา "ฝ่ายเทคนิค สนง.")
+        function checkIsLogistics(user) {
+            if (!user) return false;
+            const dept = (user.department || '').trim().toLowerCase();
+            const branch = (user.branch || '').trim().toLowerCase();
+            const role = (user.role || '').trim().toLowerCase();
+            const combined = `${dept} ${branch}`;
+            const keywords = [
+                'logistics', 'จัดส่ง', 'ขนส่ง', 'ส่งของ', 'ส่งสินค้า', 'delivery', 'messenger', 'driver',
+                'ฝ่ายเทคนิค สนง', 'เทคนิค สนง', 'ฝ่ายเทคนิค'
+            ];
+            return keywords.some(kw => dept.includes(kw) || branch.includes(kw) || combined.includes(kw)) ||
+                   ['logistics', 'delivery'].includes(role);
+        }
+
+        function initUserProfile() {
+            if (!currentUser) return;
+            const nameEl = document.getElementById('user-display-name');
+            const roleEl = document.getElementById('user-display-role');
+            const avatarEl = document.getElementById('user-avatar-initial');
+
+            if (nameEl) nameEl.textContent = currentUser.name || currentUser.username || 'พนักงาน';
+            const rawBranch = (currentUser.branch || '').trim();
+            const hasBranch = rawBranch !== '' && rawBranch !== '-' && rawBranch.toLowerCase() !== 'null' && rawBranch.toLowerCase() !== 'none';
+            const isLogistics = checkIsLogistics(currentUser);
+            const userBranchText = isLogistics
+                ? `${rawBranch || currentUser.department || 'ฝ่ายเทคนิค สนง.'} (ฝ่ายจัดส่ง)`
+                : (hasBranch ? rawBranch : 'ไม่มีสาขา (แสดงทุกสาขา)');
+
+            if (roleEl) roleEl.textContent = `สาขา: ${userBranchText}`;
+            if (avatarEl) avatarEl.textContent = (currentUser.name || 'U').charAt(0).toUpperCase();
+
+            // สาขาที่สร้างรายการ
+            const requesterBadge = document.getElementById('requester-branch-badge');
+            if (requesterBadge) {
+                requesterBadge.textContent = isLogistics
+                    ? `${rawBranch || currentUser.department || 'ฝ่ายจัดส่ง'} (สามารถเลือกสาขาปลายทางได้)`
+                    : (hasBranch ? rawBranch : 'ไม่มีสาขาประจำ (สามารถเลือกสาขาปลายทางได้)');
+            }
+
+            const targetBranchSelect = document.getElementById('create-target-branch');
+            const isManagement = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
+            const canManageAll = isManagement || !hasBranch || isLogistics;
+
+            if (targetBranchSelect) {
+                if (!canManageAll) {
+                    targetBranchSelect.value = rawBranch;
+                    targetBranchSelect.disabled = true; // พนักงานสาขาจะถูกล็อคให้ขอรับเข้าสาขาตนเองเท่านั้น
+                } else {
+                    targetBranchSelect.disabled = false;
+                }
+            }
+        }
+
+        function onSourceBranchChange() {
+            const sourceSelect = document.getElementById('create-source-branch');
+            const targetSelect = document.getElementById('create-target-branch');
+            const rawBranch = (currentUser.branch || '').trim();
+            const hasBranch = rawBranch !== '' && rawBranch !== '-' && rawBranch.toLowerCase() !== 'null' && rawBranch.toLowerCase() !== 'none';
+            const isManagement = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
+            const isLogistics = checkIsLogistics(currentUser);
+            const canManageAll = isManagement || !hasBranch || isLogistics;
+
+            const targetBranch = canManageAll ? (targetSelect?.value || '') : rawBranch;
+
+            if (sourceSelect.value && targetBranch) {
+                if (sourceSelect.value === targetBranch) {
+                    Swal.fire('แจ้งเตือน', 'ไม่สามารถขอโอนย้ายจากสาขาเดียวกันได้ กรุณาเลือกสาขาต้นทางอื่น', 'warning');
+                    sourceSelect.value = '';
+                    return;
+                }
+            }
+        }
+
+        function initRoleBasedUI() {
+            const rawBranch = (currentUser.branch || '').trim();
+            const hasBranch = rawBranch !== '' && rawBranch !== '-' && rawBranch.toLowerCase() !== 'null' && rawBranch.toLowerCase() !== 'none';
+            const isManagement = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
+            const isLogistics = checkIsLogistics(currentUser);
+            const canViewAll = isManagement || !hasBranch || isLogistics;
+
+            const branchFilterContainer = document.getElementById('branch-filter-container');
+            if (branchFilterContainer && canViewAll) {
+                branchFilterContainer.classList.remove('hidden');
+            }
+
+            // Default active tab based on role/department
+            if (isLogistics) {
+                currentTab = 'logistics';
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                const btnLogistics = document.getElementById('tab-btn-logistics');
+                if (btnLogistics) btnLogistics.classList.add('active');
+                document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active'));
+                const cardLogistics = document.getElementById('stat-card-logistics');
+                if (cardLogistics) cardLogistics.classList.add('active');
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (!sidebar || !overlay) return;
+
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function handleLogout() {
+            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login.html';
+            }
+        }
+
+        // ==============================================================
+        // Data Fetching & Tab Switching
+        // ==============================================================
+        async function fetchTransfers() {
+            const container = document.getElementById('transfers-container');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="py-16 text-center text-slate-400">
+                    <ion-icon name="hourglass-outline" class="text-4xl animate-spin mb-2"></ion-icon>
+                    <div>กำลังโหลดข้อมูลรายการจัดส่ง...</div>
+                </div>
+            `;
+
+            try {
+                const branchFilter = document.getElementById('branch-filter')?.value || 'all';
+                const search = document.getElementById('search-input')?.value || '';
+
+                const url = new URL('/api/delivery', window.location.origin);
+                url.searchParams.set('tab', currentTab);
+                if (branchFilter && branchFilter !== 'all') {
+                    url.searchParams.set('branchFilter', branchFilter);
+                }
+                if (search.trim()) {
+                    url.searchParams.set('search', search.trim());
+                }
+
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.status === 401) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                const data = await res.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'ไม่สามารถโหลดข้อมูลได้');
+                }
+
+                allTransfers = data.data || [];
+
+                // Update Badges & Counts
+                if (data.counts) {
+                    document.getElementById('stat-count-prepare').textContent = data.counts.to_prepare || 0;
+                    const statWaitingEl = document.getElementById('stat-count-waiting_source');
+                    if (statWaitingEl) statWaitingEl.textContent = data.counts.waiting_source || 0;
+                    document.getElementById('stat-count-logistics').textContent = data.counts.logistics || 0;
+                    document.getElementById('stat-count-receiving').textContent = data.counts.receiving || 0;
+                    document.getElementById('stat-count-completed').textContent = data.counts.completed || 0;
+
+                    document.getElementById('badge-to_prepare').textContent = data.counts.to_prepare || 0;
+                    const badgeWaitingEl = document.getElementById('badge-waiting_source');
+                    if (badgeWaitingEl) badgeWaitingEl.textContent = data.counts.waiting_source || 0;
+                    document.getElementById('badge-logistics').textContent = data.counts.logistics || 0;
+                    document.getElementById('badge-receiving').textContent = data.counts.receiving || 0;
+                    document.getElementById('badge-completed').textContent = data.counts.completed || 0;
+                }
+
+                renderTransfers(allTransfers);
+
+            } catch (err) {
+                console.error('Fetch transfers error:', err);
+                container.innerHTML = `
+                    <div class="py-12 text-center text-red-500">
+                        <ion-icon name="alert-circle-outline" class="text-4xl mb-2"></ion-icon>
+                        <div class="font-bold">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>
+                        <div class="text-xs text-slate-400 mt-1">${err.message}</div>
+                        <button onclick="fetchTransfers()" class="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all">ลองใหม่อีกครั้ง</button>
+                    </div>
+                `;
+            }
+        }
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            document.querySelectorAll('.stat-card').forEach(card => card.classList.remove('active'));
+            const activeCard = document.getElementById(`stat-card-${tabName}`);
+            if (activeCard) activeCard.classList.add('active');
+
+            fetchTransfers();
+        }
+
+        function handleSearch(e) {
+            if (e.key === 'Enter') {
+                fetchTransfers();
+            }
+        }
+
+        // ==============================================================
+        // Render Transfers List (ตารางแสดงแถวข้อมูลปกติ เรียบง่าย)
+        // ==============================================================
+        function renderTransfers(transfers) {
+            const container = document.getElementById('transfers-container');
+            if (!container) return;
+
+            if (!transfers || transfers.length === 0) {
+                container.innerHTML = `
+                    <div class="py-16 text-center text-slate-400">
+                        <ion-icon name="cube-outline" class="text-5xl text-slate-300 mb-2"></ion-icon>
+                        <div class="font-bold text-slate-600">ไม่พบรายการจัดส่งในแท็บนี้</div>
+                        <div class="text-xs text-slate-400 mt-1">สามารถกดปุ่ม "+ ขอโอนย้ายเครื่อง" เพื่อเริ่มสร้างรายการได้</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm min-w-[760px]">
+                        <thead class="bg-slate-50 text-slate-500 text-xs font-bold uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">เลขที่ / วันที่</th>
+                                <th class="py-3 px-4">หัวข้อรายการ</th>
+                                <th class="py-3 px-4">เส้นทาง</th>
+                                <th class="py-3 px-4">สินค้า</th>
+                                <th class="py-3 px-4">การจัดส่ง</th>
+                                <th class="py-3 px-4 text-center">สถานะ</th>
+                                <th class="py-3 px-4 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            ${transfers.map(item => renderTransferRow(item)).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderTransferRow(item) {
+            const rawBranch = (currentUser.branch || '').trim();
+            const hasBranch = rawBranch !== '' && rawBranch !== '-' && rawBranch.toLowerCase() !== 'null' && rawBranch.toLowerCase() !== 'none';
+            const userBranch = hasBranch ? rawBranch : '';
+            const isManagement = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
+            const isLogistics = checkIsLogistics(currentUser) || isManagement;
+            const canManageAll = isManagement || !hasBranch;
+
+            // Status Config แบบกระชับ
+            const statusConfig = {
+                pending: { label: 'รอเตรียมของ', bg: 'bg-amber-50 text-amber-800 border-amber-200' },
+                processing: { label: 'กำลังเตรียมของ', bg: 'bg-blue-50 text-blue-800 border-blue-200' },
+                ready_to_ship: { label: 'รอจัดส่งรับเครื่อง (ต้นทาง)', bg: 'bg-indigo-50 text-indigo-800 border-indigo-200' },
+                picked_up: { label: 'จัดส่งรับแล้ว (รอนำส่งปลายทาง)', bg: 'bg-blue-50 text-blue-800 border-blue-200' },
+                in_transit: {
+                    label: item.deliveryMethod === 'logistics' ? 'ส่งถึงปลายทาง (รอสาขารับ)' : 'กำลังจัดส่ง (รอสาขารับ)',
+                    bg: 'bg-purple-50 text-purple-800 border-purple-200'
+                },
+                shipped: { label: 'จัดส่งแล้ว', bg: 'bg-purple-50 text-purple-800 border-purple-200' },
+                completed: { label: 'สำเร็จ', bg: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+                canceled: { label: 'ยกเลิก', bg: 'bg-rose-50 text-rose-800 border-rose-200' }
+            };
+
+            const statusInfo = statusConfig[item.status] || { label: item.status, bg: 'bg-slate-50 text-slate-700 border-slate-200' };
+            const destBranch = item.destinationBranch || item.branch || 'ปลายทาง';
+            const trackingNo = item.deliveryProof?.trackingNumber || (item.trackingNumbers && item.trackingNumbers[0]) || '';
+            const proofImage = resolveProofImageUrl(item.deliveryProof?.proofImageUrl || '');
+
+            // Action Buttons
+            let actionButtons = '';
+
+            // 1. สาขาต้นทางลงชื่อเตรียมของ
+            const canPrepare = (item.status === 'pending' || item.status === 'processing') &&
+                (userBranch === item.sourceBranch || canManageAll);
+            if (canPrepare) {
+                actionButtons += `
+                    <button onclick="promptPrepareTransfer('${item._id}', '${escapeHtml(item.sourceBranch)}', '${escapeHtml(destBranch)}')"
+                        class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-sm transition-all whitespace-nowrap flex items-center gap-1 active:scale-95">
+                        <ion-icon name="create-outline"></ion-icon>
+                        <span>ลงชื่อเตรียมของ</span>
+                    </button>
+                `;
+            }
+
+            // 2.1 ฝ่ายจัดส่ง (ขั้นตอนที่ 1): รับเครื่องจากสาขาต้นทาง
+            const canPickup = (item.status === 'ready_to_ship') &&
+                (item.deliveryMethod === 'logistics') &&
+                (isLogistics || canManageAll);
+            if (canPickup) {
+                actionButtons += `
+                    <button onclick="promptCourierPickup('${item._id}', '${escapeHtml(item.sourceBranch)}', '${escapeHtml(destBranch)}')"
+                        class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs shadow-sm transition-all whitespace-nowrap flex items-center gap-1 active:scale-95">
+                        <ion-icon name="hand-left-outline"></ion-icon>
+                        <span>1. รับเครื่องจากต้นทาง</span>
+                    </button>
+                `;
+            }
+
+            // 2.2 ฝ่ายจัดส่ง (ขั้นตอนที่ 2): ส่งเครื่องไปยังสาขาปลายทาง
+            const isWaitingCourierDeliver = item.deliveryMethod === 'logistics' &&
+                (item.status === 'picked_up' || (item.status === 'in_transit' && !item.signatures?.courierDeliverSign?.user));
+            const canCourierDeliver = isWaitingCourierDeliver && (isLogistics || canManageAll);
+            if (canCourierDeliver) {
+                actionButtons += `
+                    <button onclick="promptCourierDeliver('${item._id}', '${escapeHtml(item.sourceBranch)}', '${escapeHtml(destBranch)}')"
+                        class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs shadow-sm transition-all whitespace-nowrap flex items-center gap-1 active:scale-95">
+                        <ion-icon name="paper-plane-outline"></ion-icon>
+                        <span>2. ส่งเครื่องถึงปลายทาง</span>
+                    </button>
+                `;
+            }
+
+            // 3. สาขาปลายทางลงชื่อรับเครื่องเข้าสาขา (กรณีผ่านจัดส่ง ต้องส่งถึงปลายทางแล้ว)
+            const canReceive = (item.status === 'in_transit' || item.status === 'shipped') &&
+                !isWaitingCourierDeliver &&
+                (userBranch === destBranch || canManageAll);
+            if (canReceive) {
+                actionButtons += `
+                    <button onclick="promptReceiveTransfer('${item._id}', '${escapeHtml(destBranch)}')"
+                        class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-sm transition-all whitespace-nowrap flex items-center gap-1 active:scale-95">
+                        <ion-icon name="checkmark-circle-outline"></ion-icon>
+                        <span>ลงชื่อรับเครื่อง</span>
+                    </button>
+                `;
+            }
+
+            // รายการสินค้าแบบกระชับ (รองรับแสดงหลายเลข IMEI กรณีจำนวนมากกว่า 1 ชิ้น)
+            const productsHtml = (item.items || []).map(p => `
+                <div class="text-xs text-slate-700 flex items-center gap-1 flex-wrap">
+                    <span class="font-medium">${escapeHtml(p.productName)}</span>
+                    ${renderItemCodesBadges(p, true)}
+                    <span class="text-slate-400 font-bold">x${p.quantity}</span>
+                </div>
+            `).join('');
+
+            // รูปแบบการจัดส่ง
+            let methodText = '<span class="text-slate-400 text-[11px]">รอต้นทางระบุ</span>';
+            if (item.deliveryMethod === 'direct') {
+                methodText = '<span class="text-sky-700 font-bold">ส่งตรง</span>';
+            } else if (item.deliveryMethod === 'logistics') {
+                methodText = '<span class="text-purple-700 font-bold">ผ่านจัดส่ง</span>';
+            }
+
+            const dateStr = item.createdAt 
+                ? new Date(item.createdAt).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' })
+                : '-';
+
+            return `
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                    <!-- เลขที่ / วันที่ -->
+                    <td class="py-3 px-4 align-top">
+                        <div class="font-mono font-bold text-slate-800 text-xs">${escapeHtml(item.transferNumber || '-')}</div>
+                        <div class="text-[11px] text-slate-400 mt-0.5">${dateStr}</div>
+                    </td>
+
+                    <!-- หัวข้อรายการ -->
+                    <td class="py-3 px-4 align-top">
+                        <div class="font-bold text-slate-800 text-xs md:text-sm max-w-[200px] truncate" title="${escapeHtml(item.title || '')}">
+                            ${escapeHtml(item.title || '-')}
+                        </div>
+                    </td>
+
+                    <!-- เส้นทาง -->
+                    <td class="py-3 px-4 align-top">
+                        <div class="flex items-center gap-1.5 text-xs whitespace-nowrap">
+                            <span class="font-semibold text-amber-800">${escapeHtml(item.sourceBranch || '-')}</span>
+                            <ion-icon name="arrow-forward-outline" class="text-slate-400 text-xs"></ion-icon>
+                            <span class="font-semibold text-blue-800">${escapeHtml(destBranch)}</span>
+                        </div>
+                    </td>
+
+                    <!-- สินค้า -->
+                    <td class="py-3 px-4 align-top">
+                        <div class="space-y-1">
+                            ${productsHtml}
+                        </div>
+                    </td>
+
+                    <!-- การจัดส่ง -->
+                    <td class="py-3 px-4 align-top">
+                        <div class="text-xs whitespace-nowrap">${methodText}</div>
+                        ${trackingNo ? `
+                            <div class="text-[11px] font-mono text-slate-500 mt-0.5 flex items-center gap-1">
+                                <span>${escapeHtml(trackingNo)}</span>
+                                ${proofImage ? `<a href="${proofImage}" target="_blank" class="text-blue-600 hover:text-blue-800" title="ดูรูปภาพ"><ion-icon name="image-outline"></ion-icon></a>` : ''}
+                            </div>
+                        ` : ''}
+                    </td>
+
+                    <!-- สถานะ -->
+                    <td class="py-3 px-4 align-top text-center whitespace-nowrap">
+                        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold border ${statusInfo.bg}">
+                            ${statusInfo.label}
+                        </span>
+                        ${item.status === 'completed' && item.receivingCondition?.statusLabel ? `
+                            <div class="text-[10px] font-bold mt-1 flex items-center justify-center gap-0.5 ${item.receivingCondition.status === 'perfect' ? 'text-emerald-700' : (item.receivingCondition.status === 'damaged' ? 'text-rose-700' : 'text-amber-700')}">
+                                <ion-icon name="${item.receivingCondition.status === 'perfect' ? 'checkmark-circle' : 'alert-circle'}"></ion-icon>
+                                <span>${escapeHtml(item.receivingCondition.statusLabel)}</span>
+                            </div>
+                        ` : ''}
+                    </td>
+
+                    <!-- จัดการ -->
+                    <td class="py-3 px-4 align-top text-center whitespace-nowrap">
+                        <div class="flex items-center justify-center gap-1.5">
+                            ${actionButtons}
+                            <button onclick="openTimelineModal('${item._id}')"
+                                class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition-colors flex items-center gap-1"
+                                title="ดูรายละเอียด">
+                                <ion-icon name="eye-outline"></ion-icon>
+                                <span>ดูข้อมูล</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // ==============================================================
+        // Helper: พรีวิวและล้างรูปภาพใน SweetAlert Popup
+        // ==============================================================
+        function previewSwalImage(input, previewId, boxId, filenameId) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = document.getElementById(previewId);
+                    const box = document.getElementById(boxId);
+                    const fnEl = document.getElementById(filenameId);
+                    if (preview) preview.src = e.target.result;
+                    if (box) box.classList.remove('hidden');
+                    if (fnEl) fnEl.textContent = file.name;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearSwalImage(inputId, previewId, boxId, filenameId) {
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+            const box = document.getElementById(boxId);
+            const fnEl = document.getElementById(filenameId);
+            if (input) input.value = '';
+            if (preview) preview.src = '';
+            if (box) box.classList.add('hidden');
+            if (fnEl) fnEl.textContent = 'ยังไม่ได้เลือกรูปภาพ';
+        }
+
+        // แปลง URL รูปภาพจาก Google Drive ให้ผ่าน Server Proxy เพื่อโหลดแสดงผลได้ทุกเบราว์เซอร์
+        function resolveProofImageUrl(url) {
+            if (!url) return '';
+            const match = String(url).match(/(?:[?&]id=|\/file\/d\/|\/d\/)([a-zA-Z0-9_-]{15,})/);
+            if (match && match[1]) {
+                return `/api/delivery/image/${match[1]}`;
+            }
+            return url;
+        }
+
+        // สร้าง HTML แสดงรูปภาพที่แนบมาจากขั้นตอนเตรียมจัดส่ง / ขั้นตอนก่อนหน้า
+        function renderAttachedProofImagesHtml(transfer) {
+            if (!transfer || !transfer.deliveryProof) return '';
+            const proofImagesList = [];
+            if (Array.isArray(transfer.deliveryProof.proofImages) && transfer.deliveryProof.proofImages.length > 0) {
+                transfer.deliveryProof.proofImages.forEach(img => {
+                    if (img && img.url) {
+                        proofImagesList.push({
+                            url: resolveProofImageUrl(img.url),
+                            step: img.step || 'เตรียมจัดส่ง',
+                            uploadedAt: img.uploadedAt
+                        });
+                    }
+                });
+            } else if (transfer.deliveryProof.proofImageUrl) {
+                proofImagesList.push({
+                    url: resolveProofImageUrl(transfer.deliveryProof.proofImageUrl),
+                    step: 'เตรียมจัดส่ง',
+                    uploadedAt: transfer.deliveryProof.updatedAt
+                });
+            }
+
+            if (proofImagesList.length === 0) return '';
+
+            return `
+                <div class="p-3 bg-amber-50/70 rounded-xl border border-amber-200 space-y-2">
+                    <div class="text-xs font-bold text-amber-900 flex items-center justify-between">
+                        <span class="flex items-center gap-1">
+                            <ion-icon name="images-outline" class="text-amber-600 text-sm"></ion-icon>
+                            <span>รูปภาพที่แนบมาจากงานจัดเตรียมส่ง (${proofImagesList.length} รูป)</span>
+                        </span>
+                        <span class="text-[10px] text-amber-700 font-normal">คลิกที่รูปเพื่อดูภาพใหญ่</span>
+                    </div>
+                    <div class="grid ${proofImagesList.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2">
+                        ${proofImagesList.map(img => `
+                            <div class="bg-white p-1.5 rounded-lg border border-amber-200/80 shadow-sm flex flex-col items-center">
+                                <a href="${img.url}" target="_blank" class="w-full block">
+                                    <img src="${img.url}" class="w-full max-h-36 object-contain rounded bg-slate-50 hover:opacity-90 transition-opacity mx-auto" alt="รูปภาพที่แนบมาจากต้นทาง">
+                                </a>
+                                <div class="text-[10px] font-bold text-slate-700 mt-1">${escapeHtml(img.step || 'เตรียมจัดส่ง')}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // ดึงรายการรหัสสินค้า / เลข IMEI ออกมาเป็น Array เสมอ
+        function getItemCodesArray(item) {
+            if (!item) return [];
+            if (Array.isArray(item.productCodes) && item.productCodes.length > 0) {
+                return item.productCodes.map(c => String(c || '').trim()).filter(Boolean);
+            }
+            if (item.productCode && String(item.productCode).trim() !== '') {
+                return String(item.productCode).split(',').map(c => c.trim()).filter(Boolean);
+            }
+            return [];
+        }
+
+        // แสดงป้าย Badge รหัสสินค้า / เลข IMEI (รองรับทั้ง 1 ชิ้น และมากกว่า 1 ชิ้น)
+        function renderItemCodesBadges(item, showPlaceholder = true) {
+            const codes = getItemCodesArray(item);
+            if (codes.length === 0) {
+                return showPlaceholder
+                    ? '<span class="text-[10px] text-slate-400 bg-slate-50 px-1 py-0.2 rounded border border-slate-200">รอระบุรหัส/IMEI</span>'
+                    : '';
+            }
+            const qty = Math.max(1, Number(item?.quantity) || 1);
+            if (codes.length === 1 && qty === 1) {
+                return `<span class="font-mono text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/80 font-bold">${escapeHtml(codes[0])}</span>`;
+            }
+            return codes.map((code, i) => `
+                <span class="font-mono text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/80 font-bold" title="ชิ้นที่ ${i + 1}">#${i + 1}: ${escapeHtml(code)}</span>
+            `).join('');
+        }
+
+        // คัดลอกรหัสชิ้นที่ 1 ไปยังทุกชิ้นของสินค้ารายการเดียวกัน (กรณีเป็นสินค้าบาร์โค้ดเดียวกัน)
+        function copyFirstPrepCodeToAll(itemIndex) {
+            const inputs = document.querySelectorAll(`.swal-prep-code-input[data-item-index="${itemIndex}"]`);
+            if (!inputs || inputs.length < 2) return;
+            const firstVal = inputs[0].value.trim();
+            if (!firstVal) {
+                inputs[0].focus();
+                return;
+            }
+            inputs.forEach((inp, idx) => {
+                if (idx > 0) inp.value = firstVal;
+            });
+        }
+
+        // ==============================================================
+        // ขั้นตอนที่ 1: สาขาต้นทางลงชื่อเตรียมจัดส่ง
+        // ==============================================================
+        async function promptPrepareTransfer(transferId, sourceBranch, targetBranch) {
+            const transfer = allTransfers.find(t => t._id === transferId);
+            const userName = currentUser.name || currentUser.username || 'พนักงาน';
+            const src = sourceBranch || transfer?.sourceBranch || '-';
+            const dst = targetBranch || transfer?.destinationBranch || transfer?.branch || '-';
+            const items = transfer?.items || [];
+
+            const { value: formValues } = await Swal.fire({
+                title: 'ลงชื่อเตรียมของจัดส่ง',
+                html: `
+                    <div class="text-left space-y-3 pt-2">
+                        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
+                            <div><b>ยืนยันการลงชื่อในชื่อ:</b> <span class="font-bold underline">${escapeHtml(userName)}</span></div>
+                            <div class="mt-1"><b>สาขาต้นทาง (ผู้จัดส่ง):</b> ${escapeHtml(src)} &rarr; <b>สาขาปลายทาง:</b> ${escapeHtml(dst)}</div>
+                        </div>
+
+                        <!-- รายการสินค้าและช่องกรอกรหัสสินค้า / เลข IMEI ตามจำนวนชิ้น -->
+                        <div class="space-y-2 pt-1 border-t border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-bold text-slate-800">ระบุรหัสสินค้า / เลข IMEI ที่จัดเตรียม *</label>
+                                <span class="text-[11px] text-amber-600 font-semibold">ระบุแยกตามจำนวนชิ้นได้</span>
+                            </div>
+                            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                ${items.length === 0 ? '<div class="text-xs text-slate-400 py-2 text-center">ไม่มีรายการสินค้า</div>' : items.map((it, idx) => {
+                                    const qty = Math.max(1, Number(it.quantity) || 1);
+                                    const existingCodes = getItemCodesArray(it);
+                                    return `
+                                    <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5">
+                                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                                            <span class="font-bold text-slate-800">${idx + 1}. ${escapeHtml(it.productName)}</span>
+                                            <div class="flex items-center gap-1.5">
+                                                ${qty > 1 ? `
+                                                    <button type="button" onclick="copyFirstPrepCodeToAll(${idx})"
+                                                        class="text-[10px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md border border-blue-200 transition-colors"
+                                                        title="คัดลอกรหัสจากชิ้นที่ 1 ไปยังทุกชิ้น">
+                                                        ใช้รหัสเดียวกับชิ้นที่ 1
+                                                    </button>
+                                                ` : ''}
+                                                <span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-bold text-[10px]">จำนวน ${qty} ชิ้น</span>
+                                            </div>
+                                        </div>
+                                        ${qty === 1 ? `
+                                            <div>
+                                                <input type="text"
+                                                    data-item-index="${idx}"
+                                                    data-piece-index="0"
+                                                    class="swal-prep-code-input w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                                                    placeholder="กรอกรหัสสินค้า / เลข IMEI เครื่อง *"
+                                                    value="${escapeHtml(existingCodes[0] || '')}">
+                                            </div>
+                                        ` : `
+                                            <div class="space-y-1.5 pt-0.5">
+                                                ${Array.from({ length: qty }, (_, pieceIdx) => `
+                                                    <div class="flex items-center gap-1.5">
+                                                        <span class="text-[11px] font-bold text-amber-800 bg-amber-100/80 px-2 py-1 rounded-md border border-amber-200 shrink-0 min-w-[54px] text-center">ชิ้นที่ ${pieceIdx + 1}</span>
+                                                        <input type="text"
+                                                            data-item-index="${idx}"
+                                                            data-piece-index="${pieceIdx}"
+                                                            class="swal-prep-code-input flex-1 px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                                                            placeholder="กรอกรหัสสินค้า / เลข IMEI ชิ้นที่ ${pieceIdx + 1} *"
+                                                            value="${escapeHtml(existingCodes[pieceIdx] || '')}">
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        `}
+                                    </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+
+                        <div class="pt-1 border-t border-slate-200">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">เลือกรูปแบบการจัดส่ง *</label>
+                            <select id="swal-delivery-method" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 bg-white">
+                                <option value="direct">1. ส่งตรงระหว่างสาขา (สาขาจัดส่งเอง)</option>
+                                <option value="logistics">2. ส่งผ่านฝ่ายจัดส่ง (รถขนส่งบริษัท)</option>
+                            </select>
+                        </div>
+
+                        <div id="swal-tracking-box">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">เลขพัสดุ / หมายเลขอ้างอิง (กรณีส่งตรง)</label>
+                            <input type="text" id="swal-tracking-no" placeholder="เช่น Flash, Kerry หรือ คนส่งของ" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">บันทึกเพิ่มเติม (ถ้ามี)</label>
+                            <input type="text" id="swal-note" placeholder="เช่น บรรจุลงกล่องเรียบร้อย พร้อมส่ง" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                        </div>
+
+                        <!-- แนบรูปภาพหลักฐานตอนเตรียมของ -->
+                        <div class="pt-1 border-t border-slate-200">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">แนบรูปภาพหลักฐาน / สภาพสินค้าและกล่อง (ถ้ามี)</label>
+                            <div class="flex items-center gap-2">
+                                <label class="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-colors">
+                                    <ion-icon name="camera-outline" class="text-base"></ion-icon>
+                                    <span>ถ่ายภาพ / เลือกรูป</span>
+                                    <input type="file" id="swal-prep-image" accept="image/*" class="hidden" onchange="previewSwalImage(this, 'swal-prep-preview', 'swal-prep-preview-box', 'swal-prep-filename')">
+                                </label>
+                                <span id="swal-prep-filename" class="text-xs text-slate-500 truncate max-w-[180px]">ยังไม่ได้เลือกรูปภาพ</span>
+                            </div>
+                            <div id="swal-prep-preview-box" class="hidden mt-2 relative inline-block">
+                                <img id="swal-prep-preview" class="max-h-28 rounded-lg border border-slate-300 object-cover">
+                                <button type="button" onclick="clearSwalImage('swal-prep-image', 'swal-prep-preview', 'swal-prep-preview-box', 'swal-prep-filename')" class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full p-0.5 shadow hover:bg-rose-600">
+                                    <ion-icon name="close-outline" class="text-xs block"></ion-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'ลงชื่อและบันทึก',
+                cancelButtonText: 'ยกเลิก',
+                customClass: {
+                    confirmButton: '!bg-amber-500 hover:!bg-amber-600 !text-white !font-bold !rounded-xl !px-5 !py-2.5',
+                    cancelButton: '!bg-slate-200 hover:!bg-slate-300 !text-slate-700 !font-bold !rounded-xl !px-5 !py-2.5'
+                },
+                didOpen: () => {
+                    const methodSelect = document.getElementById('swal-delivery-method');
+                    const trackingBox = document.getElementById('swal-tracking-box');
+                    methodSelect.addEventListener('change', () => {
+                        trackingBox.style.display = methodSelect.value === 'direct' ? 'block' : 'none';
+                    });
+                },
+                preConfirm: () => {
+                    const deliveryMethod = document.getElementById('swal-delivery-method').value;
+                    const trackingNumber = document.getElementById('swal-tracking-no')?.value?.trim() || '';
+                    const note = document.getElementById('swal-note')?.value?.trim() || '';
+
+                    if (!deliveryMethod) {
+                        Swal.showValidationMessage('กรุณาเลือกรูปแบบการจัดส่ง');
+                        return false;
+                    }
+
+                    const itemsPayload = [];
+                    for (let i = 0; i < items.length; i++) {
+                        const pName = items[i]?.productName || `รายการที่ ${i + 1}`;
+                        const qty = Math.max(1, Number(items[i]?.quantity) || 1);
+                        const pieceInputs = document.querySelectorAll(`.swal-prep-code-input[data-item-index="${i}"]`);
+                        const codesForThisItem = [];
+
+                        for (let pIdx = 0; pIdx < pieceInputs.length; pIdx++) {
+                            const val = pieceInputs[pIdx].value.trim();
+                            if (!val) {
+                                const pieceLabel = qty > 1 ? ` (ชิ้นที่ ${pIdx + 1})` : '';
+                                Swal.showValidationMessage(`กรุณากรอกรหัสสินค้า / เลข IMEI สำหรับ "${pName}"${pieceLabel}`);
+                                pieceInputs[pIdx].focus();
+                                return false;
+                            }
+                            codesForThisItem.push(val);
+                        }
+
+                        itemsPayload.push({
+                            productCode: codesForThisItem.join(', '),
+                            productCodes: codesForThisItem,
+                            productName: items[i]?.productName,
+                            quantity: qty
+                        });
+                    }
+
+                    const fileInput = document.getElementById('swal-prep-image');
+                    const proofFile = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+                    return { deliveryMethod, trackingNumber, note, items: itemsPayload, proofFile };
+                }
+            });
+
+            if (!formValues) return;
+
+            try {
+                Swal.fire({
+                    title: 'กำลังบันทึกลงชื่อและอัปโหลดหลักฐาน...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const formData = new FormData();
+                formData.append('deliveryMethod', formValues.deliveryMethod);
+                if (formValues.trackingNumber) formData.append('trackingNumber', formValues.trackingNumber);
+                if (formValues.note) formData.append('note', formValues.note);
+                formData.append('items', JSON.stringify(formValues.items));
+                if (formValues.proofFile) {
+                    formData.append('proofImage', formValues.proofFile);
+                }
+
+                const res = await fetch(`/api/delivery/${transferId}/prepare`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'บันทึกไม่สำเร็จ');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ลงชื่อเตรียมของสำเร็จ',
+                    text: `บันทึกการลงชื่อโดย: ${userName}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                fetchTransfers();
+            } catch (err) {
+                Swal.fire('ข้อผิดพลาด', err.message, 'error');
+            }
+        }
+
+        // ==============================================================
+        // ฝ่ายจัดส่ง ขั้นตอนที่ 1: รับเครื่องจากสาขาต้นทาง
+        // ==============================================================
+        async function promptCourierPickup(transferId, sourceBranch, targetBranch) {
+            const userName = currentUser.name || currentUser.username || 'พนักงานจัดส่ง';
+            const transfer = allTransfers.find(t => t._id === transferId);
+            const src = sourceBranch || transfer?.sourceBranch || '-';
+            const dst = targetBranch || transfer?.destinationBranch || transfer?.branch || '-';
+            const items = transfer?.items || [];
+
+            const { value: formValues } = await Swal.fire({
+                title: 'ขั้นตอนที่ 1: รับเครื่องจากสาขาต้นทาง',
+                html: `
+                    <div class="text-left space-y-3 pt-2">
+                        <div class="p-3 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-900 space-y-1">
+                            <div><b>ผู้รับมอบเครื่อง (ฝ่ายจัดส่ง):</b> <span class="font-bold underline">${escapeHtml(userName)}</span></div>
+                            <div><b>รับเครื่องจากสาขาต้นทาง:</b> <span class="font-bold text-amber-800">${escapeHtml(src)}</span> &rarr; <b>เตรียมนำส่งไปที่:</b> <span class="font-bold text-indigo-800">${escapeHtml(dst)}</span></div>
+                        </div>
+
+                        <!-- รายการเครื่องที่รับจากสาขาต้นทาง -->
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1">
+                            <div class="font-bold text-slate-700">รายการเครื่องที่รับมอบ (${items.length} รายการ):</div>
+                            ${items.map((it, idx) => `
+                                <div class="flex items-start justify-between gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200/80">
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        <span class="font-bold text-slate-800">${idx + 1}. ${escapeHtml(it.productName)}</span>
+                                        ${renderItemCodesBadges(it, false)}
+                                    </div>
+                                    <span class="font-bold text-slate-600 shrink-0">x${it.quantity}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        ${renderAttachedProofImagesHtml(transfer)}
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">เลขพัสดุ / ทะเบียนรถ / หมายเลขอ้างอิง (ถ้ามี)</label>
+                            <input type="text" id="swal-pickup-tracking" value="${escapeHtml(transfer?.deliveryProof?.trackingNumber || '')}" placeholder="เช่น ทะเบียนรถขนส่ง หรือ หมายเลขอ้างอิง" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">หมายเหตุการรับเครื่องจากต้นทาง (ถ้ามี)</label>
+                            <input type="text" id="swal-pickup-note" placeholder="เช่น รับเครื่องจากสาขาต้นทางครบถ้วน กล่องสมบูรณ์" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                        </div>
+
+                        <!-- แนบรูปภาพหลักฐานตอนรับของจากต้นทาง -->
+                        <div class="pt-1 border-t border-slate-200">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">แนบรูปภาพหลักฐานตอนรับเครื่องจากสาขาต้นทาง (ถ้ามี)</label>
+                            <div class="flex items-center gap-2">
+                                <label class="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-colors">
+                                    <ion-icon name="camera-outline" class="text-base"></ion-icon>
+                                    <span>ถ่ายภาพ / เลือกรูป</span>
+                                    <input type="file" id="swal-pickup-image" accept="image/*" class="hidden" onchange="previewSwalImage(this, 'swal-pickup-preview', 'swal-pickup-preview-box', 'swal-pickup-filename')">
+                                </label>
+                                <span id="swal-pickup-filename" class="text-xs text-slate-500 truncate max-w-[180px]">ยังไม่ได้เลือกรูปภาพ</span>
+                            </div>
+                            <div id="swal-pickup-preview-box" class="hidden mt-2 relative inline-block">
+                                <img id="swal-pickup-preview" class="max-h-28 rounded-lg border border-slate-300 object-cover">
+                                <button type="button" onclick="clearSwalImage('swal-pickup-image', 'swal-pickup-preview', 'swal-pickup-preview-box', 'swal-pickup-filename')" class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full p-0.5 shadow hover:bg-rose-600">
+                                    <ion-icon name="close-outline" class="text-xs block"></ion-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยันรับเครื่องจากต้นทาง',
+                cancelButtonText: 'ยกเลิก',
+                customClass: {
+                    confirmButton: '!bg-blue-600 hover:!bg-blue-700 !text-white !font-bold !rounded-xl !px-5 !py-2.5',
+                    cancelButton: '!bg-slate-200 hover:!bg-slate-300 !text-slate-700 !font-bold !rounded-xl !px-5 !py-2.5'
+                },
+                preConfirm: () => {
+                    const trackingNumber = document.getElementById('swal-pickup-tracking')?.value?.trim() || '';
+                    const note = document.getElementById('swal-pickup-note')?.value?.trim() || '';
+                    const fileInput = document.getElementById('swal-pickup-image');
+                    const proofFile = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+                    return { trackingNumber, note, proofFile };
+                }
+            });
+
+            if (!formValues) return;
+
+            try {
+                Swal.fire({
+                    title: 'กำลังบันทึกรับเครื่องจากสาขาต้นทาง...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const formData = new FormData();
+                if (formValues.trackingNumber) formData.append('trackingNumber', formValues.trackingNumber);
+                if (formValues.note) formData.append('note', formValues.note);
+                if (formValues.proofFile) formData.append('proofImage', formValues.proofFile);
+
+                const res = await fetch(`/api/delivery/${transferId}/pickup`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'บันทึกไม่สำเร็จ');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'รับเครื่องจากสาขาต้นทางสำเร็จ',
+                    text: `สถานะเปลี่ยนเป็น "จัดส่งรับแล้ว (รอนำส่งปลายทาง)" โดย ${userName}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                fetchTransfers();
+            } catch (err) {
+                Swal.fire('ข้อผิดพลาด', err.message, 'error');
+            }
+        }
+
+        // ==============================================================
+        // ฝ่ายจัดส่ง ขั้นตอนที่ 2: ส่งเครื่องไปยังสาขาปลายทาง
+        // ==============================================================
+        async function promptCourierDeliver(transferId, sourceBranch, targetBranch) {
+            const userName = currentUser.name || currentUser.username || 'พนักงานจัดส่ง';
+            const transfer = allTransfers.find(t => t._id === transferId);
+            const src = sourceBranch || transfer?.sourceBranch || '-';
+            const dst = targetBranch || transfer?.destinationBranch || transfer?.branch || '-';
+            const items = transfer?.items || [];
+
+            const { value: formValues } = await Swal.fire({
+                title: 'ขั้นตอนที่ 2: ส่งเครื่องไปยังสาขาปลายทาง',
+                html: `
+                    <div class="text-left space-y-3 pt-2">
+                        <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-xs text-indigo-900 space-y-1">
+                            <div><b>ผู้ส่งมอบเครื่อง (ฝ่ายจัดส่ง):</b> <span class="font-bold underline">${escapeHtml(userName)}</span></div>
+                            <div><b>จากสาขาต้นทาง:</b> ${escapeHtml(src)} &rarr; <b>ส่งมอบให้สาขาปลายทาง:</b> <span class="font-bold text-indigo-800 underline">${escapeHtml(dst)}</span></div>
+                        </div>
+
+                        <!-- รายการเครื่องที่นำส่งสาขาปลายทาง -->
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1">
+                            <div class="font-bold text-slate-700">รายการเครื่องที่นำส่ง (${items.length} รายการ):</div>
+                            ${items.map((it, idx) => `
+                                <div class="flex items-start justify-between gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200/80">
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        <span class="font-bold text-slate-800">${idx + 1}. ${escapeHtml(it.productName)}</span>
+                                        ${renderItemCodesBadges(it, false)}
+                                    </div>
+                                    <span class="font-bold text-slate-600 shrink-0">x${it.quantity}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        ${renderAttachedProofImagesHtml(transfer)}
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">เลขพัสดุ / ทะเบียนรถ / หมายเลขอ้างอิงการส่ง</label>
+                            <input type="text" id="swal-deliver-tracking" value="${escapeHtml(transfer?.deliveryProof?.trackingNumber || '')}" placeholder="เช่น เลขพัสดุ หรือ ทะเบียนรถที่นำส่ง" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">หมายเหตุการส่งเครื่องให้สาขาปลายทาง (ถ้ามี)</label>
+                            <input type="text" id="swal-deliver-note" placeholder="เช่น นำส่งถึงสาขาปลายทางเรียบร้อยแล้ว" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                        </div>
+
+                        <!-- แนบรูปภาพหลักฐานตอนส่งเครื่องถึงสาขาปลายทาง -->
+                        <div class="pt-1 border-t border-slate-200">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">แนบรูปภาพหลักฐานการส่งเครื่องถึงสาขาปลายทาง (ถ้ามี)</label>
+                            <div class="flex items-center gap-2">
+                                <label class="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-colors">
+                                    <ion-icon name="camera-outline" class="text-base"></ion-icon>
+                                    <span>ถ่ายภาพ / เลือกรูป</span>
+                                    <input type="file" id="swal-deliver-image" accept="image/*" class="hidden" onchange="previewSwalImage(this, 'swal-deliver-preview', 'swal-deliver-preview-box', 'swal-deliver-filename')">
+                                </label>
+                                <span id="swal-deliver-filename" class="text-xs text-slate-500 truncate max-w-[180px]">ยังไม่ได้เลือกรูปภาพ</span>
+                            </div>
+                            <div id="swal-deliver-preview-box" class="hidden mt-2 relative inline-block">
+                                <img id="swal-deliver-preview" class="max-h-28 rounded-lg border border-slate-300 object-cover">
+                                <button type="button" onclick="clearSwalImage('swal-deliver-image', 'swal-deliver-preview', 'swal-deliver-preview-box', 'swal-deliver-filename')" class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full p-0.5 shadow hover:bg-rose-600">
+                                    <ion-icon name="close-outline" class="text-xs block"></ion-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยันส่งเครื่องถึงสาขาปลายทาง',
+                cancelButtonText: 'ยกเลิก',
+                customClass: {
+                    confirmButton: '!bg-indigo-600 hover:!bg-indigo-700 !text-white !font-bold !rounded-xl !px-5 !py-2.5',
+                    cancelButton: '!bg-slate-200 hover:!bg-slate-300 !text-slate-700 !font-bold !rounded-xl !px-5 !py-2.5'
+                },
+                preConfirm: () => {
+                    const trackingNumber = document.getElementById('swal-deliver-tracking')?.value?.trim() || '';
+                    const note = document.getElementById('swal-deliver-note')?.value?.trim() || '';
+                    const fileInput = document.getElementById('swal-deliver-image');
+                    const proofFile = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+                    return { trackingNumber, note, proofFile };
+                }
+            });
+
+            if (!formValues) return;
+
+            try {
+                Swal.fire({
+                    title: 'กำลังบันทึกส่งเครื่องไปยังสาขาปลายทาง...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const formData = new FormData();
+                if (formValues.trackingNumber) formData.append('trackingNumber', formValues.trackingNumber);
+                if (formValues.note) formData.append('note', formValues.note);
+                if (formValues.proofFile) formData.append('proofImage', formValues.proofFile);
+
+                const res = await fetch(`/api/delivery/${transferId}/deliver`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'บันทึกไม่สำเร็จ');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ส่งเครื่องถึงสาขาปลายทางสำเร็จ',
+                    text: `ส่งมอบไปยังสาขา ${dst} เรียบร้อยแล้ว รอสาขาปลายทางตรวจรับเครื่อง`,
+                    timer: 2200,
+                    showConfirmButton: false
+                });
+
+                fetchTransfers();
+            } catch (err) {
+                Swal.fire('ข้อผิดพลาด', err.message, 'error');
+            }
+        }
+
+        // ==============================================================
+        // ACTION 3: แนบหลักฐานการส่งของ (Tracking / Google Drive Image)
+        // ==============================================================
+        function openProofModal(transferId, currentTracking = '') {
+            document.getElementById('proof-transfer-id').value = transferId;
+            document.getElementById('proof-tracking-number').value = currentTracking || '';
+            document.getElementById('proof-note').value = '';
+            document.getElementById('proof-image-input').value = '';
+
+            const previewImg = document.getElementById('proof-image-preview');
+            const placeholder = document.getElementById('proof-upload-placeholder');
+            if (previewImg) {
+                previewImg.src = '';
+                previewImg.classList.add('hidden');
+            }
+            if (placeholder) placeholder.classList.remove('hidden');
+
+            const modal = document.getElementById('modal-proof');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeProofModal() {
+            const modal = document.getElementById('modal-proof');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function previewProofImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = document.getElementById('proof-image-preview');
+                    const placeholder = document.getElementById('proof-upload-placeholder');
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function handleUploadProof(e) {
+            e.preventDefault();
+            const transferId = document.getElementById('proof-transfer-id').value;
+            const trackingNumber = document.getElementById('proof-tracking-number').value;
+            const note = document.getElementById('proof-note').value;
+            const fileInput = document.getElementById('proof-image-input');
+
+            const formData = new FormData();
+            if (trackingNumber) formData.append('trackingNumber', trackingNumber);
+            if (note) formData.append('note', note);
+            if (fileInput.files[0]) {
+                formData.append('proofImage', fileInput.files[0]);
+            }
+
+            const submitBtn = document.getElementById('btn-submit-proof');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<ion-icon name="hourglass-outline" class="animate-spin"></ion-icon> กำลังอัปโหลดภาพหลักฐาน...`;
+
+            try {
+                const res = await fetch(`/api/delivery/${transferId}/proof`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'อัปโหลดไม่สำเร็จ');
+
+                closeProofModal();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกหลักฐานการส่งสำเร็จ',
+                    text: 'อัปโหลดภาพถ่ายหลักฐานเรียบร้อยแล้ว',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                fetchTransfers();
+            } catch (err) {
+                Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<ion-icon name="cloud-upload-outline"></ion-icon> <span>อัปโหลดหลักฐาน</span>`;
+            }
+        }
+
+        // ==============================================================
+        // ขั้นตอนที่ 4: สาขาปลายทางลงชื่อตรวจรับเครื่องเข้าสาขา
+        // ==============================================================
+        async function promptReceiveTransfer(transferId, branchName) {
+            const userName = currentUser.name || currentUser.username || 'พนักงานสาขา';
+            const transfer = allTransfers.find(t => t._id === transferId);
+            const items = transfer?.items || [];
+
+            const { value: formValues } = await Swal.fire({
+                title: 'ลงชื่อตรวจรับเครื่องเข้าสาขา',
+                width: '34rem',
+                html: `
+                    <div class="text-left space-y-3 pt-2">
+                        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900">
+                            <div><b>ยืนยันการรับเครื่องในชื่อ:</b> <span class="font-bold underline">${escapeHtml(userName)}</span></div>
+                            <div class="mt-1"><b>สาขาปลายทาง (ผู้รับของ):</b> ${escapeHtml(branchName)}</div>
+                        </div>
+
+                        ${renderAttachedProofImagesHtml(transfer)}
+
+                        <!-- ตรวจรับความสมบูรณ์ของสินค้า -->
+                        <div class="pt-2 border-t border-slate-200 space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-xs font-bold text-slate-800 flex items-center gap-1">
+                                    <ion-icon name="shield-checkmark" class="text-emerald-600 text-sm"></ion-icon>
+                                    <span>ตรวจรับความสมบูรณ์ของสินค้า *</span>
+                                </label>
+                                <span class="text-[11px] text-emerald-700 font-semibold">ตรวจสอบสภาพจริง</span>
+                            </div>
+
+                            <!-- เลือกระดับความสมบูรณ์ -->
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <label class="flex items-center gap-2 p-2 bg-emerald-50 border border-emerald-300 rounded-xl cursor-pointer hover:bg-emerald-100/70 transition-colors">
+                                    <input type="radio" name="swal-condition-status" value="perfect" class="text-emerald-600 focus:ring-emerald-500">
+                                    <span class="font-bold text-emerald-900">สมบูรณ์ 100% (ปกติ)</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-amber-50 border border-amber-300 rounded-xl cursor-pointer hover:bg-amber-100/70 transition-colors">
+                                    <input type="radio" name="swal-condition-status" value="minor_defect" class="text-amber-600 focus:ring-amber-500">
+                                    <span class="font-bold text-amber-900">มีตำหนิ / กล่องบุบ</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-rose-50 border border-rose-300 rounded-xl cursor-pointer hover:bg-rose-100/70 transition-colors">
+                                    <input type="radio" name="swal-condition-status" value="damaged" class="text-rose-600 focus:ring-rose-500">
+                                    <span class="font-bold text-rose-900">ชำรุด / แตกหัก</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-purple-50 border border-purple-300 rounded-xl cursor-pointer hover:bg-purple-100/70 transition-colors">
+                                    <input type="radio" name="swal-condition-status" value="incomplete" class="text-purple-600 focus:ring-purple-500">
+                                    <span class="font-bold text-purple-900">อุปกรณ์ไม่ครบ</span>
+                                </label>
+                            </div>
+
+                            <!-- รายการสินค้าและติ๊กตรวจรับรายชิ้น (หากมีหลาย IMEI จะแยกให้ติ๊กตรวจสอบทีละเครื่อง) -->
+                            <div class="space-y-1.5 pt-1">
+                                <div class="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                                    <span>ติ๊กยืนยันรับสินค้าแต่ละรายการ:</span>
+                                    <span class="text-slate-400 font-normal">ทั้งหมด ${items.reduce((sum, it) => sum + Math.max(1, Number(it.quantity) || 1), 0)} ชิ้น</span>
+                                </div>
+                                <div class="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                                    ${items.length === 0 ? '<div class="text-xs text-slate-400 py-1 text-center">ไม่มีรายการสินค้า</div>' : items.map((it, idx) => {
+                                        const qty = Math.max(1, Number(it.quantity) || 1);
+                                        const codes = getItemCodesArray(it);
+                                        if (qty > 1 && codes.length > 1) {
+                                            return Array.from({ length: qty }, (_, pieceIdx) => {
+                                                const pieceCode = codes[pieceIdx] || codes[0] || '';
+                                                const pieceTitle = `${it.productName} (ชิ้นที่ ${pieceIdx + 1}/${qty})`;
+                                                return `
+                                                    <label class="flex items-start gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors text-xs">
+                                                        <input type="checkbox" class="swal-recv-item-check mt-0.5 text-emerald-600 rounded focus:ring-emerald-500"
+                                                            data-code="${escapeHtml(pieceCode)}" data-name="${escapeHtml(pieceTitle)}">
+                                                        <div class="flex-1 space-y-0.5">
+                                                            <div class="font-bold text-slate-800 flex items-center justify-between">
+                                                                <span>${idx + 1}.${pieceIdx + 1} ${escapeHtml(it.productName)} <span class="text-[10px] font-semibold text-amber-700">(ชิ้นที่ ${pieceIdx + 1}/${qty})</span></span>
+                                                                <span class="font-bold text-slate-600">x1</span>
+                                                            </div>
+                                                            ${pieceCode ? `<div class="text-[10px] font-mono text-amber-800 bg-amber-50 inline-block px-1.5 py-0.5 rounded border border-amber-200/80 font-bold">#${pieceIdx + 1}: ${escapeHtml(pieceCode)}</div>` : ''}
+                                                        </div>
+                                                    </label>
+                                                `;
+                                            }).join('');
+                                        }
+                                        return `
+                                            <label class="flex items-start gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors text-xs">
+                                                <input type="checkbox" class="swal-recv-item-check mt-0.5 text-emerald-600 rounded focus:ring-emerald-500"
+                                                    data-code="${escapeHtml(codes.join(', '))}" data-name="${escapeHtml(it.productName || '')}">
+                                                <div class="flex-1 space-y-1">
+                                                    <div class="font-bold text-slate-800 flex items-center justify-between">
+                                                        <span>${idx + 1}. ${escapeHtml(it.productName)}</span>
+                                                        <span class="font-bold text-slate-600">x${qty}</span>
+                                                    </div>
+                                                    ${codes.length > 0 ? `<div class="flex flex-wrap gap-1">${renderItemCodesBadges(it, false)}</div>` : ''}
+                                                </div>
+                                            </label>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+
+                            <!-- เช็คลิสต์ความสมบูรณ์เพิ่มเติม (เลือก ปกติ / ไม่ปกติ + ใส่เหตุผลเมื่อไม่ปกติ) -->
+                            <div class="space-y-2 pt-1 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+                                <!-- ข้อที่ 1 -->
+                                <div class="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-1.5">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+                                        <span class="text-slate-700 font-bold">1. กล่องและบรรจุภัณฑ์ปิดผนึกเรียบร้อย ไม่ฉีกขาด *</span>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50/70 cursor-pointer hover:bg-emerald-100 transition-colors">
+                                                <input type="radio" name="swal-chk-1" value="normal" class="text-emerald-600 focus:ring-emerald-500" onchange="document.getElementById('swal-chk-reason-box-1').classList.add('hidden')">
+                                                <span class="font-bold text-emerald-800">ปกติ</span>
+                                            </label>
+                                            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50/70 cursor-pointer hover:bg-rose-100 transition-colors">
+                                                <input type="radio" name="swal-chk-1" value="abnormal" class="text-rose-600 focus:ring-rose-500" onchange="document.getElementById('swal-chk-reason-box-1').classList.remove('hidden'); document.getElementById('swal-chk-reason-1').focus();">
+                                                <span class="font-bold text-rose-800">ไม่ปกติ</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div id="swal-chk-reason-box-1" class="hidden pt-1">
+                                        <input type="text" id="swal-chk-reason-1" placeholder="ระบุเหตุผลที่ไม่ปกติ (เช่น กล่องบุบ, เทปกาวฉีกขาด) *" class="w-full px-2.5 py-1.5 bg-rose-50/40 border border-rose-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-none">
+                                    </div>
+                                </div>
+
+                                <!-- ข้อที่ 2 -->
+                                <div class="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-1.5">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+                                        <span class="text-slate-700 font-bold">2. ตัวเครื่องและรหัสสินค้าตรงตามที่ส่งมอบ *</span>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50/70 cursor-pointer hover:bg-emerald-100 transition-colors">
+                                                <input type="radio" name="swal-chk-2" value="normal" class="text-emerald-600 focus:ring-emerald-500" onchange="document.getElementById('swal-chk-reason-box-2').classList.add('hidden')">
+                                                <span class="font-bold text-emerald-800">ปกติ</span>
+                                            </label>
+                                            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50/70 cursor-pointer hover:bg-rose-100 transition-colors">
+                                                <input type="radio" name="swal-chk-2" value="abnormal" class="text-rose-600 focus:ring-rose-500" onchange="document.getElementById('swal-chk-reason-box-2').classList.remove('hidden'); document.getElementById('swal-chk-reason-2').focus();">
+                                                <span class="font-bold text-rose-800">ไม่ปกติ</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div id="swal-chk-reason-box-2" class="hidden pt-1">
+                                        <input type="text" id="swal-chk-reason-2" placeholder="ระบุเหตุผลที่ไม่ปกติ (เช่น รหัสเครื่องไม่ตรง, ส่งผิดสี/ผิดรุ่น) *" class="w-full px-2.5 py-1.5 bg-rose-50/40 border border-rose-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-none">
+                                    </div>
+                                </div>
+
+                                <!-- ข้อที่ 3 -->
+                                <div class="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-1.5">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
+                                        <span class="text-slate-700 font-bold">3. สภาพตัวเครื่องสมบูรณ์ อุปกรณ์ครบถ้วน *</span>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50/70 cursor-pointer hover:bg-emerald-100 transition-colors">
+                                                <input type="radio" name="swal-chk-3" value="normal" class="text-emerald-600 focus:ring-emerald-500" onchange="document.getElementById('swal-chk-reason-box-3').classList.add('hidden')">
+                                                <span class="font-bold text-emerald-800">ปกติ</span>
+                                            </label>
+                                            <label class="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50/70 cursor-pointer hover:bg-rose-100 transition-colors">
+                                                <input type="radio" name="swal-chk-3" value="abnormal" class="text-rose-600 focus:ring-rose-500" onchange="document.getElementById('swal-chk-reason-box-3').classList.remove('hidden'); document.getElementById('swal-chk-reason-3').focus();">
+                                                <span class="font-bold text-rose-800">ไม่ปกติ</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div id="swal-chk-reason-box-3" class="hidden pt-1">
+                                        <input type="text" id="swal-chk-reason-3" placeholder="ระบุเหตุผลที่ไม่ปกติ (เช่น ตัวเครื่องมีรอย, อุปกรณ์ไม่ครบ) *" class="w-full px-2.5 py-1.5 bg-rose-50/40 border border-rose-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-rose-400 focus:outline-none">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">หมายเหตุตรวจรับเครื่อง (ถ้ามี หรือกรณีชำรุด/ไม่ครบ)</label>
+                            <input type="text" id="swal-receive-note" placeholder="เช่น ตรวจรับเรียบร้อย หรือ ระบุตำหนิที่พบ..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                        </div>
+
+                        <!-- แนบรูปภาพหลักฐานตอนตรวจรับเครื่องเข้าสาขา -->
+                        <div class="pt-1 border-t border-slate-200">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">แนบรูปภาพหลักฐานการตรวจรับเครื่องเข้าสาขา (ถ้ามี)</label>
+                            <div class="flex items-center gap-2">
+                                <label class="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-colors">
+                                    <ion-icon name="camera-outline" class="text-base"></ion-icon>
+                                    <span>ถ่ายภาพ / เลือกรูป</span>
+                                    <input type="file" id="swal-receive-image" accept="image/*" class="hidden" onchange="previewSwalImage(this, 'swal-receive-preview', 'swal-receive-preview-box', 'swal-receive-filename')">
+                                </label>
+                                <span id="swal-receive-filename" class="text-xs text-slate-500 truncate max-w-[180px]">ยังไม่ได้เลือกรูปภาพ</span>
+                            </div>
+                            <div id="swal-receive-preview-box" class="hidden mt-2 relative inline-block">
+                                <img id="swal-receive-preview" class="max-h-28 rounded-lg border border-slate-300 object-cover">
+                                <button type="button" onclick="clearSwalImage('swal-receive-image', 'swal-receive-preview', 'swal-receive-preview-box', 'swal-receive-filename')" class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full p-0.5 shadow hover:bg-rose-600">
+                                    <ion-icon name="close-outline" class="text-xs block"></ion-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยันลงชื่อรับเครื่อง',
+                cancelButtonText: 'ยกเลิก',
+                customClass: {
+                    confirmButton: '!bg-emerald-600 hover:!bg-emerald-700 !text-white !font-bold !rounded-xl !px-5 !py-2.5',
+                    cancelButton: '!bg-slate-200 hover:!bg-slate-300 !text-slate-700 !font-bold !rounded-xl !px-5 !py-2.5'
+                },
+                preConfirm: () => {
+                    const checkedCondition = document.querySelector('input[name="swal-condition-status"]:checked');
+                    if (!checkedCondition) {
+                        Swal.showValidationMessage('กรุณาเลือกผลการตรวจรับความสมบูรณ์ของสินค้า');
+                        return false;
+                    }
+                    const conditionStatus = checkedCondition.value;
+                    const statusLabelMap = {
+                        perfect: 'สมบูรณ์ 100% (ปกติ)',
+                        minor_defect: 'มีตำหนิ / กล่องบุบ',
+                        damaged: 'ชำรุด / แตกหัก',
+                        incomplete: 'อุปกรณ์ไม่ครบ'
+                    };
+                    const conditionLabel = statusLabelMap[conditionStatus] || 'สมบูรณ์ 100%';
+
+                    const itemCheckboxes = document.querySelectorAll('.swal-recv-item-check');
+                    const itemConditions = [];
+                    for (let i = 0; i < itemCheckboxes.length; i++) {
+                        const cb = itemCheckboxes[i];
+                        itemConditions.push({
+                            productCode: cb.getAttribute('data-code') || '',
+                            productName: cb.getAttribute('data-name') || '',
+                            isComplete: cb.checked
+                        });
+                    }
+
+                    const checklistConfigs = [
+                        { id: 1, title: 'กล่องและบรรจุภัณฑ์ปิดผนึกเรียบร้อย ไม่ฉีกขาด' },
+                        { id: 2, title: 'ตัวเครื่องและรหัสสินค้าตรงตามที่ส่งมอบ' },
+                        { id: 3, title: 'สภาพตัวเครื่องสมบูรณ์ อุปกรณ์ครบถ้วน' }
+                    ];
+                    const checklists = [];
+                    const abnormalReasons = [];
+
+                    for (const cfg of checklistConfigs) {
+                        const selected = document.querySelector(`input[name="swal-chk-${cfg.id}"]:checked`)?.value;
+                        if (!selected) {
+                            Swal.showValidationMessage(`กรุณาเลือก "ปกติ" หรือ "ไม่ปกติ" สำหรับหัวข้อ: ${cfg.title}`);
+                            return false;
+                        }
+                        if (selected === 'abnormal') {
+                            const reasonEl = document.getElementById(`swal-chk-reason-${cfg.id}`);
+                            const reasonText = reasonEl?.value?.trim() || '';
+                            if (!reasonText) {
+                                Swal.showValidationMessage(`กรุณาระบุเหตุผลที่ไม่ปกติ สำหรับหัวข้อ: ${cfg.title}`);
+                                reasonEl?.focus();
+                                return false;
+                            }
+                            checklists.push(`[ไม่ปกติ] ${cfg.title} (เหตุผล: ${reasonText})`);
+                            abnormalReasons.push(`${cfg.title}: ${reasonText}`);
+                        } else {
+                            checklists.push(`[ปกติ] ${cfg.title}`);
+                        }
+                    }
+
+                    let note = document.getElementById('swal-receive-note')?.value?.trim() || '';
+                    if (abnormalReasons.length > 0 && !note) {
+                        note = abnormalReasons.join(' | ');
+                    }
+                    const fileInput = document.getElementById('swal-receive-image');
+                    const proofFile = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+                    if ((conditionStatus === 'damaged' || conditionStatus === 'incomplete' || conditionStatus === 'minor_defect') && !note) {
+                        Swal.showValidationMessage('กรณีสินค้ามีตำหนิ ชำรุด หรืออุปกรณ์ไม่ครบ กรุณาระบุรายละเอียดในหมายเหตุ');
+                        document.getElementById('swal-receive-note')?.focus();
+                        return false;
+                    }
+
+                    return { conditionStatus, conditionLabel, itemConditions, checklists, note, proofFile };
+                }
+            });
+
+            if (!formValues) return;
+
+            try {
+                Swal.fire({
+                    title: 'กำลังลงชื่อรับเครื่องและบันทึกผลการตรวจ...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const formData = new FormData();
+                formData.append('conditionStatus', formValues.conditionStatus);
+                formData.append('conditionLabel', formValues.conditionLabel);
+                formData.append('itemConditions', JSON.stringify(formValues.itemConditions));
+                formData.append('checklists', JSON.stringify(formValues.checklists));
+                if (formValues.note) formData.append('note', formValues.note);
+                if (formValues.proofFile) formData.append('proofImage', formValues.proofFile);
+
+                const res = await fetch(`/api/delivery/${transferId}/receive`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'บันทึกไม่สำเร็จ');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ลงชื่อรับเครื่องสำเร็จ',
+                    text: `บันทึกการลงชื่อโดย: ${userName} (ผลตรวจ: ${formValues.conditionLabel})`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                fetchTransfers();
+            } catch (err) {
+                Swal.fire('ข้อผิดพลาด', err.message, 'error');
+            }
+        }
+
+        // ==============================================================
+        // ACTION 5: สร้างรายการใหม่ (Create Modal & Handler)
+        // ==============================================================
+        function openCreateModal() {
+            const form = document.getElementById('create-transfer-form');
+            if (form) form.reset();
+            const container = document.getElementById('product-rows-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="flex items-center gap-2 product-row">
+                        <input type="text" placeholder="ชื่อสินค้า / รุ่นเครื่องที่ต้องการขอ *" required
+                            class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 item-name">
+                        <input type="number" min="1" value="1" required
+                            class="w-16 sm:w-20 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-center item-qty">
+                        <button type="button" onclick="removeProductRow(this)"
+                            class="text-slate-300 hover:text-red-500 p-1.5 transition-colors">
+                            <ion-icon name="trash-outline" class="text-lg"></ion-icon>
+                        </button>
+                    </div>
+                `;
+            }
+            initUserProfile();
+            const modal = document.getElementById('modal-create');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCreateModal() {
+            const modal = document.getElementById('modal-create');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function addProductRow() {
+            const container = document.getElementById('product-rows-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'flex items-center gap-2 product-row';
+            newRow.innerHTML = `
+                <input type="text" placeholder="ชื่อสินค้า / รุ่นเครื่องที่ต้องการขอ *" required
+                    class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 item-name">
+                <input type="number" min="1" value="1" required
+                    class="w-16 sm:w-20 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-center item-qty">
+                <button type="button" onclick="removeProductRow(this)"
+                    class="text-slate-300 hover:text-red-500 p-1.5 transition-colors">
+                    <ion-icon name="trash-outline" class="text-lg"></ion-icon>
+                </button>
+            `;
+            container.appendChild(newRow);
+        }
+
+        function removeProductRow(btn) {
+            const rows = document.querySelectorAll('.product-row');
+            if (rows.length > 1) {
+                btn.closest('.product-row').remove();
+            } else {
+                Swal.fire('แจ้งเตือน', 'ต้องมีรายการสินค้าอย่างน้อย 1 รายการ', 'warning');
+            }
+        }
+
+        async function handleCreateTransfer(e) {
+            e.preventDefault();
+
+            const rawBranch = (currentUser.branch || '').trim();
+            const hasBranch = rawBranch !== '' && rawBranch !== '-' && rawBranch.toLowerCase() !== 'null' && rawBranch.toLowerCase() !== 'none';
+            const isManagement = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
+            const isLogistics = checkIsLogistics(currentUser);
+            const canManageAll = isManagement || !hasBranch || isLogistics;
+
+            const sourceBranch = document.getElementById('create-source-branch').value;
+            const targetSelect = document.getElementById('create-target-branch');
+            const branch = canManageAll ? (targetSelect?.value || '') : rawBranch;
+            const title = (document.getElementById('create-title').value || '').trim();
+            const note = document.getElementById('create-note').value;
+
+            if (!branch) {
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณาระบุสาขาปลายทาง (ผู้ขอรับของ)', 'warning');
+                return;
+            }
+
+            if (!title) {
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณาระบุหัวข้อรายการ', 'warning');
+                return;
+            }
+
+            if (sourceBranch === branch) {
+                Swal.fire('ข้อมูลไม่ถูกต้อง', 'สาขาต้นทาง (ผู้จัดส่ง) และสาขาปลายทาง (ผู้ขอรับของ) ต้องไม่ซ้ำกัน', 'warning');
+                return;
+            }
+
+            const itemRows = document.querySelectorAll('.product-row');
+            const items = [];
+            for (let i = 0; i < itemRows.length; i++) {
+                const row = itemRows[i];
+                const name = row.querySelector('.item-name')?.value?.trim();
+                const qty = Number(row.querySelector('.item-qty')?.value) || 1;
+
+                if (!name) {
+                    Swal.fire('ข้อมูลไม่ครบ', `กรุณาระบุชื่อสินค้าในรายการที่ ${i + 1}`, 'warning');
+                    return;
+                }
+                items.push({ productName: name, quantity: qty });
+            }
+
+            if (items.length === 0) {
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณาระบุสินค้าอย่างน้อย 1 รายการ', 'warning');
+                return;
+            }
+
+            const submitBtn = document.getElementById('btn-submit-create');
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/delivery', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        sourceBranch,
+                        destinationBranch: branch,
+                        branch,
+                        title,
+                        items,
+                        note
+                    })
+                });
+
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'สร้างรายการไม่สำเร็จ');
+
+                closeCreateModal();
+                document.getElementById('create-transfer-form').reset();
+                initUserProfile(); // reset badges and locked branch
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ส่งคำขอโอนย้ายสำเร็จ',
+                    text: `ลงชื่อผู้ขอเรียบร้อยแล้ว รายการจะถูกส่งไปยังสาขาต้นทาง (${sourceBranch}) เพื่อจัดเตรียมเครื่อง`,
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+
+                switchTab('waiting_source');
+            } catch (err) {
+                Swal.fire('ข้อผิดพลาด', err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        }
+
+        // ==============================================================
+        // ACTION 6: ดูไทม์ไลน์ Digital Footprint เต็ม (Timeline Modal)
+        // ==============================================================
+        async function openTimelineModal(transferId) {
+            const modal = document.getElementById('modal-timeline');
+            const content = document.getElementById('timeline-modal-content');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            content.innerHTML = `
+                <div class="py-12 text-center text-slate-400">
+                    <ion-icon name="hourglass-outline" class="text-3xl animate-spin mb-2"></ion-icon>
+                    <div>กำลังโหลดประวัติการลงชื่อ...</div>
+                </div>
+            `;
+
+            try {
+                const res = await fetch(`/api/delivery/${transferId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'ไม่สามารถโหลดข้อมูลได้');
+
+                const item = data.data;
+                const existingIdx = allTransfers.findIndex(t => t._id === item._id);
+                if (existingIdx !== -1) {
+                    allTransfers[existingIdx] = item;
+                } else {
+                    allTransfers.push(item);
+                }
+                renderTimelineModalContent(item);
+            } catch (err) {
+                content.innerHTML = `<div class="text-red-500 text-center py-8">${err.message}</div>`;
+            }
+        }
+
+        function closeTimelineModal() {
+            const modal = document.getElementById('modal-timeline');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function renderTimelineModalContent(item) {
+            const content = document.getElementById('timeline-modal-content');
+            if (!content) return;
+
+            const formatDT = (date) => date ? new Date(date).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'medium' }) : '-';
+
+            const reqSign = item.signatures?.requesterSign;
+            const prepSign = item.signatures?.preparerSign;
+            const courSign = item.signatures?.courierPickupSign;
+            const courDeliverSign = item.signatures?.courierDeliverSign;
+            const recvSign = item.signatures?.receiverSign;
+
+            const destBranch = item.destinationBranch || item.branch || 'ปลายทาง';
+
+            content.innerHTML = `
+                <!-- Transfer Header -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span class="font-extrabold text-slate-800 text-base">${escapeHtml(item.title)}</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-mono font-bold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700">เลขที่: ${escapeHtml(item.transferNumber || item._id)}</span>
+                            <button onclick="closeTimelineModal(); openEditModal('${item._id}')"
+                                class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1">
+                                <ion-icon name="create-outline"></ion-icon>
+                                <span>แก้ไข</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-xs text-slate-600 flex items-center gap-2">
+                        <span><b>${escapeHtml(item.sourceBranch)}</b></span>
+                        <ion-icon name="arrow-forward-outline"></ion-icon>
+                        <span><b>${escapeHtml(destBranch)}</b></span>
+                        <span class="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${item.deliveryMethod === 'direct' ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'}">
+                            ${item.deliveryMethod === 'direct' ? 'ส่งตรงระหว่างสาขา' : 'ผ่านฝ่ายจัดส่ง'}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Items Summary in Timeline Modal -->
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+                    <div class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <ion-icon name="cube-outline" class="text-amber-500"></ion-icon>
+                        <span>รายการสินค้า / เครื่องที่ส่งมอบ:</span>
+                    </div>
+                    <div class="space-y-1.5 pt-1">
+                        ${(item.items || []).map(p => `
+                            <div class="flex items-start justify-between gap-2 text-xs py-1.5 px-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="font-bold text-slate-800">${escapeHtml(p.productName)}</span>
+                                    ${renderItemCodesBadges(p, true)}
+                                </div>
+                                <span class="font-extrabold text-slate-700 shrink-0">${p.quantity} ชิ้น</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Timeline Steps -->
+                <div class="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+                    
+                    <!-- Step 1: Requester -->
+                    <div class="relative">
+                        <div class="absolute -left-6 top-1 w-5 h-5 rounded-full ${reqSign?.user ? 'bg-emerald-500' : 'bg-slate-300'} text-white flex items-center justify-center text-xs">
+                            <ion-icon name="checkmark"></ion-icon>
+                        </div>
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs text-slate-800">1. ผู้ขอโอนย้าย (สาขาปลายทาง)</span>
+                                <span class="text-[11px] text-slate-400">${formatDT(reqSign?.date || item.createdAt)}</span>
+                            </div>
+                            <div class="text-xs text-slate-600 mt-1">
+                                ลงชื่อโดย: <b>${escapeHtml(reqSign?.name || reqSign?.user?.name || item.createdBy?.name || 'พนักงาน')}</b>
+                                <span class="text-slate-400">(${escapeHtml(reqSign?.department || reqSign?.user?.department || item.createdBy?.department || destBranch)})</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Preparer -->
+                    <div class="relative">
+                        <div class="absolute -left-6 top-1 w-5 h-5 rounded-full ${prepSign?.user ? 'bg-emerald-500' : 'bg-slate-300'} text-white flex items-center justify-center text-xs">
+                            <ion-icon name="${prepSign?.user ? 'checkmark' : 'time-outline'}"></ion-icon>
+                        </div>
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs text-slate-800">2. ผู้จัดเตรียมของ (สาขาต้นทาง)</span>
+                                <span class="text-[11px] text-slate-400">${prepSign?.date ? formatDT(prepSign.date) : 'ยังไม่ลงชื่อ'}</span>
+                            </div>
+                            <div class="text-xs text-slate-600 mt-1">
+                                ${prepSign?.user ? `
+                                    ลงชื่อเตรียมของโดย: <b>${escapeHtml(prepSign?.name || prepSign.user.name)}</b>
+                                    <span class="text-slate-400">(${escapeHtml(prepSign?.department || prepSign.user.department || item.sourceBranch)})</span>
+                                ` : '<span class="text-amber-600 italic">รอพนักงานสาขาต้นทางลงชื่อ</span>'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3.1: Courier Pickup (รับเครื่องจากสาขาต้นทาง) -->
+                    <div class="relative">
+                        <div class="absolute -left-6 top-1 w-5 h-5 rounded-full ${courSign?.user ? 'bg-emerald-500' : 'bg-slate-300'} text-white flex items-center justify-center text-xs">
+                            <ion-icon name="${courSign?.user ? 'checkmark' : (item.deliveryMethod === 'direct' ? 'remove' : 'time-outline')}"></ion-icon>
+                        </div>
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs text-slate-800">3. ฝ่ายจัดส่ง (ขั้นตอนที่ 1): รับเครื่องจากสาขาต้นทาง</span>
+                                <span class="text-[11px] text-slate-400">${courSign?.date ? formatDT(courSign.date) : (item.deliveryMethod === 'direct' ? 'ข้าม (ส่งตรง)' : 'ยังไม่ลงชื่อ')}</span>
+                            </div>
+                            <div class="text-xs text-slate-600 mt-1">
+                                ${item.deliveryMethod === 'direct' ? `
+                                    <span class="text-slate-500 italic">ข้ามขั้นตอนนี้เนื่องจากเป็นการส่งตรงระหว่างสาขา</span>
+                                ` : courSign?.user ? `
+                                    รับเครื่องจากสาขา <b>${escapeHtml(item.sourceBranch)}</b> โดย: <b>${escapeHtml(courSign?.name || courSign.user.name)}</b>
+                                    <span class="text-slate-400">(${escapeHtml(courSign?.department || courSign.user.department || 'ฝ่ายจัดส่ง')})</span>
+                                ` : '<span class="text-blue-600 italic">รอฝ่ายจัดส่งมารับเครื่องจากสาขาต้นทาง</span>'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3.2: Courier Deliver (ส่งเครื่องไปยังสาขาปลายทาง) -->
+                    <div class="relative">
+                        <div class="absolute -left-6 top-1 w-5 h-5 rounded-full ${courDeliverSign?.user ? 'bg-emerald-500' : 'bg-slate-300'} text-white flex items-center justify-center text-xs">
+                            <ion-icon name="${courDeliverSign?.user ? 'checkmark' : (item.deliveryMethod === 'direct' ? 'remove' : 'time-outline')}"></ion-icon>
+                        </div>
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs text-slate-800">4. ฝ่ายจัดส่ง (ขั้นตอนที่ 2): ส่งเครื่องไปยังสาขาปลายทาง</span>
+                                <span class="text-[11px] text-slate-400">${courDeliverSign?.date ? formatDT(courDeliverSign.date) : (item.deliveryMethod === 'direct' ? 'ข้าม (ส่งตรง)' : 'ยังไม่ลงชื่อ')}</span>
+                            </div>
+                            <div class="text-xs text-slate-600 mt-1">
+                                ${item.deliveryMethod === 'direct' ? `
+                                    <span class="text-slate-500 italic">ข้ามขั้นตอนนี้เนื่องจากเป็นการส่งตรงระหว่างสาขา</span>
+                                ` : courDeliverSign?.user ? `
+                                    ส่งเครื่องถึงสาขา <b>${escapeHtml(destBranch)}</b> โดย: <b>${escapeHtml(courDeliverSign?.name || courDeliverSign.user.name)}</b>
+                                    <span class="text-slate-400">(${escapeHtml(courDeliverSign?.department || courDeliverSign.user.department || 'ฝ่ายจัดส่ง')})</span>
+                                ` : '<span class="text-indigo-600 italic">รอฝ่ายจัดส่งนำเครื่องไปส่งที่สาขาปลายทาง</span>'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Receiver -->
+                    <div class="relative">
+                        <div class="absolute -left-6 top-1 w-5 h-5 rounded-full ${recvSign?.user ? 'bg-emerald-500' : 'bg-slate-300'} text-white flex items-center justify-center text-xs">
+                            <ion-icon name="${recvSign?.user ? 'checkmark' : 'time-outline'}"></ion-icon>
+                        </div>
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs text-slate-800">5. ผู้ตรวจรับของ (สาขาปลายทาง)</span>
+                                <span class="text-[11px] text-slate-400">${recvSign?.date ? formatDT(recvSign.date) : 'ยังไม่ลงชื่อ'}</span>
+                            </div>
+                            <div class="text-xs text-slate-600 mt-1">
+                                ${recvSign?.user ? `
+                                    <div>ลงชื่อรับเครื่องโดย: <b>${escapeHtml(recvSign?.name || recvSign.user.name)}</b> <span class="text-slate-400">(${escapeHtml(recvSign?.department || recvSign.user.department || destBranch)})</span></div>
+                                    ${item.receivingCondition ? `
+                                        <div class="mt-2.5 p-2.5 rounded-xl border text-xs ${item.receivingCondition.status === 'perfect' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : (item.receivingCondition.status === 'damaged' ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-amber-50 border-amber-200 text-amber-900')}">
+                                            <div class="font-bold flex items-center gap-1.5">
+                                                <ion-icon name="${item.receivingCondition.status === 'perfect' ? 'shield-checkmark' : 'alert-circle'}" class="text-base"></ion-icon>
+                                                <span>ผลตรวจความสมบูรณ์: <u>${escapeHtml(item.receivingCondition.statusLabel || 'สมบูรณ์ 100%')}</u></span>
+                                            </div>
+                                            ${Array.isArray(item.receivingCondition.itemConditions) && item.receivingCondition.itemConditions.length > 0 ? `
+                                                <div class="mt-1.5 space-y-0.5 text-[11px] border-b border-slate-200/70 pb-1.5">
+                                                    <div class="font-bold text-slate-700">ผลการตรวจรับรายเครื่อง:</div>
+                                                    ${item.receivingCondition.itemConditions.map(ic => `
+                                                        <div class="${ic.isComplete ? 'text-emerald-800' : 'text-rose-700 font-semibold'}">
+                                                            ${ic.isComplete ? '✓ รับครบ:' : '✕ ไม่ครบ/มีปัญหา:'} ${escapeHtml(ic.productName || '-')} ${ic.productCode ? `(${escapeHtml(ic.productCode)})` : ''}
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            ` : ''}
+                                            ${Array.isArray(item.receivingCondition.checklists) && item.receivingCondition.checklists.length > 0 ? `
+                                                <div class="mt-1.5 space-y-1 text-[11px] text-slate-700">
+                                                    ${item.receivingCondition.checklists.map(c => {
+                                                        const isAbnormal = String(c).startsWith('[ไม่ปกติ]');
+                                                        return `<div class="${isAbnormal ? 'text-rose-700 font-semibold' : 'text-slate-700'}">${isAbnormal ? '✕' : '✓'} ${escapeHtml(c)}</div>`;
+                                                    }).join('')}
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    ` : ''}
+                                ` : '<span class="text-purple-600 italic">รอของถึงสาขาและลงชื่อตรวจรับ</span>'}
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                ${item.note ? `
+                    <div class="bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/80 space-y-1">
+                        <div class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                            <ion-icon name="document-text-outline" class="text-amber-600 text-sm"></ion-icon>
+                            <span>บันทึกหมายเหตุ / ประวัติการอัปเดต</span>
+                        </div>
+                        <div class="text-xs text-slate-700 whitespace-pre-line leading-relaxed">${escapeHtml(item.note)}</div>
+                    </div>
+                ` : ''}
+
+                <!-- Proof Box in Modal -->
+                ${(item.deliveryProof?.trackingNumber || item.deliveryProof?.proofImageUrl || (item.deliveryProof?.proofImages && item.deliveryProof.proofImages.length > 0)) ? `
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                        <div class="text-xs font-bold text-slate-700 flex items-center justify-between">
+                            <span>หลักฐานการจัดส่งและรูปภาพ</span>
+                            ${item.deliveryProof?.trackingNumber ? `<span class="font-mono text-xs text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">เลขพัสดุ: ${escapeHtml(item.deliveryProof.trackingNumber)}</span>` : ''}
+                        </div>
+
+                        ${Array.isArray(item.deliveryProof?.proofImages) && item.deliveryProof.proofImages.length > 0 ? `
+                            <div>
+                                <div class="text-[11px] font-bold text-slate-500 mb-2">รูปภาพหลักฐานที่บันทึก (${item.deliveryProof.proofImages.length} รูป):</div>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                    ${item.deliveryProof.proofImages.map(img => {
+                                        const resolvedUrl = resolveProofImageUrl(img.url);
+                                        return `
+                                        <div class="bg-white p-2 rounded-xl border border-slate-200/80 shadow-sm flex flex-col items-center">
+                                            <a href="${resolvedUrl}" target="_blank" class="w-full h-28 overflow-hidden rounded-lg flex items-center justify-center bg-slate-100">
+                                                <img src="${resolvedUrl}" class="w-full h-full object-cover hover:scale-105 transition-transform" alt="รูปหลักฐาน">
+                                            </a>
+                                            <div class="text-[10px] font-bold text-slate-700 mt-1.5 text-center truncate w-full">${escapeHtml(img.step || 'หลักฐาน')}</div>
+                                            <div class="text-[9px] text-slate-400">${img.uploadedAt ? new Date(img.uploadedAt).toLocaleDateString('th-TH', { day: '2-digit', month: 'short' }) + ' ' + new Date(img.uploadedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                                        </div>
+                                    `}).join('')}
+                                </div>
+                            </div>
+                        ` : item.deliveryProof?.proofImageUrl ? `
+                            <div class="pt-1">
+                                <a href="${resolveProofImageUrl(item.deliveryProof.proofImageUrl)}" target="_blank">
+                                    <img src="${resolveProofImageUrl(item.deliveryProof.proofImageUrl)}" class="max-h-48 rounded-xl object-contain border border-slate-200 shadow-sm hover:opacity-90 transition-opacity">
+                                </a>
+                                <div class="text-[11px] text-slate-400 mt-1">คลิกที่รูปเพื่อดูรูปภาพขนาดใหญ่</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        const BRANCH_LIST = [
+            'สำนักงานใหญ่', 'ยะลา', 'นราธิวาส', 'หาดใหญ่', 'บิ๊กซี (หาดใหญ่)',
+            'ปัตตานี', 'โคลีเซี่ยม', 'สุราษฎร์ธานี', 'ปากแมว', 'ภูเก็ต',
+            'นครศรีธรรมราช', 'กระบี่', 'เหนือคลอง', 'กะทู้', 'ตรัง',
+            'คุรุ', 'ชุมพร', 'สตูล', 'พัทลุง', 'สงขลา', 'เบตง', 'พังงา', 'จะบังติกอ', 'BW Phone', 'ฝ่ายเทคนิค สนง.'
+        ];
+
+        // ==============================================================
+        // ACTION 7: แก้ไขข้อมูลรายการจัดส่ง (ทุกขั้นตอน สาขาที่เกี่ยวข้องแก้ไขได้)
+        // ==============================================================
+        function openEditModal(transferId) {
+            const transfer = allTransfers.find(t => t._id === transferId);
+            if (!transfer) {
+                Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลรายการจัดส่ง', 'error');
+                return;
+            }
+
+            document.getElementById('edit-transfer-id').value = transfer._id;
+            document.getElementById('edit-modal-subtitle').textContent = `เลขที่รายการ: ${transfer.transferNumber || transfer._id}`;
+            document.getElementById('edit-title').value = transfer.title || '';
+
+            // Populate branch dropdowns
+            const srcSelect = document.getElementById('edit-source-branch');
+            const dstSelect = document.getElementById('edit-destination-branch');
+            const destBranch = transfer.destinationBranch || transfer.branch || '';
+
+            srcSelect.innerHTML = BRANCH_LIST.map(b => `<option value="${escapeHtml(b)}" ${b === transfer.sourceBranch ? 'selected' : ''}>${escapeHtml(b)}</option>`).join('');
+            dstSelect.innerHTML = BRANCH_LIST.map(b => `<option value="${escapeHtml(b)}" ${b === destBranch ? 'selected' : ''}>${escapeHtml(b)}</option>`).join('');
+
+            // Status, Method, Tracking, Note
+            document.getElementById('edit-status').value = transfer.status || 'pending';
+            document.getElementById('edit-delivery-method').value = transfer.deliveryMethod || '';
+            document.getElementById('edit-tracking-number').value = transfer.deliveryProof?.trackingNumber || (transfer.trackingNumbers && transfer.trackingNumbers[0]) || '';
+            document.getElementById('edit-note').value = transfer.note || '';
+            const conditionEl = document.getElementById('edit-condition-status');
+            if (conditionEl) {
+                conditionEl.value = transfer.receivingCondition?.status || 'perfect';
+            }
+
+            // แสดงภาพหลักฐานปัจจุบัน (ถ้ามี)
+            const currentImg = resolveProofImageUrl(transfer.deliveryProof?.proofImageUrl);
+            const currentContainer = document.getElementById('edit-current-proof-container');
+            const currentLink = document.getElementById('edit-current-proof-link');
+            const currentProofImg = document.getElementById('edit-current-proof-img');
+            if (currentImg) {
+                currentProofImg.src = currentImg;
+                currentLink.href = currentImg;
+                currentContainer.classList.remove('hidden');
+            } else {
+                currentContainer.classList.add('hidden');
+            }
+            clearEditProofImage();
+
+            // Populate items
+            const container = document.getElementById('edit-product-rows-container');
+            container.innerHTML = '';
+            const items = transfer.items && transfer.items.length > 0 ? transfer.items : [{ productName: '', productCode: '', quantity: 1 }];
+            items.forEach(it => {
+                addEditProductRow(it);
+            });
+
+            const modal = document.getElementById('modal-edit');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('modal-edit');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function previewEditProofImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = document.getElementById('edit-proof-preview');
+                    const box = document.getElementById('edit-proof-preview-box');
+                    if (preview) preview.src = e.target.result;
+                    if (box) box.classList.remove('hidden');
+                    const fnEl = document.getElementById('edit-proof-filename');
+                    if (fnEl) fnEl.textContent = input.files[0].name;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function clearEditProofImage() {
+            const input = document.getElementById('edit-proof-image-input');
+            const preview = document.getElementById('edit-proof-preview');
+            const box = document.getElementById('edit-proof-preview-box');
+            const fnEl = document.getElementById('edit-proof-filename');
+            if (input) input.value = '';
+            if (preview) preview.src = '';
+            if (box) box.classList.add('hidden');
+            if (fnEl) fnEl.textContent = 'ยังไม่ได้เลือกไฟล์ใหม่';
+        }
+
+        function copyFirstEditCodeToAll(btn) {
+            const container = btn.closest('.edit-item-codes-container');
+            if (!container) return;
+            const inputs = container.querySelectorAll('.edit-item-code-input');
+            if (!inputs || inputs.length < 2) return;
+            const firstVal = inputs[0].value.trim();
+            if (!firstVal) {
+                inputs[0].focus();
+                return;
+            }
+            inputs.forEach((inp, idx) => {
+                if (idx > 0) inp.value = firstVal;
+            });
+        }
+
+        function renderEditRowCodeInputsHtml(qty, codes = []) {
+            const count = Math.max(1, Number(qty) || 1);
+            if (count === 1) {
+                return `
+                    <input type="text" placeholder="รหัสสินค้า / เลข IMEI"
+                        value="${escapeHtml(codes[0] || '')}"
+                        class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono edit-item-code-input">
+                `;
+            }
+            return `
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-semibold text-slate-500">ระบุรหัสสินค้า / เลข IMEI แยกตามจำนวน (${count} ชิ้น):</span>
+                    <button type="button" onclick="copyFirstEditCodeToAll(this)"
+                        class="text-[10px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded border border-blue-200 transition-colors">
+                        ใช้รหัสเดียวกับชิ้นที่ 1
+                    </button>
+                </div>
+                ${Array.from({ length: count }, (_, idx) => `
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-1 rounded border border-amber-200 shrink-0 min-w-[50px] text-center">ชิ้นที่ ${idx + 1}</span>
+                        <input type="text" placeholder="รหัสสินค้า / เลข IMEI ชิ้นที่ ${idx + 1}"
+                            value="${escapeHtml(codes[idx] || '')}"
+                            class="flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono edit-item-code-input">
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function syncEditRowCodeInputs(qtyInput) {
+            const row = qtyInput.closest('.edit-product-row');
+            if (!row) return;
+            const codesContainer = row.querySelector('.edit-item-codes-container');
+            if (!codesContainer) return;
+            const currentValues = Array.from(codesContainer.querySelectorAll('.edit-item-code-input')).map(inp => inp.value);
+            const newQty = Math.max(1, Number(qtyInput.value) || 1);
+            codesContainer.innerHTML = renderEditRowCodeInputsHtml(newQty, currentValues);
+        }
+
+        function addEditProductRow(item = {}) {
+            const container = document.getElementById('edit-product-rows-container');
+            const row = document.createElement('div');
+            const qty = Math.max(1, Number(item.quantity) || 1);
+            const codes = getItemCodesArray(item);
+            row.className = 'p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 edit-product-row';
+            row.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <input type="text" placeholder="ชื่อสินค้า/รุ่นเครื่อง *" required
+                        value="${escapeHtml(item.productName || '')}"
+                        class="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 edit-item-name font-medium">
+                    <div class="flex items-center gap-1 shrink-0">
+                        <span class="text-[11px] font-bold text-slate-500">จำนวน:</span>
+                        <input type="number" min="1" required
+                            value="${qty}"
+                            oninput="syncEditRowCodeInputs(this)"
+                            onchange="syncEditRowCodeInputs(this)"
+                            class="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-center font-bold edit-item-qty">
+                    </div>
+                    <button type="button" onclick="removeEditProductRow(this)"
+                        class="text-slate-400 hover:text-red-500 p-1 transition-colors" title="ลบรายการสินค้า">
+                        <ion-icon name="trash-outline" class="text-lg"></ion-icon>
+                    </button>
+                </div>
+                <div class="space-y-1.5 edit-item-codes-container">
+                    ${renderEditRowCodeInputsHtml(qty, codes)}
+                </div>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeEditProductRow(btn) {
+            const rows = document.querySelectorAll('.edit-product-row');
+            if (rows.length > 1) {
+                btn.closest('.edit-product-row').remove();
+            } else {
+                Swal.fire('แจ้งเตือน', 'ต้องมีรายการสินค้าอย่างน้อย 1 รายการ', 'warning');
+            }
+        }
+
+        async function handleSaveEditTransfer(e) {
+            e.preventDefault();
+
+            const transferId = document.getElementById('edit-transfer-id').value;
+            const title = (document.getElementById('edit-title').value || '').trim();
+            const sourceBranch = document.getElementById('edit-source-branch').value;
+            const destinationBranch = document.getElementById('edit-destination-branch').value;
+            const status = document.getElementById('edit-status').value;
+            const deliveryMethod = document.getElementById('edit-delivery-method').value || null;
+            const trackingNumber = (document.getElementById('edit-tracking-number').value || '').trim();
+            const note = document.getElementById('edit-note').value;
+
+            if (!title) {
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณาระบุหัวข้อรายการ', 'warning');
+                return;
+            }
+
+            if (sourceBranch === destinationBranch) {
+                Swal.fire('ข้อมูลไม่ถูกต้อง', 'สาขาต้นทางและสาขาปลายทางต้องไม่ซ้ำกัน', 'warning');
+                return;
+            }
+
+            const itemRows = document.querySelectorAll('.edit-product-row');
+            const items = [];
+            for (let i = 0; i < itemRows.length; i++) {
+                const row = itemRows[i];
+                const name = row.querySelector('.edit-item-name')?.value?.trim();
+                const qty = Math.max(1, Number(row.querySelector('.edit-item-qty')?.value) || 1);
+                const codeInputs = row.querySelectorAll('.edit-item-code-input');
+                const codes = Array.from(codeInputs).map(inp => inp.value.trim()).filter(Boolean);
+
+                if (!name) {
+                    Swal.fire('ข้อมูลไม่ครบ', `กรุณาระบุชื่อสินค้าในรายการที่ ${i + 1}`, 'warning');
+                    return;
+                }
+                items.push({
+                    productName: name,
+                    productCode: codes.join(', '),
+                    productCodes: codes,
+                    quantity: qty
+                });
+            }
+
+            if (items.length === 0) {
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณาระบุสินค้าอย่างน้อย 1 รายการ', 'warning');
+                return;
+            }
+
+            try {
+                Swal.fire({
+                    title: 'กำลังบันทึกข้อมูลและอัปโหลดหลักฐาน...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const formData = new FormData();
+                formData.append('title', title);
+                formData.append('sourceBranch', sourceBranch);
+                formData.append('destinationBranch', destinationBranch);
+                formData.append('status', status);
+                formData.append('deliveryMethod', deliveryMethod || '');
+                formData.append('trackingNumber', trackingNumber);
+                formData.append('note', note);
+                formData.append('items', JSON.stringify(items));
+                const condEl = document.getElementById('edit-condition-status');
+                if (condEl && condEl.value) {
+                    formData.append('conditionStatus', condEl.value);
+                }
+
+                const fileInput = document.getElementById('edit-proof-image-input');
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    formData.append('proofImage', fileInput.files[0]);
+                }
+
+                const res = await fetch(`/api/delivery/${transferId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'บันทึกไม่สำเร็จ');
+                }
+
+                closeEditModal();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกการแก้ไขเรียบร้อยแล้ว',
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+
+                fetchTransfers();
+            } catch (err) {
+                Swal.fire('ข้อผิดพลาด', err.message, 'error');
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+
+</html>

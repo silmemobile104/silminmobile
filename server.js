@@ -41,6 +41,7 @@ app.use('/api/logs', require('./routes/logRoutes'));
 app.use('/api/daily-stocks', require('./routes/dailyStockRoutes'));
 app.use('/api/inventory-audit', require('./routes/inventoryAuditRoutes'));
 app.use('/api/accessory-checks', require('./routes/accessoryCheckRoutes'));
+app.use('/api/delivery', require('./routes/deliveryRoutes'));
 
 // Serve Uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -52,6 +53,10 @@ app.get('/', (req, res) => {
 
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(htmlPath, 'index.html'));
+});
+
+app.get('/delivery-management', (req, res) => {
+    res.sendFile(path.join(htmlPath, 'delivery-management.html'));
 });
 
 // Global Error Handler

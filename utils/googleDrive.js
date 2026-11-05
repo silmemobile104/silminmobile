@@ -240,6 +240,7 @@ const uploadBufferToDriveInNestedFolder = async (buffer, mimeType, fileName, fol
 };
 
 module.exports = {
+    getDriveService,
     uploadUrlToDrive,
     uploadBufferToDrive,
     uploadBufferToDriveInFolder,
