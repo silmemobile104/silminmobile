@@ -1,9 +1,10 @@
 const path = require('path');
+const axios = require('axios');
 const DeliveryTransfer = require('../models/deliveryTransfer');
-const { getDriveService, uploadBufferToDrive } = require('../utils/googleDrive');
+const { getDriveService, detectImageMimeType, uploadBufferToDrive } = require('../utils/googleDrive');
 const { logActivity } = require('../utils/logger');
 
-// @desc    ดึงรูปภาพจาก Google Drive ผ่าน Server Proxy เพื่อให้แสดงผลได้ทุกเบราว์เซอร์
+// @desc    ดึงรูปภาพจาก Google Drive ผ่าน Server Proxy เพื่อให้แสดงผลได้ทันทีในทุกเบราว์เซอร์โดยไม่ต้องดาวน์โหลด
 // @route   GET /api/delivery/image/:fileId
 exports.getDriveImage = async (req, res) => {
     try {
@@ -12,30 +13,50 @@ exports.getDriveImage = async (req, res) => {
             return res.status(400).send('Missing fileId');
         }
 
-        const drive = getDriveService();
-        const meta = await drive.files.get({
-            fileId,
-            fields: 'mimeType, name'
-        });
+        let fileBuffer = null;
+        let driveMimeType = '';
 
-        const mimeType = (meta && meta.data && meta.data.mimeType) || 'image/jpeg';
-        res.setHeader('Content-Type', mimeType);
+        // 1. ดึงข้อมูลไฟล์ผ่าน Google Drive API โดยตรง
+        try {
+            const drive = getDriveService();
+            const response = await drive.files.get(
+                { fileId, alt: 'media', supportsAllDrives: true },
+                { responseType: 'arraybuffer' }
+            );
+            if (response && response.data) {
+                fileBuffer = Buffer.from(response.data);
+                driveMimeType = (response.headers && response.headers['content-type']) || '';
+            }
+        } catch (driveApiErr) {
+            console.warn(`Drive API media fetch fallback for ${fileId}:`, driveApiErr.message || driveApiErr);
+        }
+
+        // 2. หากดึงผ่าน Drive API ไม่สำเร็จ ให้สลับดึงผ่านลิงก์ดาวน์โหลดตรงของ Google Drive อัตโนมัติ
+        if (!fileBuffer || fileBuffer.length === 0) {
+            const directDownloadUrl = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`;
+            const fallbackRes = await axios.get(directDownloadUrl, {
+                responseType: 'arraybuffer',
+                timeout: 15000,
+                maxRedirects: 5
+            });
+            fileBuffer = Buffer.from(fallbackRes.data);
+            driveMimeType = (fallbackRes.headers && fallbackRes.headers['content-type']) || '';
+        }
+
+        if (!fileBuffer || fileBuffer.length === 0) {
+            return res.status(404).send('Image not found');
+        }
+
+        // 3. ตรวจสอบ Magic Bytes ของเนื้อไฟล์จริง เพื่อส่ง Content-Type ที่ถูกต้องให้เบราว์เซอร์แสดงผลทันที (แก้ปัญหา application/octet-stream)
+        const realMimeType = detectImageMimeType(fileBuffer, driveMimeType);
+
+        res.setHeader('Content-Type', realMimeType);
+        res.setHeader('Content-Disposition', 'inline');
         res.setHeader('Cache-Control', 'public, max-age=86400');
-
-        const response = await drive.files.get(
-            { fileId, alt: 'media' },
-            { responseType: 'stream' }
-        );
-
-        response.data
-            .on('error', (err) => {
-                console.error('Stream Drive Image Error:', err);
-                if (!res.headersSent) res.status(500).end();
-            })
-            .pipe(res);
+        return res.send(fileBuffer);
     } catch (error) {
         console.error('getDriveImage Error:', error.message || error);
-        res.redirect(`https://lh3.googleusercontent.com/d/${req.params.fileId}=w1000`);
+        return res.status(404).send('Unable to load image');
     }
 };
 

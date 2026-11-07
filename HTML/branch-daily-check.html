@@ -21,6 +21,7 @@
     <!-- Icons -->
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -243,7 +244,7 @@
                         <label class="block text-sm font-semibold text-slate-700 mb-2 font-bold text-red-600">
                             * ถ่ายภาพหลักฐาน (ฝังพิกัด วันที่ และเวลาอัตโนมัติ)
                         </label>
-                        <input type="file" id="evidenceImage" name="evidenceImage" accept="image/*"
+                        <input type="file" id="evidenceImage" name="evidenceImage" accept="image/jpeg,image/png"
                             capture="environment" class="hidden">
 
                         <!-- ปุ่มเปิดกล้องถ่ายภาพ -->
@@ -990,26 +991,40 @@
 
                 ctx.shadowBlur = 0;
 
-                // 5. แปลงเป็น DataURL และ Blob/File สำหรับส่งไป Backend
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                // 5. แปลงภาพที่ถ่ายจากกล้องเป็นไฟล์ .JPG (image/jpeg) ทันที 100% ป้องกันไฟล์ HEIC หรือไฟล์ขนาดใหญ่เกินไป
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+                const jpgFileName = `stock_${curScannedCode || 'scan'}_${Date.now()}.jpg`;
+                try {
+                    const arr = dataUrl.split(',');
+                    const bstr = atob(arr[1]);
+                    let n = bstr.length;
+                    const u8arr = new Uint8Array(n);
+                    while (n--) {
+                        u8arr[n] = bstr.charCodeAt(n);
+                    }
+                    stampedEvidenceFile = new File([u8arr], jpgFileName, { type: 'image/jpeg' });
+                } catch (convErr) {
+                    console.warn('Sync dataURL to File fallback:', convErr);
+                }
+
                 canvas.toBlob((blob) => {
-                    if (blob) {
-                        stampedEvidenceFile = new File(
-                            [blob],
-                            `stock_${curScannedCode || 'scan'}_${Date.now()}.jpg`,
-                            { type: 'image/jpeg' }
-                        );
+                    if (blob && blob.size > 0) {
+                        stampedEvidenceFile = new File([blob], jpgFileName, { type: 'image/jpeg' });
                     }
                     resolve(dataUrl);
-                }, 'image/jpeg', 0.92);
+                }, 'image/jpeg', 0.90);
             });
         }
+
+        let pendingImageProcessPromise = null;
 
         async function captureFromLiveCamera() {
             const video = document.getElementById('cameraVideo');
             if (!video || !video.videoWidth) return;
 
-            const dataUrl = await stampWatermarkOnImage(video, video.videoWidth, video.videoHeight, true);
+            pendingImageProcessPromise = stampWatermarkOnImage(video, video.videoWidth, video.videoHeight, true);
+            const dataUrl = await pendingImageProcessPromise;
+            pendingImageProcessPromise = null;
             stopLiveCamera();
 
             document.getElementById('imagePreview').src = dataUrl;
@@ -1021,6 +1036,7 @@
             document.getElementById('scanForm').reset();
             stampedEvidenceFile = null;
             lastRawImageCanvas = null;
+            pendingImageProcessPromise = null;
             stopLiveCamera();
             document.getElementById('imagePreviewContainer').classList.add('hidden');
             document.getElementById('imagePreview').src = '';
@@ -1044,31 +1060,83 @@
             curScannedProductName = '';
             stampedEvidenceFile = null;
             lastRawImageCanvas = null;
+            pendingImageProcessPromise = null;
             document.getElementById('barcodeInput').focus();
         }
 
-        // Preview Image & Stamp Watermark when selecting file / taking native camera photo
+        // Preview Image & Stamp Watermark when taking native camera photo (แปลงเป็น .JPG อัตโนมัติทุกครั้ง แม้กล้องส่งไฟล์ .HEIC มา)
         document.getElementById('evidenceImage').addEventListener('change', function (e) {
             if (this.files && this.files[0]) {
-                const file = this.files[0];
-                const reader = new FileReader();
-                reader.onload = function (evt) {
-                    const img = new Image();
-                    img.onload = async function () {
-                        const stampedDataUrl = await stampWatermarkOnImage(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
+                const rawFile = this.files[0];
+                pendingImageProcessPromise = (async () => {
+                    try {
+                        let sourceBlob = rawFile;
+                        const lowerName = (rawFile.name || '').toLowerCase();
+                        const lowerType = (rawFile.type || '').toLowerCase();
+                        const isHeic = lowerName.endsWith('.heic') || lowerName.endsWith('.heif') || lowerType.includes('heic') || lowerType.includes('heif');
+
+                        if (isHeic && typeof window.heic2any === 'function') {
+                            const converted = await window.heic2any({
+                                blob: rawFile,
+                                toType: 'image/jpeg',
+                                quality: 0.9
+                            });
+                            sourceBlob = Array.isArray(converted) ? converted[0] : converted;
+                        }
+
+                        const loadIntoImage = (blobToLoad) => new Promise((resolve, reject) => {
+                            const objUrl = URL.createObjectURL(blobToLoad);
+                            const img = new Image();
+                            img.onload = () => {
+                                URL.revokeObjectURL(objUrl);
+                                resolve(img);
+                            };
+                            img.onerror = (err) => {
+                                URL.revokeObjectURL(objUrl);
+                                reject(err);
+                            };
+                            img.src = objUrl;
+                        });
+
+                        let imgEl;
+                        try {
+                            imgEl = await loadIntoImage(sourceBlob);
+                        } catch (firstLoadErr) {
+                            if (typeof window.heic2any === 'function') {
+                                const converted = await window.heic2any({
+                                    blob: rawFile,
+                                    toType: 'image/jpeg',
+                                    quality: 0.9
+                                });
+                                const fallbackBlob = Array.isArray(converted) ? converted[0] : converted;
+                                imgEl = await loadIntoImage(fallbackBlob);
+                            } else {
+                                throw firstLoadErr;
+                            }
+                        }
+
+                        const stampedDataUrl = await stampWatermarkOnImage(imgEl, imgEl.naturalWidth || imgEl.width, imgEl.naturalHeight || imgEl.height);
                         stopLiveCamera();
                         document.getElementById('imagePreview').src = stampedDataUrl;
                         document.getElementById('imagePreviewContainer').classList.remove('hidden');
-                    };
-                    img.src = evt.target.result;
-                };
-                reader.readAsDataURL(file);
+                        return stampedDataUrl;
+                    } catch (err) {
+                        console.error('Convert camera image to JPG error:', err);
+                        return null;
+                    }
+                })();
             }
         });
 
         // Submit Scan Data
         document.getElementById('scanForm').addEventListener('submit', async function (e) {
             e.preventDefault();
+
+            // รอให้การแปลงภาพจากกล้องเป็น .JPG และฝังลายน้ำเสร็จสมบูรณ์ก่อนส่งเสมอ
+            if (pendingImageProcessPromise) {
+                await pendingImageProcessPromise;
+                pendingImageProcessPromise = null;
+            }
 
             const fileInput = document.getElementById('evidenceImage');
             const finalImageFile = stampedEvidenceFile || (fileInput.files && fileInput.files[0] ? fileInput.files[0] : null);
@@ -1130,9 +1198,60 @@
             }
         });
 
-        // View Image Modal
+        // View Image Modal (ใช้ลิงก์ Google เป็นหลัก พร้อมระบบสำรองอัตโนมัติ 2 ชั้น แสดงรูปทันทีโดยไม่ต้องดาวน์โหลด)
+        async function decodeBranchModalImage(imgEl, fileId) {
+            try {
+                const response = await fetch(`/api/delivery/image/${fileId}`);
+                if (!response.ok) return;
+                const arrayBuffer = await response.arrayBuffer();
+                if (!arrayBuffer || arrayBuffer.byteLength === 0) return;
+
+                const bytes = new Uint8Array(arrayBuffer);
+                let detectedMime = '';
+                if (bytes.length >= 12) {
+                    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) detectedMime = 'image/jpeg';
+                    else if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) detectedMime = 'image/png';
+                    else if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) detectedMime = 'image/gif';
+                    else if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[8] === 0x57 && bytes[9] === 0x45) detectedMime = 'image/webp';
+                }
+
+                let renderBlob = null;
+                if (detectedMime) {
+                    renderBlob = new Blob([arrayBuffer], { type: detectedMime });
+                } else if (typeof window.heic2any === 'function') {
+                    const converted = await window.heic2any({
+                        blob: new Blob([arrayBuffer], { type: 'image/heic' }),
+                        toType: 'image/jpeg',
+                        quality: 0.9
+                    });
+                    renderBlob = Array.isArray(converted) ? converted[0] : converted;
+                } else {
+                    renderBlob = new Blob([arrayBuffer], { type: 'image/jpeg' });
+                }
+                imgEl.src = URL.createObjectURL(renderBlob);
+            } catch (e) {
+                console.error('decodeBranchModalImage error:', e);
+            }
+        }
+
         function viewImage(url) {
-            document.getElementById('imageModalContent').src = url;
+            const imgEl = document.getElementById('imageModalContent');
+            if (!imgEl) return;
+            const match = String(url || '').match(/(?:[?&]id=|\/file\/d\/|\/d\/|\/api\/delivery\/image\/)([a-zA-Z0-9_-]{15,})/);
+            const fileId = match && match[1] ? match[1] : '';
+            imgEl.dataset.fallbackStage = '0';
+            imgEl.onerror = fileId ? function () {
+                const stage = Number(this.dataset.fallbackStage || '0');
+                if (stage === 0) {
+                    this.dataset.fallbackStage = '1';
+                    this.src = `/api/delivery/image/${fileId}`;
+                } else if (stage === 1) {
+                    this.dataset.fallbackStage = '2';
+                    this.onerror = null;
+                    decodeBranchModalImage(this, fileId);
+                }
+            } : null;
+            imgEl.src = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000` : url;
             document.getElementById('imageModal').classList.add('active');
         }
         function closeImageModal() {

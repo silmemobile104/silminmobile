@@ -74,7 +74,43 @@ const uploadUrlToDrive = async (imageUrl, fileName) => {
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// ตรวจจับชนิดไฟล์ภาพจริงจากโครงสร้างข้อมูล (Magic Bytes) ป้องกันปัญหา application/octet-stream
+const detectImageMimeType = (buffer, fallbackMime = 'image/jpeg') => {
+    if (Buffer.isBuffer(buffer) && buffer.length >= 12) {
+        // JPEG: FF D8 FF
+        if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+            return 'image/jpeg';
+        }
+        // PNG: 89 50 4E 47 0D 0A 1A 0A
+        if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+            return 'image/png';
+        }
+        // GIF: 47 49 46 38 (GIF8)
+        if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) {
+            return 'image/gif';
+        }
+        // WEBP: RIFF....WEBP
+        if (
+            buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+            buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+        ) {
+            return 'image/webp';
+        }
+        // HEIC / HEIF: ....ftyp(heic|heix|hevc|mif1|msf1|heif)
+        const boxType = buffer.slice(4, 8).toString('ascii');
+        const brand = buffer.slice(8, 12).toString('ascii').toLowerCase();
+        if (boxType === 'ftyp' && ['heic', 'heix', 'hevc', 'mif1', 'msf1', 'heif'].includes(brand)) {
+            return 'image/heic';
+        }
+    }
+    if (fallbackMime && fallbackMime.startsWith('image/') && fallbackMime !== 'image/*') {
+        return fallbackMime;
+    }
+    return 'image/jpeg';
+};
+
 const uploadBufferToDrive = async (buffer, mimeType, fileName, maxRetries = 3) => {
+    const safeMimeType = detectImageMimeType(buffer, mimeType);
     let attempt = 0;
     while (attempt <= maxRetries) {
         try {
@@ -88,7 +124,7 @@ const uploadBufferToDrive = async (buffer, mimeType, fileName, maxRetries = 3) =
             };
 
             const media = {
-                mimeType: mimeType,
+                mimeType: safeMimeType,
                 body: bufferStream
             };
 
@@ -98,10 +134,21 @@ const uploadBufferToDrive = async (buffer, mimeType, fileName, maxRetries = 3) =
                 fields: 'id'
             });
 
-            await drive.permissions.create({
-                fileId: file.data.id,
-                requestBody: { role: 'reader', type: 'anyone' }
-            });
+            // ตั้งสิทธิ์ให้เป็น Public พร้อม Retry แยกเฉพาะส่วน Permission ป้องกันกรณีติด Rate Limit ชั่วคราว
+            for (let permAttempt = 0; permAttempt < 3; permAttempt++) {
+                try {
+                    await drive.permissions.create({
+                        fileId: file.data.id,
+                        requestBody: { role: 'reader', type: 'anyone' }
+                    });
+                    break;
+                } catch (permErr) {
+                    console.warn(`Set Drive permission retry (${permAttempt + 1}/3) for ${file.data.id}:`, permErr.message || permErr);
+                    if (permAttempt < 2) {
+                        await wait(800 * (permAttempt + 1));
+                    }
+                }
+            }
 
             return `https://drive.google.com/thumbnail?id=${file.data.id}&sz=w1000`;
         } catch (error) {
@@ -160,6 +207,7 @@ const getOrCreateSubFolderId = async (folderName, parentFolderId = process.env.G
 
 const uploadBufferToDriveInFolder = async (buffer, mimeType, fileName, folderName) => {
     try {
+        const safeMimeType = detectImageMimeType(buffer, mimeType);
         const drive = getDriveService();
         const folderId = await getOrCreateSubFolderId(folderName);
 
@@ -172,7 +220,7 @@ const uploadBufferToDriveInFolder = async (buffer, mimeType, fileName, folderNam
         };
 
         const media = {
-            mimeType: mimeType,
+            mimeType: safeMimeType,
             body: bufferStream
         };
 
@@ -196,6 +244,7 @@ const uploadBufferToDriveInFolder = async (buffer, mimeType, fileName, folderNam
 
 const uploadBufferToDriveInNestedFolder = async (buffer, mimeType, fileName, folderPathArray) => {
     try {
+        const safeMimeType = detectImageMimeType(buffer, mimeType);
         const drive = getDriveService();
         let currentParentId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
@@ -217,7 +266,7 @@ const uploadBufferToDriveInNestedFolder = async (buffer, mimeType, fileName, fol
         };
 
         const media = {
-            mimeType: mimeType,
+            mimeType: safeMimeType,
             body: bufferStream
         };
 
@@ -241,6 +290,7 @@ const uploadBufferToDriveInNestedFolder = async (buffer, mimeType, fileName, fol
 
 module.exports = {
     getDriveService,
+    detectImageMimeType,
     uploadUrlToDrive,
     uploadBufferToDrive,
     uploadBufferToDriveInFolder,

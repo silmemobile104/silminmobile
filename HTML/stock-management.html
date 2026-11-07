@@ -24,6 +24,8 @@
 
     <!-- SheetJS (xlsx) for reading file before upload -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- HEIC/HEIF Decoder for rendering iPhone photos inline without downloading -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -755,32 +757,192 @@
             });
         }
 
+        // ดึง File ID จากลิงก์ Google Drive ทุกรูปแบบ
+        function extractDriveFileId(url) {
+            if (!url) return '';
+            const match = String(url).match(/(?:[?&]id=|\/file\/d\/|\/d\/|\/api\/delivery\/image\/)([a-zA-Z0-9_-]{15,})/);
+            return match && match[1] ? match[1] : '';
+        }
+
+        // ขยายรูปภาพแบบเต็มจอในหน้าเดิมทันที (Inline Lightbox) โดยไม่ต้องเปลี่ยนหน้าหรือเปิดแท็บใหม่
+        function openInlineImageLightbox(src) {
+            if (!src) return;
+            let existing = document.getElementById('inline-evidence-lightbox');
+            if (existing) existing.remove();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'inline-evidence-lightbox';
+            overlay.className = 'fixed inset-0 z-[99999] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 select-none';
+            overlay.innerHTML = `
+                <div class="absolute top-4 right-4 flex items-center gap-2 z-10">
+                    <button type="button" id="lightbox-zoom-btn"
+                        class="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white rounded-full text-xs font-bold flex items-center gap-1.5 backdrop-blur-md transition">
+                        <ion-icon name="search-outline" class="text-base"></ion-icon>
+                        <span>ซูมขยาย / ย่อ</span>
+                    </button>
+                    <button type="button" id="lightbox-close-btn"
+                        class="w-10 h-10 bg-white/15 hover:bg-red-500 text-white rounded-full flex items-center justify-center text-2xl backdrop-blur-md transition"
+                        title="ปิดภาพขยาย">
+                        <ion-icon name="close-outline"></ion-icon>
+                    </button>
+                </div>
+                <div id="lightbox-scroll-area" class="w-full h-full flex items-center justify-center overflow-auto">
+                    <img id="lightbox-img" src="${src}"
+                        class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transition-transform duration-200 cursor-zoom-in" />
+                </div>
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white/90 px-4 py-1.5 rounded-full text-xs pointer-events-none">
+                    คลิกที่รูปเพื่อซูม หรือคลิกพื้นหลังสีดำเพื่อปิด
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+
+            const img = overlay.querySelector('#lightbox-img');
+            const zoomBtn = overlay.querySelector('#lightbox-zoom-btn');
+            const closeBtn = overlay.querySelector('#lightbox-close-btn');
+            let isZoomed = false;
+
+            const toggleZoom = (e) => {
+                if (e) e.stopPropagation();
+                isZoomed = !isZoomed;
+                if (isZoomed) {
+                    img.classList.remove('max-w-full', 'max-h-[90vh]', 'cursor-zoom-in');
+                    img.classList.add('scale-150', 'cursor-zoom-out');
+                } else {
+                    img.classList.add('max-w-full', 'max-h-[90vh]', 'cursor-zoom-in');
+                    img.classList.remove('scale-150', 'cursor-zoom-out');
+                }
+            };
+
+            img.addEventListener('click', toggleZoom);
+            zoomBtn.addEventListener('click', toggleZoom);
+            closeBtn.addEventListener('click', () => overlay.remove());
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay || e.target.id === 'lightbox-scroll-area') {
+                    overlay.remove();
+                }
+            });
+        }
+
+        // ถอดรหัสไฟล์ภาพจาก Server Proxy (รองรับทั้งไฟล์ที่ติด application/octet-stream และไฟล์ .HEIC จาก iPhone) เพื่อแสดงผลในหน้าเดิมทันที
+        async function decodeAndRenderDriveImage(imgEl, fileId) {
+            if (!imgEl || !fileId) return;
+            const container = imgEl.closest('.evidence-img-container');
+            const statusBadge = container ? container.querySelector('.evidence-loading-badge') : null;
+            if (statusBadge) {
+                statusBadge.classList.remove('hidden');
+                statusBadge.innerHTML = '<div class="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-1.5"></div> กำลังถอดรหัสและแสดงรูปภาพ...';
+            }
+
+            try {
+                const response = await fetch(`/api/delivery/image/${fileId}`);
+                if (!response.ok) throw new Error('Proxy response not ok');
+                const arrayBuffer = await response.arrayBuffer();
+                if (!arrayBuffer || arrayBuffer.byteLength === 0) throw new Error('Empty image buffer');
+
+                const bytes = new Uint8Array(arrayBuffer);
+                let detectedMime = '';
+
+                if (bytes.length >= 12) {
+                    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+                        detectedMime = 'image/jpeg';
+                    } else if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+                        detectedMime = 'image/png';
+                    } else if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) {
+                        detectedMime = 'image/gif';
+                    } else if (
+                        bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+                        bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+                    ) {
+                        detectedMime = 'image/webp';
+                    }
+                }
+
+                let renderBlob = null;
+                if (detectedMime) {
+                    renderBlob = new Blob([arrayBuffer], { type: detectedMime });
+                } else if (typeof window.heic2any === 'function') {
+                    const heicBlob = new Blob([arrayBuffer], { type: 'image/heic' });
+                    const converted = await window.heic2any({
+                        blob: heicBlob,
+                        toType: 'image/jpeg',
+                        quality: 0.9
+                    });
+                    renderBlob = Array.isArray(converted) ? converted[0] : converted;
+                } else {
+                    renderBlob = new Blob([arrayBuffer], { type: 'image/jpeg' });
+                }
+
+                const objectUrl = URL.createObjectURL(renderBlob);
+                imgEl.onerror = null;
+                imgEl.src = objectUrl;
+                if (statusBadge) statusBadge.classList.add('hidden');
+            } catch (err) {
+                console.error('decodeAndRenderDriveImage error:', err);
+                if (statusBadge) {
+                    statusBadge.innerHTML = 'ไม่สามารถแสดงตัวอย่างรูปนี้ได้';
+                }
+            }
+        }
+
+        // ระบบสำรองอัตโนมัติ (Hybrid Fallback) เฉพาะรูปที่โหลดจาก lh3.googleusercontent.com ไม่ขึ้น (ติด 404)
+        function handleDriveImgError(imgEl, fileId) {
+            if (!imgEl || !fileId) return;
+            const stage = Number(imgEl.dataset.fallbackStage || '0');
+            const proxyUrl = `/api/delivery/image/${fileId}`;
+
+            if (stage === 0) {
+                // ขั้นที่ 1: สลับไปดึงผ่าน Server Proxy อัตโนมัติ (แก้ปัญหา Google Drive 404 / application/octet-stream)
+                imgEl.dataset.fallbackStage = '1';
+                imgEl.src = proxyUrl;
+            } else if (stage === 1) {
+                // ขั้นที่ 2: ถอดรหัสไฟล์ภาพในเบราว์เซอร์อัตโนมัติ (รองรับไฟล์ .HEIC หรือไฟล์ที่ติด mimeType ผิดพลาด) เพื่อแสดงทันทีโดยไม่ต้องดาวน์โหลด
+                imgEl.dataset.fallbackStage = '2';
+                imgEl.onerror = null;
+                decodeAndRenderDriveImage(imgEl, fileId);
+            }
+        }
+
+        function buildSmartEvidenceImageHtml(imgUrl) {
+            if (!imgUrl || imgUrl === 'null' || imgUrl === 'undefined') {
+                return `
+                    <div class="w-full py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-400">
+                        <ion-icon name="image-outline" class="text-4xl mb-2 text-slate-300"></ion-icon>
+                        <span>ไม่มีรูปหลักฐานแนบมาด้วย</span>
+                    </div>
+                `;
+            }
+
+            const fileId = extractDriveFileId(imgUrl);
+            // 1. ใช้ลิงก์ Google แบบเดิมเป็นหลัก (สำหรับรูปปกติ 95%+ โหลดไวและไม่เพิ่มภาระเซิร์ฟเวอร์)
+            const primaryUrl = fileId
+                ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`
+                : imgUrl;
+
+            return `
+                <div class="evidence-img-container relative">
+                    <div onclick="const img = this.querySelector('img'); if (img && img.src) openInlineImageLightbox(img.currentSrc || img.src);"
+                        title="คลิกเพื่อขยายรูปในหน้านี้"
+                        class="block relative cursor-pointer group">
+                        <img src="${primaryUrl}"
+                            ${fileId ? `onerror="handleDriveImgError(this, '${fileId}')"` : ''}
+                            class="w-full h-auto max-h-[400px] object-contain rounded-lg border border-slate-200 group-hover:brightness-90 transition-all bg-slate-50 min-h-[160px]" />
+                        <div class="evidence-loading-badge hidden absolute inset-0 flex items-center justify-center bg-slate-900/60 text-white text-xs font-bold rounded-lg"></div>
+                        <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 rounded-lg">
+                            <div class="bg-white/95 text-slate-800 px-4 py-2 rounded-full text-sm font-bold shadow flex items-center gap-2">
+                                <ion-icon name="scan-outline" class="text-lg"></ion-icon> แตะเพื่อขยายรูป
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         async function openVerifyModal(id, imgUrl) {
             const item = allStockData.find(i => i._id === id);
             const noteText = (item && item.note) ? item.note : '- ไม่มีหมายเหตุ -';
 
-            let displayImgUrl = imgUrl;
-            if (displayImgUrl && displayImgUrl.includes('drive.google.com/uc?export=view&id=')) {
-                const fileId = displayImgUrl.split('id=')[1];
-                if (fileId) {
-                    displayImgUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
-                }
-            }
-
-            const imgHtml = (imgUrl && imgUrl !== 'null' && imgUrl !== 'undefined') ?
-                `<a href="${imgUrl}" target="_blank" title="คลิกเพื่อขยายรูป (เปิดแท็บใหม่)" class="block relative cursor-pointer group mb-1">
-                    <img src="${displayImgUrl}" class="w-full h-auto max-h-[400px] object-contain rounded-lg border border-slate-200 group-hover:brightness-90 transition-all" />
-                    <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 rounded-lg">
-                        <div class="bg-white/90 text-slate-800 px-4 py-2 rounded-full text-sm font-bold shadow flex items-center gap-2">
-                            <ion-icon name="scan-outline" class="text-lg"></ion-icon> แตะเพื่อขยายรูป
-                        </div>
-                    </div>
-                </a>` :
-                `<div class="w-full py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-slate-400">
-                    <ion-icon name="image-outline" class="text-4xl mb-2 text-slate-300"></ion-icon>
-                    <span>ไม่มีรูปหลักฐานแนบมาด้วย</span>
-                </div>`;
-
+            const imgHtml = buildSmartEvidenceImageHtml(imgUrl);
             const html = `
                 <div class="mb-4 text-left p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
                     <p class="text-sm text-slate-700"><span class="font-bold text-slate-900">สินค้า:</span> ${item.productName || '-'}</p>
@@ -894,18 +1056,10 @@
         }
 
         function viewEvidence(url) {
-            let displayUrl = url;
-            if (displayUrl && displayUrl.includes('drive.google.com/uc?export=view&id=')) {
-                const fileId = displayUrl.split('id=')[1];
-                if (fileId) {
-                    displayUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
-                }
-            }
-            
             Swal.fire({
                 title: 'รูปหลักฐานการตรวจสอบ',
-                imageUrl: displayUrl,
-                imageAlt: 'Evidence',
+                html: buildSmartEvidenceImageHtml(url),
+                width: '560px',
                 confirmButtonText: 'ปิดหน้าต่าง',
                 confirmButtonColor: '#eab308'
             });
