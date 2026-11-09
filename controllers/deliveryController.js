@@ -166,7 +166,10 @@ exports.getDeliveryTransfers = async (req, res) => {
             if (effectiveBranch) {
                 query.destinationBranch = effectiveBranch;
             } else if (!canViewAll) {
-                query.destinationBranch = userBranch;
+                query.$or = [
+                    { destinationBranch: userBranch },
+                    { createdBy: user._id }
+                ];
             }
             query.status = 'pending';
         } else if (tab === 'logistics') {
@@ -199,7 +202,7 @@ exports.getDeliveryTransfers = async (req, res) => {
             if (effectiveBranch) {
                 query.$or = [{ sourceBranch: effectiveBranch }, { destinationBranch: effectiveBranch }];
             } else if (!canViewAll && !isLogistics) {
-                query.$or = [{ sourceBranch: userBranch }, { destinationBranch: userBranch }];
+                query.$or = [{ sourceBranch: userBranch }, { destinationBranch: userBranch }, { createdBy: user._id }];
             }
         } else {
             // แท็บ "ทั้งหมด"
@@ -209,7 +212,7 @@ exports.getDeliveryTransfers = async (req, res) => {
             if (effectiveBranch) {
                 query.$or = [{ sourceBranch: effectiveBranch }, { destinationBranch: effectiveBranch }];
             } else if (!canViewAll && !isLogistics) {
-                query.$or = [{ sourceBranch: userBranch }, { destinationBranch: userBranch }];
+                query.$or = [{ sourceBranch: userBranch }, { destinationBranch: userBranch }, { createdBy: user._id }];
             }
         }
 
@@ -280,7 +283,9 @@ exports.getDeliveryTransfers = async (req, res) => {
             DeliveryTransfer.countDocuments({
                 ...companyFilter,
                 status: 'pending',
-                ...(targetBranchForCount ? { destinationBranch: targetBranchForCount } : {})
+                ...(effectiveBranch
+                    ? { destinationBranch: effectiveBranch }
+                    : (!canViewAll ? { $or: [{ destinationBranch: userBranch }, { createdBy: user._id }] } : {}))
             }),
             DeliveryTransfer.countDocuments(logisticsCountQuery),
             DeliveryTransfer.countDocuments({
@@ -514,18 +519,11 @@ exports.createDeliveryTransfer = async (req, res) => {
             return res.status(400).json({ success: false, message: 'กรุณาระบุสาขาต้นทาง (สาขาที่ต้องการขอเครื่อง)' });
         }
 
-        // สาขาที่สร้างรายการ
+        // สาขาที่สร้างรายการ (อนุญาตให้เลือกสาขาปลายทางอื่นได้ โดยค่าเริ่มต้นเป็นสาขาของตัวเอง)
         const rawBranch = (req.user.branch || '').trim();
         const hasBranch = rawBranch !== '' && rawBranch !== '-' && rawBranch.toLowerCase() !== 'null' && rawBranch.toLowerCase() !== 'none';
-        const isManagement = isManagerOrAdmin(req.user);
-        const isLogistics = isLogisticsRole(req.user);
-        const canManageAll = isManagement || !hasBranch || isLogistics;
 
-        // หากเป็นพนักงานสาขา สาขาปลายทางจะถูกผูกกับสาขาของผู้สร้างเสมอ
-        // หากเป็นผู้บริหาร หรือพนักงานที่ไม่มีสาขา สามารถระบุสาขาปลายทางได้
-        const targetBranch = canManageAll
-            ? (destinationBranch || branch)
-            : rawBranch;
+        const targetBranch = String(destinationBranch || branch || (hasBranch ? rawBranch : '')).trim();
 
         if (!targetBranch) {
             return res.status(400).json({ success: false, message: 'กรุณาระบุสาขาปลายทาง (ผู้ขอรับของ)' });
@@ -613,10 +611,16 @@ exports.acknowledgeAndPrepare = async (req, res) => {
             return res.status(400).json({ success: false, message: 'กรุณาเลือกรูปแบบการจัดส่ง (ส่งตรงระหว่างสาขา: direct หรือ ส่งผ่านฝ่ายจัดส่ง: logistics)' });
         }
 
-        // แนบรูปถ่ายหลักฐานตอนเตรียมของขึ้น Google Drive ทันที
-        if (req.file) {
-            await handleFileUpload(req, transfer, 'เตรียมจัดส่ง');
+        if (deliveryMethod === 'direct' && (!trackingNumber || !trackingNumber.trim())) {
+            return res.status(400).json({ success: false, message: 'กรุณาระบุเลขพัสดุ / หมายเลขอ้างอิง (กรณีส่งตรง)' });
         }
+
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'กรุณาแนบรูปภาพหลักฐาน / สภาพสินค้าและกล่อง' });
+        }
+
+        // แนบรูปถ่ายหลักฐานตอนเตรียมของขึ้น Google Drive ทันที
+        await handleFileUpload(req, transfer, 'เตรียมจัดส่ง');
 
         // ตรวจสอบและบันทึกรหัสสินค้า / เลข IMEI ที่สาขาต้นทางระบุตอนเตรียมของ
         if (items && Array.isArray(items)) {

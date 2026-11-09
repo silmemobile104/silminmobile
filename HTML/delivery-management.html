@@ -419,7 +419,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">ต้องการขอเครื่องจากสาขา (สาขาต้นทาง) *</label>
-                        <select id="create-source-branch" required onchange="onSourceBranchChange()"
+                        <select id="create-source-branch" required onchange="onSourceBranchChange(this)"
                             class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
                             <option value="">-- เลือกสาขาที่ต้องการขอของ --</option>
                             <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
@@ -452,8 +452,8 @@
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">สาขาผู้ขอรับเครื่อง (สาขาปลายทาง) *</label>
-                        <select id="create-target-branch" required onchange="onSourceBranchChange()"
-                            class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-700 font-semibold">
+                        <select id="create-target-branch" required onchange="onSourceBranchChange(this)"
+                            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 font-semibold">
                             <option value="">-- เลือกสาขาปลายทาง --</option>
                             <option value="สำนักงานใหญ่">สำนักงานใหญ่</option>
                             <option value="ยะลา">ยะลา</option>
@@ -710,7 +710,7 @@
                             class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
                             <option value="">-- ยังไม่ระบุ --</option>
                             <option value="direct">ส่งตรงระหว่างสาขา (สาขาจัดส่งเอง)</option>
-                            <option value="logistics">ส่งผ่านฝ่ายจัดส่ง (รถขนส่งบริษัท)</option>
+                            <option value="logistics">ส่งผ่านฝ่ายจัดส่ง (ฝ่ายเทคนิคเป็นผู้จัดส่ง)</option>
                         </select>
                     </div>
                 </div>
@@ -858,43 +858,58 @@
             if (roleEl) roleEl.textContent = `สาขา: ${userBranchText}`;
             if (avatarEl) avatarEl.textContent = (currentUser.name || 'U').charAt(0).toUpperCase();
 
-            // สาขาที่สร้างรายการ
-            const requesterBadge = document.getElementById('requester-branch-badge');
-            if (requesterBadge) {
-                requesterBadge.textContent = isLogistics
-                    ? `${rawBranch || currentUser.department || 'ฝ่ายจัดส่ง'} (สามารถเลือกสาขาปลายทางได้)`
-                    : (hasBranch ? rawBranch : 'ไม่มีสาขาประจำ (สามารถเลือกสาขาปลายทางได้)');
+            // สาขาผู้ขอรับเครื่อง (ค่าเริ่มต้นเป็นสาขาของตัวเอง แต่สามารถเลือกสาขาอื่นได้)
+            const targetBranchSelect = document.getElementById('create-target-branch');
+            if (targetBranchSelect) {
+                targetBranchSelect.disabled = false;
+                if (hasBranch) {
+                    const exists = Array.from(targetBranchSelect.options).some(opt => opt.value === rawBranch);
+                    if (!exists) {
+                        const opt = document.createElement('option');
+                        opt.value = rawBranch;
+                        opt.textContent = rawBranch;
+                        targetBranchSelect.appendChild(opt);
+                    }
+                    targetBranchSelect.value = rawBranch;
+                }
             }
 
-            const targetBranchSelect = document.getElementById('create-target-branch');
-            const isManagement = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
-            const canManageAll = isManagement || !hasBranch || isLogistics;
-
-            if (targetBranchSelect) {
-                if (!canManageAll) {
-                    targetBranchSelect.value = rawBranch;
-                    targetBranchSelect.disabled = true; // พนักงานสาขาจะถูกล็อคให้ขอรับเข้าสาขาตนเองเท่านั้น
-                } else {
-                    targetBranchSelect.disabled = false;
-                }
+            const requesterBadge = document.getElementById('requester-branch-badge');
+            if (requesterBadge) {
+                const selectedTarget = targetBranchSelect?.value || '';
+                requesterBadge.textContent = selectedTarget
+                    ? `${selectedTarget} (สามารถเปลี่ยนสาขาปลายทางได้)`
+                    : (hasBranch ? `${rawBranch} (สามารถเปลี่ยนสาขาปลายทางได้)` : 'กรุณาเลือกสาขาปลายทาง');
             }
         }
 
-        function onSourceBranchChange() {
+        function onSourceBranchChange(changedEl) {
             const sourceSelect = document.getElementById('create-source-branch');
             const targetSelect = document.getElementById('create-target-branch');
             const rawBranch = (currentUser.branch || '').trim();
             const hasBranch = rawBranch !== '' && rawBranch !== '-' && rawBranch.toLowerCase() !== 'null' && rawBranch.toLowerCase() !== 'none';
-            const isManagement = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
-            const isLogistics = checkIsLogistics(currentUser);
-            const canManageAll = isManagement || !hasBranch || isLogistics;
 
-            const targetBranch = canManageAll ? (targetSelect?.value || '') : rawBranch;
+            const targetBranch = targetSelect?.value || '';
+            const requesterBadge = document.getElementById('requester-branch-badge');
+            if (requesterBadge) {
+                requesterBadge.textContent = targetBranch
+                    ? `${targetBranch} (สามารถเปลี่ยนสาขาปลายทางได้)`
+                    : (hasBranch ? `${rawBranch} (สามารถเปลี่ยนสาขาปลายทางได้)` : 'กรุณาเลือกสาขาปลายทาง');
+            }
 
             if (sourceSelect.value && targetBranch) {
                 if (sourceSelect.value === targetBranch) {
-                    Swal.fire('แจ้งเตือน', 'ไม่สามารถขอโอนย้ายจากสาขาเดียวกันได้ กรุณาเลือกสาขาต้นทางอื่น', 'warning');
-                    sourceSelect.value = '';
+                    Swal.fire('แจ้งเตือน', 'ไม่สามารถขอโอนย้ายจากสาขาเดียวกันได้ กรุณาเลือกสาขาต้นทางและสาขาปลายทางให้ต่างกัน', 'warning');
+                    if (changedEl === targetSelect) {
+                        targetSelect.value = hasBranch && sourceSelect.value !== rawBranch ? rawBranch : '';
+                        if (requesterBadge) {
+                            requesterBadge.textContent = targetSelect.value
+                                ? `${targetSelect.value} (สามารถเปลี่ยนสาขาปลายทางได้)`
+                                : 'กรุณาเลือกสาขาปลายทาง';
+                        }
+                    } else {
+                        sourceSelect.value = '';
+                    }
                     return;
                 }
             }
@@ -1466,13 +1481,13 @@
                             <label class="block text-xs font-bold text-slate-700 mb-1">เลือกรูปแบบการจัดส่ง *</label>
                             <select id="swal-delivery-method" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 bg-white">
                                 <option value="direct">1. ส่งตรงระหว่างสาขา (สาขาจัดส่งเอง)</option>
-                                <option value="logistics">2. ส่งผ่านฝ่ายจัดส่ง (รถขนส่งบริษัท)</option>
+                                <option value="logistics">2. ส่งผ่านฝ่ายจัดส่ง (ฝ่ายเทคนิคเป็นผู้จัดส่ง)</option>
                             </select>
                         </div>
 
                         <div id="swal-tracking-box">
-                            <label class="block text-xs font-bold text-slate-700 mb-1">เลขพัสดุ / หมายเลขอ้างอิง (กรณีส่งตรง)</label>
-                            <input type="text" id="swal-tracking-no" placeholder="เช่น Flash, Kerry หรือ คนส่งของ" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">เลขพัสดุ / หมายเลขอ้างอิง (กรณีส่งตรง) <span class="text-rose-500">*</span></label>
+                            <input type="text" id="swal-tracking-no" placeholder="เช่น Flash, Kerry หรือ คนส่งของ *" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm">
                         </div>
 
                         <div>
@@ -1482,11 +1497,11 @@
 
                         <!-- แนบรูปภาพหลักฐานตอนเตรียมของ -->
                         <div class="pt-1 border-t border-slate-200">
-                            <label class="block text-xs font-bold text-slate-700 mb-1">แนบรูปภาพหลักฐาน / สภาพสินค้าและกล่อง (ถ้ามี)</label>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">แนบรูปภาพหลักฐาน / สภาพสินค้าและกล่อง <span class="text-rose-500">*</span></label>
                             <div class="flex items-center gap-2">
                                 <label class="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-colors">
                                     <ion-icon name="camera-outline" class="text-base"></ion-icon>
-                                    <span>ถ่ายภาพ / เลือกรูป</span>
+                                    <span>ถ่ายภาพ / เลือกรูป *</span>
                                     <input type="file" id="swal-prep-image" accept="image/*" class="hidden" onchange="previewSwalImage(this, 'swal-prep-preview', 'swal-prep-preview-box', 'swal-prep-filename')">
                                 </label>
                                 <span id="swal-prep-filename" class="text-xs text-slate-500 truncate max-w-[180px]">ยังไม่ได้เลือกรูปภาพ</span>
@@ -1550,8 +1565,18 @@
                         });
                     }
 
+                    if (deliveryMethod === 'direct' && !trackingNumber) {
+                        Swal.showValidationMessage('กรุณากรอกเลขพัสดุ / หมายเลขอ้างอิง (กรณีส่งตรง)');
+                        document.getElementById('swal-tracking-no')?.focus();
+                        return false;
+                    }
+
                     const fileInput = document.getElementById('swal-prep-image');
                     const proofFile = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+                    if (!proofFile) {
+                        Swal.showValidationMessage('กรุณาแนบรูปภาพหลักฐาน / สภาพสินค้าและกล่อง');
+                        return false;
+                    }
 
                     return { deliveryMethod, trackingNumber, note, items: itemsPayload, proofFile };
                 }
@@ -2298,13 +2323,10 @@
 
             const rawBranch = (currentUser.branch || '').trim();
             const hasBranch = rawBranch !== '' && rawBranch !== '-' && rawBranch.toLowerCase() !== 'null' && rawBranch.toLowerCase() !== 'none';
-            const isManagement = ['admin', 'executive', 'manager', 'hr'].includes(currentUser.role);
-            const isLogistics = checkIsLogistics(currentUser);
-            const canManageAll = isManagement || !hasBranch || isLogistics;
 
             const sourceBranch = document.getElementById('create-source-branch').value;
             const targetSelect = document.getElementById('create-target-branch');
-            const branch = canManageAll ? (targetSelect?.value || '') : rawBranch;
+            const branch = (targetSelect?.value || '').trim() || (hasBranch ? rawBranch : '');
             const title = (document.getElementById('create-title').value || '').trim();
             const note = document.getElementById('create-note').value;
 
@@ -2377,7 +2399,11 @@
                     showConfirmButton: false
                 });
 
-                switchTab('waiting_source');
+                if (hasBranch && sourceBranch === rawBranch && branch !== rawBranch) {
+                    switchTab('to_prepare');
+                } else {
+                    switchTab('waiting_source');
+                }
             } catch (err) {
                 Swal.fire('ข้อผิดพลาด', err.message, 'error');
             } finally {
