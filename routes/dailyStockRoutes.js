@@ -25,6 +25,9 @@ const uploadMemory = multer({
 // - checkRole: อนุญาต admin, manager, และพนักงานสต็อก (staff ถ้าต้องการให้ทำได้ระบุได้เพิ่ม)
 router.post('/import', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), uploadLocal.single('file'), dailyStockController.importDailyStock);
 
+// 1.1 นำเข้าข้อมูลแบบแมนนวล กรอกข้อมูลทีละช่อง (ฝ่ายสต็อก)
+router.post('/manual', verifyToken, checkRole(['admin', 'manager', 'executive', 'staff']), dailyStockController.createManualDailyStock);
+
 // 2. ดึงข้อมูลสต็อกของสาขาตัวเอง (ฝ่ายขาย)
 router.get('/my-branch', verifyToken, dailyStockController.getMyBranchStock);
 

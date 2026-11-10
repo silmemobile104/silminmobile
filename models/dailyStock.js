@@ -15,7 +15,12 @@ const dailyStockSchema = new mongoose.Schema({
         required: true
     },
     unit: {
-        type: String
+        type: String,
+        default: 'เครื่อง'
+    },
+    lot: {
+        type: String,
+        default: ''
     },
     branch: {
         type: String,

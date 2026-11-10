@@ -44,11 +44,12 @@ exports.importDailyStock = async (req, res) => {
             };
 
             return {
-                productCode: getCol('รหัสสินค้า') || getCol('IMEI') || '',
-                productName: getCol('ชื่อสินค้า') || '',
-                unit: getCol('หน่วยนับ') || '',
-                branch: getCol('ที่เก็บ') || getCol('branch') || '',
-                expectedQuantity: parseFloat(getCol('จำนวน')) || 0,
+                productCode: String(getCol('รหัสสินค้า') || getCol('IMEI') || '').trim(),
+                productName: String(getCol('ชื่อสินค้า') || '').trim(),
+                unit: String(getCol('หน่วยนับ') || 'เครื่อง').trim(),
+                lot: String(getCol('ลอท') || '').trim(),
+                branch: String(getCol('ที่เก็บ') || getCol('branch') || '').trim(),
+                expectedQuantity: parseFloat(getCol('จำนวน')) || 1,
                 status: 'pending'
             };
         }).filter(item => item.productCode && item.branch); // ต้องมีรหัสและสาขา
@@ -77,6 +78,67 @@ exports.importDailyStock = async (req, res) => {
     } catch (error) {
         console.error('Import Daily Stock Error:', error);
         res.status(500).json({ message: 'เกิดข้อผิดพลาดในการนำเข้าข้อมูลสต็อก' });
+    }
+};
+
+// 1.1 นำเข้าสต็อกรายวันแบบแมนนวล (กรอกข้อมูลทีละช่อง รองรับทั้ง 1 รายการ และหลายรายการ)
+exports.createManualDailyStock = async (req, res) => {
+    try {
+        const rawItems = Array.isArray(req.body.items) && req.body.items.length > 0
+            ? req.body.items
+            : [req.body];
+
+        const stockItems = [];
+        for (let i = 0; i < rawItems.length; i++) {
+            const row = rawItems[i] || {};
+            const productCode = String(row.productCode || '').trim();
+            const productName = String(row.productName || '').trim();
+            const unit = String(row.unit || 'เครื่อง').trim() || 'เครื่อง';
+            const lot = String(row.lot || '').trim();
+            const branch = String(row.branch || '').trim();
+            const expectedQuantity = parseFloat(row.expectedQuantity) || 1;
+
+            if (!productCode || !productName || !branch) {
+                return res.status(400).json({
+                    message: `กรุณากรอก รหัสสินค้า, ชื่อสินค้า และ ที่เก็บ(สาขา) ให้ครบถ้วน (รายการที่ ${i + 1})`
+                });
+            }
+
+            stockItems.push({
+                productCode,
+                productName,
+                unit,
+                lot,
+                branch,
+                expectedQuantity,
+                status: 'pending',
+                verificationStatus: 'waiting'
+            });
+        }
+
+        if (stockItems.length === 0) {
+            return res.status(400).json({ message: 'กรุณาระบุข้อมูลสินค้าอย่างน้อย 1 รายการ' });
+        }
+
+        const created = await DailyStock.insertMany(stockItems);
+
+        if (typeof logActivity === 'function') {
+            logActivity(
+                req.user.id || req.user._id,
+                'MANUAL_IMPORT_DAILY_STOCK',
+                `นำเข้าสต็อกแบบแมนนวลจำนวน ${created.length} รายการ`,
+                'DailyStock'
+            );
+        }
+
+        res.status(201).json({
+            message: `นำเข้าข้อมูลสต็อกแบบแมนนวลสำเร็จ ${created.length} รายการ`,
+            count: created.length,
+            data: created
+        });
+    } catch (error) {
+        console.error('Create Manual Daily Stock Error:', error);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูลสต็อกแบบแมนนวล' });
     }
 };
 
@@ -389,7 +451,7 @@ exports.verifyStock = async (req, res) => {
 exports.editDailyStock = async (req, res) => {
     try {
         const { id } = req.params;
-        const { productCode, productName, branch } = req.body;
+        const { productCode, productName, branch, unit, lot, expectedQuantity } = req.body;
 
         if (!productCode || !productName || !branch) {
             return res.status(400).json({ message: 'กรุณาส่งข้อมูลให้ครบถ้วน (รหัสสินค้า, ชื่อสินค้า, สาขา)' });
@@ -400,9 +462,14 @@ exports.editDailyStock = async (req, res) => {
             return res.status(404).json({ message: 'ไม่พบรายการสต็อกนี้' });
         }
 
-        stock.productCode = productCode;
-        stock.productName = productName;
-        stock.branch = branch;
+        stock.productCode = String(productCode).trim();
+        stock.productName = String(productName).trim();
+        stock.branch = String(branch).trim();
+        if (unit !== undefined) stock.unit = String(unit).trim() || 'เครื่อง';
+        if (lot !== undefined) stock.lot = String(lot).trim();
+        if (expectedQuantity !== undefined && !isNaN(parseFloat(expectedQuantity))) {
+            stock.expectedQuantity = parseFloat(expectedQuantity);
+        }
 
         await stock.save();
 

@@ -96,11 +96,16 @@
             <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 class="text-2xl font-bold text-slate-800">นำเข้าสต็อกรายวัน</h2>
-                    <p class="text-slate-500 mt-1">อัปโหลดไฟล์ Excel (.xlsx) หรือ CSV สำหรับเริ่มการเช็คสต็อก</p>
+                    <p class="text-slate-500 mt-1">อัปโหลดไฟล์ Excel (.xlsx), CSV หรือกรอกข้อมูลนำเข้าแบบแมนนวลทีละช่อง</p>
                 </div>
-                <button onclick="toggleImportSection()" id="toggle-import-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-sm transition-colors flex items-center whitespace-nowrap">
-                    <ion-icon name="cloud-upload-outline" class="mr-2 text-xl"></ion-icon> นำเข้าสต็อก / ไฟล์
-                </button>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button onclick="openManualImportModal()" id="open-manual-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-sm transition-colors flex items-center whitespace-nowrap">
+                        <ion-icon name="add-circle-outline" class="mr-2 text-xl"></ion-icon> นำเข้าแบบแมนนวล
+                    </button>
+                    <button onclick="toggleImportSection()" id="toggle-import-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-sm transition-colors flex items-center whitespace-nowrap">
+                        <ion-icon name="cloud-upload-outline" class="mr-2 text-xl"></ion-icon> นำเข้าสต็อก / ไฟล์
+                    </button>
+                </div>
             </div>
 
             <div id="import-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 hidden transition-all origin-top duration-300">
@@ -295,6 +300,51 @@
         </div>
     </main>
 
+    <!-- Manual Import Stock Modal (นำเข้าแบบแมนนวล กรอกข้อมูลทีละช่อง) -->
+    <div id="manualImportModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-sm hidden">
+        <div class="modal-content bg-white w-full max-w-2xl max-h-[92vh] rounded-2xl shadow-xl overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-blue-50 shrink-0">
+                <div>
+                    <h3 class="text-lg font-bold text-blue-800 flex items-center">
+                        <ion-icon name="add-circle-outline" class="mr-2 text-2xl text-blue-600"></ion-icon>
+                        นำเข้าสต็อกแบบแมนนวล (กรอกข้อมูลทีละช่อง)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">กรอกข้อมูลตามคอลัมน์มาตรฐาน สามารถเพิ่มได้ทีละรายการ หรือหลายรายการพร้อมกัน</p>
+                </div>
+                <button type="button" onclick="closeManualImportModal()" class="text-slate-400 hover:text-slate-600 transition-colors p-1">
+                    <ion-icon name="close" class="text-2xl"></ion-icon>
+                </button>
+            </div>
+
+            <form id="manualImportForm" class="p-6 overflow-y-auto flex-1 space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-600">รายการสินค้าที่จะนำเข้าวันนี้</span>
+                    <button type="button" onclick="addManualStockRow()"
+                        class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors">
+                        <ion-icon name="add-outline" class="text-base"></ion-icon>
+                        <span>เพิ่มแถวรายการ</span>
+                    </button>
+                </div>
+
+                <div id="manual-rows-container" class="space-y-3">
+                    <!-- Dynamic rows injected by JS -->
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeManualImportModal()"
+                        class="px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm transition-colors">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" id="submitManualBtn"
+                        class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition-colors shadow-sm flex items-center gap-1.5">
+                        <ion-icon name="save-outline" class="text-lg"></ion-icon>
+                        <span>บันทึกนำเข้าข้อมูล</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Edit Stock Modal -->
     <div id="editStockModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm hidden">
         <div class="modal-content bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col">
@@ -343,8 +393,12 @@
         // Authorization check
         const currentUser = JSON.parse(userString);
         const userDept = currentUser.department || '';
-        const isStockTeam = userDept.includes('Store') || userDept.includes('Stock') || userDept.includes('สต๊อก');
-        if (!isStockTeam && !['admin', 'executive', 'manager'].includes(currentUser.role)) {
+        const isStockTeam = userDept.includes('Store') || userDept.includes('Stock') || userDept.includes('สต๊อก') || userDept.includes('สต็อก');
+        const isSgAccountant = userDept.includes('พนักงานบัญชีเอสจี') ||
+            (currentUser.position || '').includes('พนักงานบัญชีเอสจี') ||
+            (currentUser.branch || '').includes('พนักงานบัญชีเอสจี') ||
+            (currentUser.role || '').includes('พนักงานบัญชีเอสจี');
+        if (!isStockTeam && !isSgAccountant && !['admin', 'executive', 'manager'].includes(currentUser.role)) {
             alert('สิทธิ์การเข้าถึงถูกปฏิเสธ: เฉพาะพนักงานฝ่ายสต็อกเท่านั้น');
             window.location.href = '/dashboard';
         }
@@ -1114,6 +1168,230 @@
             } catch (err) {
                 console.error(err);
                 Swal.fire('ข้อผิดพลาด', 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'error');
+            } finally {
+                submitBtn.innerHTML = origHTML;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // ------------------------------------
+        // Manual Stock Import (นำเข้าแบบแมนนวล กรอกข้อมูลทีละช่อง)
+        // ------------------------------------
+        const STANDARD_BRANCH_LIST = [
+            'สำนักงานใหญ่', 'ยะลา', 'นราธิวาส', 'หาดใหญ่', 'บิ๊กซี (หาดใหญ่)',
+            'ปัตตานี', 'โคลีเซี่ยม', 'สุราษฎร์ธานี', 'ปากแมว', 'ภูเก็ต',
+            'นครศรีธรรมราช', 'กระบี่', 'เหนือคลอง', 'กะทู้', 'ตรัง',
+            'คุรุ', 'ชุมพร', 'สตูล', 'พัทลุง', 'สงขลา', 'เบตง', 'พังงา',
+            'จะบังติกอ', 'BW Phone', 'การตลาด', 'ฝ่ายเทคนิค สนง.'
+        ];
+
+        function getAvailableManualBranches() {
+            const dynamicBranches = allStockData.map(i => i.branch).filter(Boolean);
+            return [...new Set([...STANDARD_BRANCH_LIST, ...dynamicBranches])];
+        }
+
+        function openManualImportModal() {
+            const container = document.getElementById('manual-rows-container');
+            if (container) {
+                container.innerHTML = '';
+                const filterBranch = document.getElementById('branch-filter')?.value;
+                const defaultBranch = (filterBranch && filterBranch !== 'all') ? filterBranch : '';
+                addManualStockRow({ branch: defaultBranch, unit: 'เครื่อง', expectedQuantity: 1 });
+            }
+            document.getElementById('manualImportModal').classList.remove('hidden');
+            setTimeout(() => {
+                const firstCodeInput = document.querySelector('#manual-rows-container .manual-code-input');
+                if (firstCodeInput) firstCodeInput.focus();
+            }, 80);
+        }
+
+        function closeManualImportModal() {
+            document.getElementById('manualImportModal').classList.add('hidden');
+        }
+
+        function onManualBranchSelectChange(selectEl) {
+            const row = selectEl.closest('.manual-stock-row');
+            if (!row) return;
+            const customInput = row.querySelector('.manual-branch-custom');
+            if (!customInput) return;
+            if (selectEl.value === '__custom__') {
+                customInput.classList.remove('hidden');
+                customInput.required = true;
+                customInput.focus();
+            } else {
+                customInput.classList.add('hidden');
+                customInput.required = false;
+                customInput.value = '';
+            }
+        }
+
+        function renumberManualStockRows() {
+            const rows = document.querySelectorAll('#manual-rows-container .manual-stock-row');
+            rows.forEach((row, idx) => {
+                const badge = row.querySelector('.manual-row-number');
+                if (badge) badge.textContent = `รายการที่ ${idx + 1}`;
+            });
+        }
+
+        function addManualStockRow(defaults = {}) {
+            const container = document.getElementById('manual-rows-container');
+            if (!container) return;
+
+            const existingRows = container.querySelectorAll('.manual-stock-row');
+            let prevBranch = defaults.branch || '';
+            let prevCustomBranch = '';
+            let prevName = defaults.productName || '';
+            let prevUnit = defaults.unit || 'เครื่อง';
+
+            if (existingRows.length > 0 && Object.keys(defaults).length === 0) {
+                const lastRow = existingRows[existingRows.length - 1];
+                prevName = lastRow.querySelector('.manual-name-input')?.value || '';
+                prevUnit = lastRow.querySelector('.manual-unit-input')?.value || 'เครื่อง';
+                const lastBranchSelect = lastRow.querySelector('.manual-branch-select');
+                if (lastBranchSelect) {
+                    prevBranch = lastBranchSelect.value;
+                    if (prevBranch === '__custom__') {
+                        prevCustomBranch = lastRow.querySelector('.manual-branch-custom')?.value || '';
+                    }
+                }
+            }
+
+            const branches = getAvailableManualBranches();
+            const branchOptionsHtml = [
+                `<option value="">-- เลือกที่เก็บ (สาขา) * --</option>`,
+                ...branches.map(b => `<option value="${b}" ${b === prevBranch ? 'selected' : ''}>${b}</option>`),
+                `<option value="__custom__" ${prevBranch === '__custom__' ? 'selected' : ''}>+ ระบุชื่อที่เก็บ/สาขาเอง...</option>`
+            ].join('');
+
+            const rowIndex = existingRows.length + 1;
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'manual-stock-row p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 relative';
+            rowDiv.innerHTML = `
+                <div class="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                    <span class="manual-row-number text-xs font-bold text-blue-700 bg-blue-100/80 px-2.5 py-0.5 rounded-full">รายการที่ ${rowIndex}</span>
+                    <button type="button" onclick="removeManualStockRow(this)"
+                        class="text-slate-400 hover:text-red-500 text-xs font-bold flex items-center gap-1 transition-colors" title="ลบแถวนี้">
+                        <ion-icon name="trash-outline" class="text-base"></ion-icon>
+                        <span>ลบแถว</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">รหัสสินค้า / IMEI <span class="text-red-500">*</span></label>
+                        <input type="text" required placeholder="เช่น 355212485612339"
+                            class="manual-code-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-mono font-bold text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อสินค้า <span class="text-red-500">*</span></label>
+                        <input type="text" required placeholder="เช่น 17 256 ขาว New" value="${prevName.replace(/"/g, '&quot;')}"
+                            class="manual-name-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="col-span-2 sm:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ที่เก็บ (สาขา) <span class="text-red-500">*</span></label>
+                        <select required onchange="onManualBranchSelectChange(this)"
+                            class="manual-branch-select w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
+                            ${branchOptionsHtml}
+                        </select>
+                        <input type="text" placeholder="พิมพ์ชื่อที่เก็บ / สาขา *" value="${prevCustomBranch.replace(/"/g, '&quot;')}"
+                            class="manual-branch-custom ${prevBranch === '__custom__' ? '' : 'hidden'} mt-2 w-full px-3 py-2 bg-white border border-blue-400 rounded-lg text-sm text-slate-800 focus:border-blue-600 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">หน่วยนับ</label>
+                        <input type="text" placeholder="เครื่อง" value="${prevUnit.replace(/"/g, '&quot;')}"
+                            class="manual-unit-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 text-center focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">จำนวน <span class="text-red-500">*</span></label>
+                        <input type="number" step="any" min="1" required value="${defaults.expectedQuantity || 1}"
+                            class="manual-qty-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-800 text-center focus:border-blue-500 focus:outline-none">
+                    </div>
+                </div>
+            `;
+            container.appendChild(rowDiv);
+            const newCodeInput = rowDiv.querySelector('.manual-code-input');
+            if (newCodeInput && existingRows.length > 0) {
+                newCodeInput.focus();
+            }
+        }
+
+        function removeManualStockRow(btn) {
+            const rows = document.querySelectorAll('#manual-rows-container .manual-stock-row');
+            if (rows.length <= 1) {
+                Swal.fire('แจ้งเตือน', 'ต้องมีรายการอย่างน้อย 1 แถว', 'warning');
+                return;
+            }
+            btn.closest('.manual-stock-row').remove();
+            renumberManualStockRows();
+        }
+
+        document.getElementById('manualImportForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const rows = document.querySelectorAll('#manual-rows-container .manual-stock-row');
+            const items = [];
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const productCode = (row.querySelector('.manual-code-input')?.value || '').trim();
+                const productName = (row.querySelector('.manual-name-input')?.value || '').trim();
+                const unit = (row.querySelector('.manual-unit-input')?.value || 'เครื่อง').trim() || 'เครื่อง';
+                const expectedQuantity = parseFloat(row.querySelector('.manual-qty-input')?.value) || 1;
+
+                const branchSelectVal = row.querySelector('.manual-branch-select')?.value || '';
+                const branch = branchSelectVal === '__custom__'
+                    ? (row.querySelector('.manual-branch-custom')?.value || '').trim()
+                    : branchSelectVal.trim();
+
+                if (!productCode || !productName || !branch) {
+                    Swal.fire('ข้อมูลไม่ครบถ้วน', `กรุณากรอก รหัสสินค้า, ชื่อสินค้า และ ที่เก็บ(สาขา) ให้ครบในรายการที่ ${i + 1}`, 'warning');
+                    return;
+                }
+
+                items.push({
+                    productCode,
+                    productName,
+                    unit,
+                    branch,
+                    expectedQuantity
+                });
+            }
+
+            if (items.length === 0) return;
+
+            const submitBtn = document.getElementById('submitManualBtn');
+            const origHTML = submitBtn.innerHTML;
+            submitBtn.innerHTML = 'กำลังบันทึก...';
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/daily-stocks/manual', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ items })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    Toastify({
+                        text: data.message || `นำเข้าข้อมูลสำเร็จ ${items.length} รายการ`,
+                        backgroundColor: "#10b981",
+                        gravity: "bottom",
+                        position: "right"
+                    }).showToast();
+                    closeManualImportModal();
+                    fetchDailySummary();
+                } else {
+                    Swal.fire('เกิดข้อผิดพลาด', data.message || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
+                }
+            } catch (err) {
+                console.error('Manual import error:', err);
+                Swal.fire('เกิดข้อผิดพลาด', 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'error');
             } finally {
                 submitBtn.innerHTML = origHTML;
                 submitBtn.disabled = false;

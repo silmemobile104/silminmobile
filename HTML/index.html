@@ -3680,8 +3680,12 @@
             // =======================================================
             const navStockManagement = document.getElementById('nav-stock-management');
             if (navStockManagement) {
-                const isStockTeam = userDept.includes('Store') || userDept.includes('Stock') || userDept.includes('สต๊อก');
-                if (isStockTeam || ['admin', 'executive', 'manager'].includes(currentUser.role)) {
+                const isStockTeam = userDept.includes('Store') || userDept.includes('Stock') || userDept.includes('สต๊อก') || userDept.includes('สต็อก');
+                const isSgAccountant = userDept.includes('พนักงานบัญชีเอสจี') ||
+                    (currentUser.position || '').includes('พนักงานบัญชีเอสจี') ||
+                    (currentUser.branch || '').includes('พนักงานบัญชีเอสจี') ||
+                    (currentUser.role || '').includes('พนักงานบัญชีเอสจี');
+                if (isStockTeam || isSgAccountant || ['admin', 'executive', 'manager'].includes(currentUser.role)) {
                     navStockManagement.classList.remove('hidden');
                     navStockManagement.style.display = 'flex';
                 } else {
