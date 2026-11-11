@@ -138,25 +138,30 @@
             </div>
 
             <!-- Dashboard Section -->
-            <div class="mt-12 flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+            <div class="mt-12 flex flex-col lg:flex-row justify-between items-start lg:items-end mb-6 gap-4">
                 <div>
                     <h3 class="text-xl font-bold text-slate-800">สรุปการเช็คสต็อกประจำวัน (ทุกสาขา)</h3>
                     <p class="text-slate-500 text-sm mt-1">ข้อมูลสถานะการตรวจสอบสต็อกทั้งหมดของวันนี้</p>
                 </div>
-                <div class="flex flex-col sm:flex-row w-full md:w-auto gap-2">
-                    <div class="px-4 py-3 w-full xl:w-80 flex-shrink-0">
-                        <div class="relative w-full group">
-                            <ion-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-yellow-500 transition-colors"></ion-icon>
-                            <input type="text" id="imei-search" oninput="renderTable()" placeholder="ค้นหา IMEI/รหัสสินค้า..." 
-                                class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20 transition-all bg-white shadow-sm">
-                        </div>
+                <div class="flex flex-wrap sm:flex-nowrap items-center w-full lg:w-auto gap-2.5">
+                    <div class="relative w-full sm:w-64 flex-shrink-0 group">
+                        <ion-icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-yellow-500 transition-colors"></ion-icon>
+                        <input type="text" id="imei-search" oninput="renderTable()" placeholder="ค้นหา IMEI/รหัสสินค้า..." 
+                            class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20 transition-all bg-white shadow-sm">
                     </div>
                     <select id="branch-filter" onchange="applyBranchFilter()"
-                        class="w-full sm:w-auto px-4 py-2 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500">
+                        class="w-full sm:w-auto px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white shadow-sm focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20">
                         <option value="all">ทั้งหมด (ทุกสาขา)</option>
                     </select>
+                    <label id="sg-filter-label"
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold shadow-sm cursor-pointer select-none hover:bg-amber-50 hover:border-amber-300 transition-colors whitespace-nowrap"
+                        title="ติ๊กเพื่อแสดงเฉพาะสินค้าที่มี (SG) / ไม่ติ๊กเพื่อแสดงเฉพาะสินค้าที่ไม่มี (SG)">
+                        <input type="checkbox" id="sg-filter" onchange="applySgFilter()"
+                            class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer">
+                        <span>SG</span>
+                    </label>
                     <button onclick="fetchDailySummary()" id="refresh-btn"
-                        class="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium transition-colors shadow-sm flex items-center justify-center gap-2 disabled:bg-slate-100 disabled:text-slate-400">
+                        class="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50 font-medium transition-colors shadow-sm flex items-center justify-center gap-2 disabled:bg-slate-100 disabled:text-slate-400 whitespace-nowrap">
                         <ion-icon name="refresh-outline" id="refresh-icon"></ion-icon> รีเฟรช
                     </button>
                 </div>
@@ -614,12 +619,38 @@
             }
         }
 
+        function hasSgTag(productName) {
+            return /\(\s*sg\s*\)/i.test(String(productName || ''));
+        }
+
+        function updateSgFilterBadgeStyle() {
+            const sgCheckbox = document.getElementById('sg-filter');
+            const sgLabel = document.getElementById('sg-filter-label');
+            if (!sgCheckbox || !sgLabel) return;
+            const checked = sgCheckbox.checked;
+            sgLabel.classList.toggle('bg-amber-50', checked);
+            sgLabel.classList.toggle('border-amber-400', checked);
+            sgLabel.classList.toggle('text-amber-800', checked);
+            sgLabel.classList.toggle('bg-white', !checked);
+            sgLabel.classList.toggle('border-slate-200', !checked);
+            sgLabel.classList.toggle('text-slate-700', !checked);
+        }
+
+        function applySgFilter() {
+            updateSgFilterBadgeStyle();
+            applyBranchFilter();
+        }
+
         function getBranchFilteredData() {
+            let data = allStockData;
             const branchSelect = document.getElementById('branch-filter');
             if (branchSelect && branchSelect.value !== 'all') {
-                return allStockData.filter(i => i.branch === branchSelect.value);
+                data = data.filter(i => i.branch === branchSelect.value);
             }
-            return allStockData;
+
+            const sgCheckbox = document.getElementById('sg-filter');
+            const onlySg = Boolean(sgCheckbox && sgCheckbox.checked);
+            return data.filter(i => (onlySg ? hasSgTag(i.productName) : !hasSgTag(i.productName)));
         }
 
         function applyBranchFilter() {
@@ -1233,6 +1264,47 @@
             });
         }
 
+        function formatManualProductName(rawName, isSg) {
+            const trimmed = String(rawName || '').trim();
+            if (!trimmed) return '';
+            if (!isSg) return trimmed;
+            if (/\(\s*SG\s*\)$/i.test(trimmed)) {
+                return trimmed.replace(/\s*\(\s*SG\s*\)$/i, ' (SG)');
+            }
+            return `${trimmed} (SG)`;
+        }
+
+        function updateManualRowSgState(row) {
+            if (!row) return;
+            const checkbox = row.querySelector('.manual-sg-checkbox');
+            const nameInput = row.querySelector('.manual-name-input');
+            const badge = row.querySelector('.manual-sg-badge');
+            const preview = row.querySelector('.manual-sg-preview');
+            const previewText = row.querySelector('.manual-sg-preview-text');
+
+            const isSg = Boolean(checkbox && checkbox.checked);
+            const rawName = (nameInput?.value || '').trim();
+
+            if (badge) {
+                badge.classList.toggle('hidden', !isSg);
+                badge.classList.toggle('flex', isSg);
+            }
+            if (preview && previewText) {
+                if (isSg && rawName) {
+                    previewText.textContent = formatManualProductName(rawName, true);
+                    preview.classList.remove('hidden');
+                } else {
+                    previewText.textContent = '';
+                    preview.classList.add('hidden');
+                }
+            }
+        }
+
+        function onManualSgCheckboxChange(checkboxEl) {
+            const row = checkboxEl.closest('.manual-stock-row');
+            updateManualRowSgState(row);
+        }
+
         function addManualStockRow(defaults = {}) {
             const container = document.getElementById('manual-rows-container');
             if (!container) return;
@@ -1242,11 +1314,13 @@
             let prevCustomBranch = '';
             let prevName = defaults.productName || '';
             let prevUnit = defaults.unit || 'เครื่อง';
+            let prevSg = Boolean(defaults.isSG);
 
             if (existingRows.length > 0 && Object.keys(defaults).length === 0) {
                 const lastRow = existingRows[existingRows.length - 1];
                 prevName = lastRow.querySelector('.manual-name-input')?.value || '';
                 prevUnit = lastRow.querySelector('.manual-unit-input')?.value || 'เครื่อง';
+                prevSg = Boolean(lastRow.querySelector('.manual-sg-checkbox')?.checked);
                 const lastBranchSelect = lastRow.querySelector('.manual-branch-select');
                 if (lastBranchSelect) {
                     prevBranch = lastBranchSelect.value;
@@ -1284,13 +1358,22 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">ชื่อสินค้า <span class="text-red-500">*</span></label>
-                        <input type="text" required placeholder="เช่น 17 256 ขาว New" value="${prevName.replace(/"/g, '&quot;')}"
-                            class="manual-name-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
+                        <div class="flex items-stretch bg-white border border-slate-300 rounded-lg overflow-hidden focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
+                            <input type="text" required placeholder="เช่น 17 256 ขาว New" value="${prevName.replace(/"/g, '&quot;')}"
+                                oninput="updateManualRowSgState(this.closest('.manual-stock-row'))"
+                                class="manual-name-input w-full min-w-0 px-3 py-2 text-sm text-slate-800 bg-transparent focus:outline-none">
+                            <span class="manual-sg-badge ${prevSg ? 'flex' : 'hidden'} shrink-0 px-2.5 bg-blue-50 border-l border-blue-200 text-blue-700 text-xs font-bold items-center select-none">
+                                (SG)
+                            </span>
+                        </div>
+                        <p class="manual-sg-preview hidden text-[11px] text-blue-700 font-medium mt-1">
+                            ชื่อที่จะบันทึก: <span class="manual-sg-preview-text font-bold"></span>
+                        </p>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div class="col-span-2 sm:col-span-2">
+                <div class="grid grid-cols-2 sm:grid-cols-12 gap-3 items-start">
+                    <div class="col-span-2 sm:col-span-5">
                         <label class="block text-xs font-bold text-slate-700 mb-1">ที่เก็บ (สาขา) <span class="text-red-500">*</span></label>
                         <select required onchange="onManualBranchSelectChange(this)"
                             class="manual-branch-select w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
@@ -1299,19 +1382,29 @@
                         <input type="text" placeholder="พิมพ์ชื่อที่เก็บ / สาขา *" value="${prevCustomBranch.replace(/"/g, '&quot;')}"
                             class="manual-branch-custom ${prevBranch === '__custom__' ? '' : 'hidden'} mt-2 w-full px-3 py-2 bg-white border border-blue-400 rounded-lg text-sm text-slate-800 focus:border-blue-600 focus:outline-none">
                     </div>
-                    <div>
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 mb-1">หน่วยนับ</label>
                         <input type="text" placeholder="เครื่อง" value="${prevUnit.replace(/"/g, '&quot;')}"
-                            class="manual-unit-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 text-center focus:border-blue-500 focus:outline-none">
+                            class="manual-unit-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
                     </div>
-                    <div>
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 mb-1">จำนวน <span class="text-red-500">*</span></label>
                         <input type="number" step="any" min="1" required value="${defaults.expectedQuantity || 1}"
-                            class="manual-qty-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-800 text-center focus:border-blue-500 focus:outline-none">
+                            class="manual-qty-input w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-800 text-center focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
+                    </div>
+                    <div class="col-span-2 sm:col-span-3">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">กำกับ</label>
+                        <label class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 flex items-center justify-center gap-2 cursor-pointer select-none focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 hover:border-slate-400 transition-colors"
+                            title="ติ๊กเพื่อเพิ่ม (SG) ต่อท้ายชื่อสินค้า">
+                            <input type="checkbox" ${prevSg ? 'checked' : ''} onchange="onManualSgCheckboxChange(this)"
+                                class="manual-sg-checkbox w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer">
+                            <span class="font-bold text-slate-700">SG</span>
+                        </label>
                     </div>
                 </div>
             `;
             container.appendChild(rowDiv);
+            updateManualRowSgState(rowDiv);
             const newCodeInput = rowDiv.querySelector('.manual-code-input');
             if (newCodeInput && existingRows.length > 0) {
                 newCodeInput.focus();
@@ -1328,6 +1421,72 @@
             renumberManualStockRows();
         }
 
+        function escapeManualHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function buildManualConfirmSummaryHtml(items) {
+            const totalQty = items.reduce((sum, it) => sum + (Number(it.expectedQuantity) || 0), 0);
+            const uniqueBranches = [...new Set(items.map(it => it.branch))];
+            const sgCount = items.filter(it => it.isSG || hasSgTag(it.productName)).length;
+
+            const rowsHtml = items.map((item, idx) => {
+                const isSgItem = item.isSG || hasSgTag(item.productName);
+                return `
+                    <tr class="border-b border-slate-100 last:border-b-0 ${isSgItem ? 'bg-amber-50/40' : 'bg-white'}">
+                        <td class="px-3 py-2 text-center text-xs font-bold text-slate-500 whitespace-nowrap">${idx + 1}</td>
+                        <td class="px-3 py-2 text-xs font-mono font-bold text-slate-800 whitespace-nowrap">${escapeManualHtml(item.productCode)}</td>
+                        <td class="px-3 py-2 text-xs text-slate-700 font-medium">
+                            <span>${escapeManualHtml(item.productName)}</span>
+                        </td>
+                        <td class="px-3 py-2 text-xs text-slate-600 whitespace-nowrap">${escapeManualHtml(item.branch)}</td>
+                        <td class="px-3 py-2 text-xs font-bold text-slate-800 text-right whitespace-nowrap">${escapeManualHtml(item.expectedQuantity)} ${escapeManualHtml(item.unit)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="text-left space-y-3">
+                    <p class="text-xs text-slate-500 text-center">กรุณาตรวจสอบรายละเอียดรายการด้านล่างให้ถูกต้องก่อนกดยืนยัน</p>
+                    <div class="grid grid-cols-3 gap-2 text-center bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                        <div>
+                            <div class="text-[11px] text-slate-500">จำนวนรายการ</div>
+                            <div class="text-sm font-black text-blue-700">${items.length} รายการ</div>
+                        </div>
+                        <div>
+                            <div class="text-[11px] text-slate-500">ยอดรวมสินค้า</div>
+                            <div class="text-sm font-black text-slate-800">${totalQty} ชิ้น/เครื่อง</div>
+                        </div>
+                        <div>
+                            <div class="text-[11px] text-slate-500">สาขา / สินค้า SG</div>
+                            <div class="text-sm font-black text-amber-700">${uniqueBranches.length} สาขา (${sgCount} SG)</div>
+                        </div>
+                    </div>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <div class="max-h-64 overflow-y-auto overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-100 sticky top-0 text-[11px] font-bold text-slate-600 border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-3 py-2 text-center">#</th>
+                                        <th class="px-3 py-2">รหัสสินค้า / IMEI</th>
+                                        <th class="px-3 py-2">ชื่อสินค้า</th>
+                                        <th class="px-3 py-2">ที่เก็บ (สาขา)</th>
+                                        <th class="px-3 py-2 text-right">จำนวน</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rowsHtml}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         document.getElementById('manualImportForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const rows = document.querySelectorAll('#manual-rows-container .manual-stock-row');
@@ -1336,16 +1495,19 @@
             for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
                 const productCode = (row.querySelector('.manual-code-input')?.value || '').trim();
-                const productName = (row.querySelector('.manual-name-input')?.value || '').trim();
+                const rawProductName = (row.querySelector('.manual-name-input')?.value || '').trim();
+                const isSG = Boolean(row.querySelector('.manual-sg-checkbox')?.checked);
+                const productName = formatManualProductName(rawProductName, isSG);
                 const unit = (row.querySelector('.manual-unit-input')?.value || 'เครื่อง').trim() || 'เครื่อง';
-                const expectedQuantity = parseFloat(row.querySelector('.manual-qty-input')?.value) || 1;
+                const parsedQty = parseFloat(row.querySelector('.manual-qty-input')?.value);
+                const expectedQuantity = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
 
                 const branchSelectVal = row.querySelector('.manual-branch-select')?.value || '';
                 const branch = branchSelectVal === '__custom__'
                     ? (row.querySelector('.manual-branch-custom')?.value || '').trim()
                     : branchSelectVal.trim();
 
-                if (!productCode || !productName || !branch) {
+                if (!productCode || !rawProductName || !branch) {
                     Swal.fire('ข้อมูลไม่ครบถ้วน', `กรุณากรอก รหัสสินค้า, ชื่อสินค้า และ ที่เก็บ(สาขา) ให้ครบในรายการที่ ${i + 1}`, 'warning');
                     return;
                 }
@@ -1353,6 +1515,7 @@
                 items.push({
                     productCode,
                     productName,
+                    isSG,
                     unit,
                     branch,
                     expectedQuantity
@@ -1360,6 +1523,20 @@
             }
 
             if (items.length === 0) return;
+
+            const confirmResult = await Swal.fire({
+                title: 'ยืนยันการนำเข้าข้อมูลสต็อก?',
+                html: buildManualConfirmSummaryHtml(items),
+                icon: 'question',
+                width: 720,
+                showCancelButton: true,
+                confirmButtonColor: '#2563eb',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (!confirmResult.isConfirmed) return;
 
             const submitBtn = document.getElementById('submitManualBtn');
             const origHTML = submitBtn.innerHTML;

@@ -92,7 +92,13 @@ exports.createManualDailyStock = async (req, res) => {
         for (let i = 0; i < rawItems.length; i++) {
             const row = rawItems[i] || {};
             const productCode = String(row.productCode || '').trim();
-            const productName = String(row.productName || '').trim();
+            const rawProductName = String(row.productName || '').trim();
+            const isSG = row.isSG === true || row.isSG === 'true';
+            const productName = isSG && rawProductName
+                ? (/\(\s*SG\s*\)$/i.test(rawProductName)
+                    ? rawProductName.replace(/\s*\(\s*SG\s*\)$/i, ' (SG)')
+                    : `${rawProductName} (SG)`)
+                : rawProductName;
             const unit = String(row.unit || 'เครื่อง').trim() || 'เครื่อง';
             const lot = String(row.lot || '').trim();
             const branch = String(row.branch || '').trim();
